@@ -1,0 +1,1173 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import platform
+import string
+import random
+from enum import Enum
+import subprocess
+import argparse
+# from textwrap import TextWrapper
+import textwrap
+from pprint import pprint as pp
+import datetime
+# import IPython
+
+class FakeColor:
+    class Fore:
+        BLACK = ''
+        GREEN = ''
+        LIGHTCYAN_EX = ''
+        LIGHTRED_EX = ''
+        MAGENTA = ''
+        WHITE = ''
+        BLUE = ''
+        LIGHTBLACK_EX = ''
+        LIGHTGREEN_EX = ''
+        LIGHTWHITE_EX = ''
+        RED = ''
+        YELLOW = ''
+        CYAN = ''
+        LIGHTBLUE_EX = ''
+        LIGHTMAGENTA_EX = ''
+        LIGHTYELLOW_EX = ''
+        RESET = ''
+    class Back:
+        BLACK = ''
+        GREEN = ''
+        LIGHTCYAN_EX = ''
+        LIGHTRED_EX = ''
+        MAGENTA = ''
+        WHITE = ''
+        BLUE = ''
+        LIGHTBLACK_EX = ''
+        LIGHTGREEN_EX = ''
+        LIGHTWHITE_EX = ''
+        RED = ''
+        YELLOW = ''
+        CYAN = ''
+        LIGHTBLUE_EX = ''
+        LIGHTMAGENTA_EX = ''
+        LIGHTYELLOW_EX = ''
+        RESET = ''
+    class Style:
+        BRIGHT = ''
+        DIM = ''
+        NORMAL = ''
+        RESET_ALL = ''
+        RESET = ''
+
+APTUPDATED = False
+try:
+    import colorama as c
+except ImportError:
+    sys.stdout.write('Installing colorama... ')
+    sys.stdout.flush()
+    try:
+        cmd = 'sudo apt-get --quiet update && sudo apt-get --quiet --yes install python3-colorama'
+        subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
+        import colorama as c
+        APTUPDATED = True
+    except ImportError:
+        c = FakeColor()
+        sys.stdout.write('Could not install colorama\n\n')
+    except subprocess.CalledProcessError:
+        sys.stdout.write('Could not install colorama\n\n')
+    sys.stdout.write('Done\n\n')
+    sys.stdout.flush()
+
+try:
+    CONSOLE_WIDTH = os.get_terminal_size().columns
+except OSError:
+    CONSOLE_WIDTH = 80
+
+
+def display_cmd(cmd, indent=0, wrap=True):
+    indent = ' ' * indent
+    leader = '+ '
+    initial_indent = indent + leader
+    subsequent_indent = indent + (' ' * len(leader))
+    if wrap:
+        w = textwrap.TextWrapper(
+            initial_indent=initial_indent,
+            subsequent_indent=subsequent_indent,
+            break_on_hyphens=False,
+            break_long_words=False,
+            width=(CONSOLE_WIDTH - len(subsequent_indent))
+        )
+        lines = w.wrap('{}'.format(cmd))
+        # Add a space & backslash to the end of each line then remove it from
+        # the end of the joined string.
+        fancy = '\n'.join(['{} \\'.format(i) for i in lines])[:-2]
+    else:
+        cmd = cmd.split('\n')
+        first = [initial_indent + cmd[0]]
+        rest = [subsequent_indent + i for i in cmd[1:]]
+        fancy = '\n'.join(first + rest)
+
+    sys.stdout.write(c.Fore.YELLOW + fancy + c.Style.RESET_ALL + '\n')
+    sys.stdout.flush()
+
+
+def title(msg):
+    timestamp = datetime.datetime.now().isoformat()
+    msg = '{} [{}] '.format(msg, timestamp).ljust(CONSOLE_WIDTH, '-')
+    print()
+    # sys.stdout.write(c.Style.BRIGHT + c.Back.MAGENTA + msg + c.Style.RESET_ALL + '\n')
+    sys.stdout.write(c.Style.BRIGHT + c.Fore.YELLOW + msg  + c.Style.RESET_ALL + '\n')
+    sys.stdout.flush()
+
+
+def error(msg, dry_run=False):
+    sys.stdout.write(c.Fore.RED + c.Style.BRIGHT + 'ERROR: ' + c.Style.RESET_ALL +
+                     c.Fore.RED + str(msg) + c.Style.RESET_ALL + '\n')
+    sys.stdout.flush()
+    if not dry_run:
+        sys.exit(1)
+
+
+def password_gen(level='alpha-num', length=10):
+    levels = {
+        'alpha-lower': string.ascii_lowercase,
+        'alpha-mixed': string.ascii_letters,
+        'alpha-num': string.ascii_letters + string.digits,
+        'alpha-num-symbol': string.ascii_letters + string.digits + string.punctuation
+    }
+    try:
+        source = levels[level]
+    except KeyError:
+        ui.error('password level not one of: {}'.format(', '.join(levels.keys())))
+    return ''.join(random.choices(source, k=length))
+
+
+class Distro(Enum):
+    UBUNTU = 1
+
+class Version(Enum):
+    V18_04 = 1
+    V17_10 = 2
+    V17_04 = 3
+    V16_10 = 4
+    V16_04 = 5
+
+class Apt(Enum):
+    INSTALL = 1
+    UNINSTALL = 2
+
+class DependencyError(Exception): pass
+class PlatformError(Exception): pass
+class SecurityError(Exception): pass
+
+class Bash():
+    def __init__(self, dry_run=False, args=None):
+        self.ok_code = 0
+        self.requires = []
+        self.apt_pkgs = []
+        self.platform_reqs = (Distro.UBUNTU, Version.V18_04)
+        self.is_installed = False
+        self.ubuntu = platform.dist()[1]
+        self.dry_run = dry_run
+        self.args = args
+        self.scriptname = os.path.basename(__file__)
+        if args and not dry_run:
+            action = args.subparser_name
+            self.log(action, self.__class__.__name__)
+
+    def log(self, action, name):
+        log_name = '~/{}-installed-modules'.format(os.path.basename(__file__))
+        mod = '{}\n'.format(name)
+        try:
+            with open(os.path.expanduser(log_name), 'r') as f:
+                installed_mods = f.readlines()
+        except FileNotFoundError:
+            installed_mods = []
+
+        installed_mods = set(installed_mods)
+        if action == 'install':
+            installed_mods.add(mod)
+        elif action == 'uninstall':
+            try:
+                installed_mods.remove(mod)
+            except KeyError:
+                pass
+
+        with open(os.path.expanduser(log_name), 'w') as f:
+            f.writelines(installed_mods)
+
+    def install(self):
+        self._apt(Apt.INSTALL)
+        return True
+
+    def pre_install(self):
+        return True
+
+    def post_install(self):
+        return True
+
+    def uninstall(self):
+        if self._apt(Apt.UNINSTALL):
+            self.run('sudo apt-get --yes --quiet autoremove')
+        return True
+
+    def post_uninstall(self):
+        return True
+
+    def check_requirments(self, installed):
+        missing = []
+        for required in self.requires:
+            if required.lower() not in installed:
+                missing.append(required)
+        if missing:
+            raise DependencyError('Module {} requires: {}.'.format(
+                self.__class__.__name__, ', '.join(missing)))
+
+        if (self.platform_reqs[0] != Distro.UBUNTU or
+            self.platform_reqs[1] != Version.V18_04):
+            raise PlatformError('Distro platform and/or version are incorrect: {}'.format(self.platform_reqs))
+
+    def run(self, cmd, wrap=True, capture=False):
+        if wrap:
+            pretty_cmd = ' '.join(cmd.split())
+            display_cmd(pretty_cmd, wrap=True)
+        else:
+            display_cmd(cmd, wrap=False)
+            #print(cmd)
+
+        if self.args.dry_run:
+            return
+        if capture:
+            result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
+            #print(result.stdout)
+            sys.stdout.flush()
+        else:
+            result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash')
+        return result
+
+    def curl(self, url, output, capture=False):
+        cmd = 'curl -sS {url} --output {output}'.format(
+            url=url, output=output)
+        result = self.run(cmd, capture=capture)
+        return result
+
+    def _apt(self, action):
+        dry = '--dry-run' if self.dry_run else ''
+        packages = ' '.join(self.apt_pkgs)
+        if not packages:
+            return False
+        action = 'install' if action == Apt.INSTALL else 'purge'
+        self.run('export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet {action} {packages}'.format(
+            action=action, dry=dry, packages=packages))
+        self.is_installed = True
+        return True
+
+
+# ------------------------------ Modules ------------------------------
+
+class First(Bash):
+    """Misc apps that are useful
+
+    tree, elinks, virt-what, silversearcher-ag,
+    htop, source-highlight, whois, emacs-nox, curl"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['first']
+        self.platform_reqs = (Distro.UBUNTU, Version.V18_04)
+        self.apt_pkgs = [
+            'tree', 'elinks', 'virt-what', 'silversearcher-ag',
+            'htop', 'source-highlight', 'whois', 'emacs-nox', 'curl',
+        ]
+    def pre_install(self):
+        if not APTUPDATED:
+            self.run('sudo apt-get --quiet update')
+
+
+class Cert(Bash):
+    """A self signed cert good for 30 years
+
+    It's name is the servername, SERVERNAME.crt and SERVERNAME.key.
+    They are install in /etc/ssl."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['cert']
+
+    def cert_names(self, cert_basename):
+        crt = '{}.crt'.format(cert_basename)
+        key = '{}.key'.format(cert_basename)
+
+        home_crt = os.path.join(os.path.expanduser('~'), crt)
+        home_key = os.path.join(os.path.expanduser('~'), key)
+
+        cert_loc = '/etc/ssl'
+        real_crt = os.path.join(cert_loc, 'certs', crt)
+        real_key = os.path.join(cert_loc, 'private', key)
+
+        return (home_crt, home_key, real_crt, real_key)
+
+    def pre_install(self):
+        cert_basename = self.args.servername
+        self.run('''
+            sudo openssl \
+                 req \
+                 -new \
+                 -newkey rsa:4096 \
+                 -days 10950 \
+                 -nodes \
+                 -x509 \
+                 -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN={servername}" \
+                 -keyout {cert_basename}.key \
+                 -out {cert_basename}.crt &>/dev/null
+        '''.format(
+            servername=self.args.servername,
+            cert_basename=cert_basename
+        ))
+        self.run('sudo cp {cert_basename}.crt /etc/ssl/certs/{cert_basename}.crt'.format(
+            cert_basename=cert_basename))
+        self.run('sudo cp {cert_basename}.key /etc/ssl/private/{cert_basename}.key'.format(
+            cert_basename=cert_basename))
+
+    def post_uninstall(self):
+        cert_basename = self.args.cert_basename
+        home_crt, home_key, real_crt, real_key = self.cert_names(cert_basename)
+
+        self.run('[[ -e {f} ]] && sudo rm {f}'.format(f=home_crt))
+        self.run('[[ -e {f} ]] && sudo rm {f}'.format(f=home_key))
+        self.run('sudo test -e {f} && sudo rm {f}'.format(f=real_crt))
+        self.run('sudo test -e {f} && sudo rm {f}'.format(f=real_key))
+
+
+class Apache2(Bash):
+    """Apache and a conf named from the servername
+
+    The default apache conf is disabled and a new on is made using the
+    SERVERNAME argument value, /etc/apache/sites-enabled/SERVERNAME.conf.
+    It has an http and https section using the cert created via the cert module."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.requires = ['cert']
+        self.provides = ['apache2']
+        self.apt_pkgs = ['apache2']
+
+    def http(self, servername):
+        https_redirect = ''
+        if self.args.force_https:
+            https_redirect = 'Redirect permanent "/" https://{servername}/'.format(
+                servername=servername
+            )
+        vhost = '''
+            # HTTP
+            <VirtualHost *:80>
+                ServerAdmin webmaster@localhost
+
+                ServerName {servername}
+                {https_redirect}
+                DocumentRoot /var/www/html
+                <Directory "/var/www">
+                    AllowOverride All
+                </Directory>
+
+                # ErrorLog ${{APACHE_LOG_DIR}}/error.log
+                # CustomLog ${{APACHE_LOG_DIR}}/access.log combined
+            </VirtualHost>'''.format(
+            servername=servername,
+            https_redirect=https_redirect
+        )
+        vhost = '\n'.join([i[12:] for i in vhost.split('\n')])
+        return vhost
+
+    def https(self, servername, cert, key):
+        vhost = '''
+            # HTTPS
+            <VirtualHost *:443>
+                ServerAdmin webmaster@localhost
+
+                ServerName {servername}
+                # ServerAlias www.{servername}
+
+                DocumentRoot /var/www/html
+                <Directory "/var/www">
+                    AllowOverride All
+                </Directory>
+
+                # ErrorLog ${{APACHE_LOG_DIR}}/error.log
+                # CustomLog ${{APACHE_LOG_DIR}}/access.log combined
+
+                SSLEngine on
+                SSLOptions +StrictRequire
+                SSLCertificateFile {cert}
+                SSLCertificateKeyFile {key}
+            </VirtualHost>'''.format(
+            servername=servername,
+            cert=cert,
+            key=key
+        )
+        vhost = '\n'.join([i[12:] for i in vhost.split('\n')])
+        return vhost
+
+    def post_install(self):
+        vhost_config = self.http(self.args.servername)
+
+        cert = Cert()
+        self.run('sudo a2enmod ssl')
+        _, _, crt, key = cert.cert_names(self.args.servername)
+        vhost_config += self.https(self.args.servername, crt, key)
+
+        conf_file = '/etc/apache2/sites-available/{}.conf'.format(
+            self.args.servername
+        )
+
+        sites_available = '/etc/apache2/sites-available'
+        self.run('echo | sudo tee {conf} <<EOF\n{file}\nEOF'.format(
+            sites=sites_available,
+            conf=conf_file,
+            file=vhost_config
+        ), wrap=False)
+
+        # make www-root owner of html
+        self.run('sudo chown www-data:www-data /var/www/html')
+
+        # disable all sites
+        self.run('sudo a2dissite "*"')
+        # enable the new one
+        self.run('sudo a2ensite {}'.format(self.args.servername))
+        # restart apache
+        self.run('sudo service apache2 restart')
+
+    def post_uninstall(self):
+        self.run('if sudo test -d /etc/apache2; then sudo rm -rf /etc/apache2; fi')
+
+
+class Nginx(Bash):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['nginx']
+        self.apt_pkgs = ['nginx']
+
+
+class Php(Bash):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['php']
+        self.requires = ['apache2']
+        self.apt_pkgs = ['php7.0']
+
+
+class PhpInfo(Bash):
+    """Create a phpinfo.php file in /var/www/html"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['phpinfo']
+        self.requires = ['php']
+        self.loc = '/var/www/html'
+        self.info_file = '{}/phpinfo.php'.format(loc)
+
+    def post_install(self):
+        info = '<h1>{}</h1>\n<?php phpinfo();'.format(datetime.datetime.now().isoformat())
+        if os.path.exists(self.loc):
+            cmd = 'echo \'{info}\' | sudo -u www-data tee {loc}'.format(
+                info=info,
+                loc=self.info_file
+            )
+            self.run(cmd)
+        else:
+            error('[PhpInfo] Dir does not exist: {}'.format(), self.args.dry_run)
+
+    def post_uninstall(self):
+        cmd = 'if test -e {infofile}; then rm {infofile}; fi'.format(
+            infofile=self.info_file
+        )
+
+
+class Mysql(Bash):
+    """Mysql db and password configuration
+
+    root's password: --db-root-password=PASSWORD
+    New db: --db-name=DBNAME
+    Optional new user and password: --new-db-user-and-pass=USER,PASSWORD"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['mysql']
+        self.apt_pkgs = ['mysql-server']
+
+    def configure_root_password(self):
+        root_pass = self.args.db_root_pass
+        self.run('''sudo debconf-set-selections <<< \
+            "mysql-server mysql-server/root_password password {}"'''.format(root_pass))
+        self.run('''sudo debconf-set-selections <<< \
+            "mysql-server mysql-server/root_password_again password {}"'''.format(root_pass))
+
+    def setup_user(self, db_user, db_pass, root_pass):
+        # only for MySQL 5.7.8 and up?
+        sql = '''
+        DROP USER IF EXISTS '{db_user}'@'localhost';
+          CREATE USER '{db_user}'@'localhost'
+            IDENTIFIED BY '{db_pass}';
+          GRANT ALL PRIVILEGES ON * . * TO '{db_user}'@'localhost';
+          FLUSH PRIVILEGES;
+        '''.format(
+            db_user=db_user,
+            db_pass=db_pass
+        )
+        self.run('mysql -uroot -p{root_pass} <<EOF\n{sql}\nEOF'.format(
+            root_pass=root_pass,
+            sql=sql))
+
+    def create_schema(self, db_name, root_pass):
+        sql = '''
+          DROP DATABASE IF EXISTS {db_name};
+          CREATE DATABASE IF NOT EXISTS {db_name};
+        '''.format(
+            db_name=db_name,
+        )
+        self.run('mysql -uroot -p{root_pass} <<EOF\n{sql}\nEOF'.format(
+            root_pass=root_pass,
+            sql=sql
+        ))
+
+    def import_sql(self, root_pass, sql_file):
+        self.run('mysql -uroot -p{root_pass} < {sql_file}'.format(
+            root_pass=root_pass,
+            sql_file=sql_file
+        ))
+
+    def pre_install(self):
+        self.configure_root_password()
+
+    def post_install(self):
+        if self.args.new_db_user_and_pass:
+            self.setup_user(*self.args.new_db_user_and_pass, self.args.db_root_pass)
+        if self.args.db_name:
+            self.create_schema(self.args.db_name, self.args.db_root_pass)
+        if self.args.sql_file:
+            self.import_sql(self.args.db_root_pass, self.args.sql_file)
+
+
+class Composer(Bash):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['composer']
+        self.requires = ['php']
+
+    def post_install(self):
+        url = 'https://composer.github.io/installer.sig'
+        sig_name = os.path.expanduser('~/composer.sig')
+        self.curl(url, sig_name)
+
+        expected_sig = None
+        if os.path.exists(sig_name):  # could be a dry run
+            with open(os.path.expanduser(sig_name)) as f:
+                expected_sig = f.read()
+            expected_sig = expected_sig.strip()
+            self.run('rm {}'.format(sig_name))
+
+        url = 'https://getcomposer.org/installer'
+        comp_name = '~/composer_installer'
+        self.curl(url, comp_name)
+
+        actual_sig = None
+        result = self.run('sha384sum {}'.format(comp_name), capture=True)
+        if result:  # could be a dry run
+            actual_sig = result.stdout.decode('utf-8').split()[0].strip()
+
+        if expected_sig != actual_sig:
+            self.run('rm {}'.format(comp_name))
+            raise SecurityError('Composer\'s signatures do not match')
+
+        [self.run(command) for command in (
+            #'php {} --quiet'.format(comp_name),
+            'sudo php {} --quiet --install-dir=/usr/local/bin --filename=composer'.format(comp_name),
+            #'rm {}'.format(comp_name),
+            #'sudo mv composer.phar /usr/local/bin/composer',
+            #'if [[ ! -e ~/.composer ]]; then mkdir ~/.composer/; fi',
+            #'chmod a+rw ~/.composer/',
+        )]
+        # add www-data to the ubuntu group so when running composer as
+        # www-data user, it can create a cache in ubuntu's home dir.
+        self.run('sudo usermod -aG ubuntu www-data')
+        self.run('sudo chown -R ubuntu: /home/ubuntu/.composer')  # FIXME: don't hard code
+        self.run('sudo chmod -R uga+rw /home/ubuntu/.composer')   # FIXME: don't hard code
+
+    def post_uninstall(self):
+        self.run('sudo rm /usr/local/bin/composer')
+        self.run('if [[ -e ~/.composer ]]; then rm -rf ~/.composer/; fi')
+        self.run('if [[ -e ~/composer.sig]]; then rm ~/composer.sig; fi')
+
+
+class Xdebug(Bash):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.requires = ['php']
+        self.apt_pkgs = ['php-xdebug']    # good enough?
+
+
+class PhpMyAdmin(Bash):
+    """Web database client
+
+    Access at http://<servername>/phpmyadmin
+    Use the root username and the password specified via --db_root_pass
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['phpmyadmin']
+        self.requires = ['apache2', 'php', 'mysql']
+        self.apt_pkgs = ['phpmyadmin']
+
+    def pre_install(self):
+        root_pass = self.args.db_root_pass
+        self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2"')
+        self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/dbconfig-install boolean true"')
+        self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/app-password-confirm password {}"'.format(root_pass))
+        self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multiselect none"')
+
+        self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-user string root"')
+        self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-pass password {}"'.format(root_pass))
+        self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/app-pass password {}"'.format(root_pass))
+
+
+class Craft2(Bash):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['craft2']
+        self.requires = ['apache2', 'php', 'mysql']
+
+
+class Craft3(Bash):
+    """https://craftcms.com"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['craft3']
+        self.requires = ['apache2', 'php', 'mysql', 'composer']
+        self.apt_pkgs = ['php7.0-mbstring', 'php-imagick', 'php7.0-mcrypt',
+                         'php7.0-curl', 'php-xml', 'php7.0-zip']
+        # self.apt_pkgs = ['php7.2-mbstring', 'php-imagick', 'php7.2-curl',
+        #                  'php-xml', 'php7.2-zip']
+        self.craft_dir = '/var/www/craft'
+        self.html_dir = '/var/www/html'
+
+    def post_install(self):
+        # setup the dirs
+        craft_dir = self.craft_dir
+        html_dir = self.html_dir
+        for d in (craft_dir, html_dir):
+            if not os.path.exists(d):
+                self.run('sudo mkdir {}'.format(d))
+            self.run('sudo chown www-data: {}'.format(d))
+            self.run('sudo chmod ug+rw {}'.format(d))
+
+        # make sure craft dir is empty
+        if os.listdir(craft_dir):
+            error('Craft dir is not empty. ({})'.format(craft_dir), self.args.dry_run)
+
+        # Install craft3 via composer
+        craft_db_user = 'root'
+        craft_db_pass = self.args.db_root_pass
+        craft_db_name = self.args.db_name
+
+        # install from composer
+        self.run('sudo -u www-data composer create-project --remove-vcs --no-interaction craftcms/craft {}'.format(craft_dir))
+
+        # setup the db
+        self.run('''sudo -u www-data php {craft_dir}/craft setup/db --interactive 0 \
+            --driver mysql \
+            --database {db_name} \
+            --user {db_user} \
+            --password {db_pass} \
+            --port 3306 \
+            --server localhost'''.format(
+                craft_dir=craft_dir,
+                db_name=craft_db_name,
+                db_user=craft_db_user,
+                db_pass=craft_db_pass
+            ))
+        # run the install
+        self.run('''sudo -u www-data php {craft_dir}/craft install/craft --interactive=0 \
+            --email={email} \
+            --username={username} \
+            --password={password} \
+            --siteName={sitename} \
+            --siteUrl={siteurl}'''.format(
+                craft_dir=craft_dir,
+                email='',
+                username='root',
+                password=self.args.db_root_password,
+                sitename=self.args.servername,
+                # email='sm@8cylinder.com',       # FIXME: this variable cannot be hardcoded
+                # username='sm',                  # FIXME: this variable cannot be hardcoded
+                # password='password',            # FIXME: this variable cannot be hardcoded
+                # sitename='Olivesandchocolate',  # FIXME: this variable cannot be hardcoded
+                siteurl="'@web'"
+            ))
+
+        # copy web files to the html dir, adjust permissions, enable rewrite and restart server
+        [self.run(command) for command in (
+            'sudo chown www-data: {}'.format(html_dir),
+            'sudo -u www-data cp -r "{}/web/." "{}"'.format(craft_dir, html_dir),
+            'sudo chmod 774 {}/cpresources/'.format(html_dir),
+            'sudo chmod -R g+rw {}'.format(craft_dir),
+            'sudo chmod -R g+rw {}'.format(html_dir),
+            'sudo a2enmod rewrite',
+            'sudo service apache2 restart',
+        )]
+
+        # edit craft's html/index.php to point to the craft dir
+        cmd = 'sudo -u www-data sed --in-place=".original" \
+               "s|dirname(__DIR__)|\'{craftdir}\'|" {index}'.format(
+            craftdir=craft_dir,
+            index=os.path.join(html_dir, 'index.php')
+        )
+        self.run(cmd)
+
+    def post_uninstall(self):
+        ...
+
+
+class VirtualHost(Bash):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['virtualhost']
+
+
+class Wordpress(Bash):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['wordpress']
+
+
+class WpCli(Bash):
+    """The wordpress cli application"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['wpcli']
+
+
+class NewUser(Bash):
+    """Create a new user
+
+    Create a new user and add them to the sudo and www-data groups.
+    The new user does not require a password for sudo.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['newuser']
+        self.requires = ['first']
+
+    def pre_install(self):
+        username, password = self.args.new_system_user_and_pass
+
+        self.run('sudo useradd --shell=/bin/bash --create-home --password \
+                  $(mkpasswd -m sha-512 {password}) {username}'.format(
+            password=password, username=username
+        ))
+        self.run('### or if using these commands interactively, use:')
+        self.run('# adduser {username}...'.format(username=username, password=password))
+        # add user to some groups
+        for group in ('sudo', 'www-data'):
+            self.run('sudo usermod -aG {group} {username}'.format(
+                group=group,
+                username=username
+            ))
+        # make user not need a password for sudo
+        sudo_file = '/etc/sudoers.d/{}-{}'.format(self.scriptname, username)  # filename cannot have a . or ~
+        self.run("echo '{} ALL=(ALL) NOPASSWD:ALL' | sudo tee {}".format(username, sudo_file))
+
+    def uninstall(self):
+        username = self.args.system_user
+        self.run('sudo userdel -r {}'.format(username))
+        sudo_file = '/etc/sudoers.d/{}-{}'.format(self.scriptname, username)
+        self.run('sudo rm {}'.format(sudo_file))
+
+
+class Bashrc(Bash):
+    """A custom bashrc from GitHub and symlink boss to ~/bin/
+
+    1. Downloads a bashrc from GitHub and creates a bin dir in the $HOME dir.
+    2. Backups the orginal .bashrc
+    3. Symlinks the ~/bin/bashrc to ~/.bashrc
+    4. Symlink /project/boss to ~/bin/boss
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['bashrc']
+        self.apt_pkgs = ['emacs-nox']
+
+    def install_bashrc(self):
+        self.run('if [[ ! -d ~/bin ]]; then mkdir ~/bin; fi')
+        gh_files = {
+            'bashrc': 'https://raw.githubusercontent.com/8cylinder/bin/master/bashrc',
+            'bashrc_prompt': 'https://raw.githubusercontent.com/8cylinder/bin/master/bashrc_prompt',
+        }
+        for ghname, ghurl in gh_files.items():
+            self.curl(ghurl, '~/bin/' + ghname)
+
+        # if .bashrc is not a link, back it up
+        self.run('if [[ ! -L ~/.bashrc ]]; then mv ~/.bashrc ~/.bashrc.original; fi')
+        # if .bashrc does not exist, make a link to bin/bashrc
+        self.run('if [[ ! -e ~/.bashrc ]]; then ln -s ~/bin/bashrc ~/.bashrc; fi')
+        #self.run('echo -e "\n\nalias emacs=\'jmacs\'\n" >> ~/bin/bashrc')
+
+    def link_boss(self):
+        source = __file__
+        name = os.path.basename(source)
+        dest = os.path.expanduser(os.path.join('~/bin', name))
+        self.run('if [[ ! -h {} ]]; then ln -s {} {}; fi'.format(dest, source, dest))
+
+    def post_install(self):
+        self.install_bashrc()
+        self.link_boss()
+
+    def uninstall(self):
+        self.run('if [[ -d ~/bin ]]; then sudo rm -rf ~/bin; fi')
+        # if .bashrc.original exists, restore it
+        self.run('if [[ -e ~/.bashrc.original ]]; then mv .bashrc.original .bashrc; fi')
+
+
+class AptProxy(Bash):
+    """Use the host machine's apt proxy
+
+    apt-cacher-ng needs to be installed and configured on the host:
+    1. sudo apt install apt-cacher-ng
+    2. echo 'Acquire::http::Proxy "http://<HOST IP>:3142";' | sudo tee /etc/apt/apt.conf.d/00aptproxy
+
+    Installation can be checked by going to http://<HOST IP>:3142/acng-report.html
+
+    Then when using the `aptproxy` module, it will create a config
+    file in apt.conf.d to configure apt to use the host's apt cache by
+    running the following command:
+    `echo 'Acquire::http::Proxy "http://<HOST IP>:3142";' | sudo tee /etc/apt/apt.conf.d/00aptproxy`"""
+
+    conf_file = '/etc/apt/apt.conf.d/00aptproxy'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['aptproxy']
+
+    def post_install(self):
+        host_ip = self.args.host_ip
+        proxy_setting = '\'Acquire::http::Proxy "http://{}:3142";\''.format(host_ip)
+        cmd = 'echo {setting} | sudo tee {ip}'.format(
+            setting=proxy_setting,
+            ip=self.conf_file
+        )
+        self.run(cmd)
+
+    def post_uninstall(self):
+        cmd = 'sudo rm {}'.format(self.conf_file)
+        self.run(cmd)
+
+
+class Netdata(Bash):
+    """Netdata server monitoring"""
+    # https://github.com/firehol/netdata
+    # https://github.com/firehol/netdata/wiki/Running-behind-apache
+    # https://www.digitalocean.com/community/tutorials/how-to-set-up-real-time-performance-monitoring-with-netdata-on-ubuntu-16-04
+    # args: username (default:netdata), password (default:<random>)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['netdata']
+        self.requires = ['apache2']
+        # self.apt_pkgs = ['netdata']  # <-- ubuntu 18.05+ only
+        # bash <(curl -Ss https://my-netdata.io/kickstart.sh) --non-interactive all
+        # url: http://localhost:19999
+
+
+class Lamp(Apache2, Mysql):
+    """The whole shebang
+
+    This runs `apt-get install lamp-server^`
+
+    Installed packages.  Use `apt show lamp-server^ | grep Package:` for
+    details.
+
+    perl, apache2, apache2-bin, apache2-utils, apache2-data, ssl-cert,
+    php7.0-cli, php7.0-common, php7.0-json, php7.0-opcache,
+    mysql-common, perl-modules-5.22, tcpd, mysql-client-5.7,
+    mysql-client-core-5.7, mysql-server, mysql-server-5.7,
+    mysql-server-core-5.7, rename, php-common, php-mysql,
+    php7.0-mysql, php7.0-readline"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['apache2', 'php', 'mysql', 'lamp']
+        self.apt_pkgs = ['lamp-server^']
+
+    def pre_install(self):
+        for cls in Lamp.__bases__:
+            cls.pre_install(self)
+
+    def post_install(self):
+        for cls in Lamp.__bases__:
+            cls.post_install(self)
+
+        self.run('sudo service apache2 restart')
+
+    def post_uninstall(self):
+        for cls in Lamp.__bases__:
+            cls.post_uninstall(self)
+
+
+# class Last(Bash):
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.provides = ['last']
+
+#     def pre_install(self):
+#         # apache config
+#         # installed mods
+#         # user name & password
+#         # mysql username & password
+#         # mysql root password
+#         # php version
+#         pass
+
+
+# --------------------------------- UI ---------------------------------
+
+def init(args):
+    # list of all modules and the order they should be executed in.
+    mappings = [
+        ('aptproxy', AptProxy),
+        ('first', First),  # this is a required module
+        ('newuser', NewUser),
+        ('cert', Cert),
+        ('lamp', Lamp),
+        ('apache2', Apache2),
+        ('nginx', Nginx),
+        ('php', Php),
+        ('phpinfo', PhpInfo),
+        ('mysql', Mysql),
+        ('composer', Composer),
+        ('xdebug', Xdebug),
+        ('phpmyadmin', PhpMyAdmin),
+        ('craft2', Craft2),
+        ('craft3', Craft3),
+        ('newsite', VirtualHost),
+        ('wpcli', WpCli),
+        ('netdata', Netdata),
+        ('bashrc', Bashrc),
+        # ('last', Last),
+    ]
+    if args.subparser_name == 'install':
+        install_uninstall(args, mappings)
+    elif args.subparser_name == 'uninstall':
+        install_uninstall(args, mappings)
+    elif args.subparser_name == 'list':
+        list_modules(args, mappings)
+    elif args.subparser_name == 'help':
+        found = False
+        for mapping in mappings:
+            if args.module == mapping[0]:
+                app = mapping[1]
+                print()
+                print(app.__doc__)
+                found = True
+        if not found:
+            error('Unknown module: {}.  Try `boss list`'.format(args.module), self.args.dry_run)
+
+def list_modules(args, mappings):
+    installed_file = os.path.expanduser('~/boss-installed-modules')
+    installed = []
+    if os.path.exists(installed_file):
+        with open(installed_file) as f:
+            installed = f.readlines()
+        installed = [i.lower().strip() for i in installed]
+
+    for row in mappings:
+        name = row[0]
+        module = row[1]
+        state = '[X] ' if name in installed else '[-] '
+        state = 'I ' if name in installed else '  '
+        description = module.__doc__ if module.__doc__ else ''
+        description = description.split('\n')[0]
+        modline = state + c.Style.BRIGHT + name.ljust(12) + c.Style.RESET_ALL + description + '\n'
+        sys.stdout.write(modline)
+        sys.stdout.flush()
+
+def install_uninstall(args, mappings):
+    modules = args.modules
+
+    required = ['first', 'last']
+    # extract the requested modules and the required from mappings
+    if args.subparser_name == 'install':
+        if args.no_required:
+            apps = [i for i in mappings if i[0] in modules]
+        else:
+            apps = [i for i in mappings if i[0] in modules or i[0] in required]
+    else:
+        apps = [i for i in mappings if i[0] in modules]
+
+    # check if the user is asking for non-existent modules
+    mapping_keys = [i[0] for i in mappings]
+    invalid_modules = [i for i in modules if i not in mapping_keys]
+    if invalid_modules:
+        error('module(s) "{invalid}" does not exist.\nValid modules are:\n{valid}'.format(
+            valid=', '.join(mapping_keys),
+            invalid=', '.join(invalid_modules)
+        ))
+
+    # check if the requested modules have their dependencies met
+    if args.subparser_name == 'install' and not args.no_dependencies:
+        install_reqs = []
+        for mapping in apps:
+            app = mapping[1]()
+            install_reqs += app.provides
+            provided = set(install_reqs)
+            required = set(app.requires)
+            # print(provided, required)
+            if len(required - provided):
+                error('Requirements not met for {}: {}.'.format(
+                    app.__class__.__name__, ', '.join(app.requires)))
+
+    user = None
+    installed = []
+    for mapping in apps:
+        App = mapping[1]
+        module_name = App.__name__
+        title(module_name)
+        #module_title = '{} '.format(module_name)
+        #title(module_title.ljust(CONSOLE_WIDTH, '-'))
+        app = App(dry_run=args.dry_run, args=args)
+
+        # if mapping == 'newuser':
+        #     # set the user after 'newuser' has run so the rest of the modules
+        #     # will use the new user.
+        #     user, _ = self.args.new_system_user_and_pass
+
+        try:
+            if args.subparser_name == 'install':
+                # if not args.no_dependencies:
+                    # app.check_requirments(installed)
+                app.pre_install()
+                app.install()
+                app.post_install()
+                installed.append(module_name.lower())
+            elif args.subparser_name == 'uninstall':
+                app.uninstall()
+                app.post_uninstall()
+        except subprocess.CalledProcessError as e:
+            error(e)
+        except DependencyError as e:
+            error(e)
+        except PlatformError as e:
+            error(e)
+        except SecurityError as e:
+            error(e)
+
+
+if __name__ == '__main__':
+    # custom types for argparse
+    def userpass(s):
+        try:
+            username, password = [i.strip() for i in s.split(',', 1) if i.strip()]
+        except ValueError:
+            msg = 'must be a username and password seperated by a comma (the password can have a comma in it, but not the username).'
+            raise argparse.ArgumentTypeError(msg)
+        return (username.strip(), password.strip())
+
+    def file_exists(s):
+        if not os.path.exists(s):
+            msg = 'file must exist.'
+            raise argparse.ArgumentTypeError(msg)
+        else:
+            return s
+
+    def url(s):
+        if '.' not in s:
+            msg = 'the servername must have a "." in it, eg. something.local'
+            raise argparse.ArgumentTypeError(msg)
+        else:
+            return s
+
+    # help_msg = 'Install various aplications and miscellany to set up a server.'
+    help_msg = textwrap.dedent('''
+    Install various aplications and miscellany to set up a server.
+
+    Its recomended to set up Apt-Cacher NG on the host machine.  Once
+    thats done adding `aptproxy` to the list of modules will configure
+    this server to make use of it.
+
+    boss will attempt to install colorama when it's run.  If for some
+    reason that doesn't work, it can be manually installed by:
+    `sudo apt install python3-colorama`''')
+
+    epilog_msg = 'https://www.github.com/8cylinder/sink'
+
+    parser = argparse.ArgumentParser(
+        description=help_msg, epilog=epilog_msg,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    subparsers = parser.add_subparsers(dest='subparser_name')
+
+    ## INSTALL ##
+    ins = subparsers.add_parser('install', help='Install modules')
+    ins.add_argument('servername', type=url,
+                     help="used for the cert name and apache ServerName, eg: 'something.local'")
+    ins.add_argument('modules', nargs='+',
+                     help='a list of modules that should be installed')
+
+    ins.add_argument('-d', '--dry-run', action='store_true',
+                     help='Only print the commands that would be used')
+    ins.add_argument('-o', '--no-required', action='store_true',
+                     help="Don't install the required modules")
+    ins.add_argument('-O', '--no-dependencies', action='store_true',
+                     help="Don't install dependent modules")
+    # unix user
+    ins.add_argument('-n', '--new-user-and-pass', type=userpass, metavar='USERNAME,USERPASS',
+                     help="a new unix user's name and password (seperated by a comma), they will be added to the www-data group")
+    # mysql
+    ins.add_argument('-S', '--sql-file', type=file_exists, metavar='SQLFILE',
+                     help='sql file to be run during install')
+    ins.add_argument('-N', '--db-name', metavar='DB-NAME',
+                     required='mysql' in sys.argv or 'lamp' in sys.argv or 'craft3' in sys.argv,
+                     help="the name the schema to create")
+    ins.add_argument('-P', '--db-root-pass', metavar='PASSWORD',
+                     required='mysql' in sys.argv or 'lamp' in sys.argv or 'craft3' in sys.argv or 'phpmyadmin' in sys.argv,
+                     help='password for mysql root user, required for the mysql module')
+    ins.add_argument('-A', '--new-db-user-and-pass', type=userpass, metavar='USERNAME,PASSWORD',
+                     help="a new db user's new username and password (seperated by a comma)")
+    # new user
+    ins.add_argument('-u', '--new-system-user-and-pass', type=userpass, metavar='USERNAME,PASSWORD',
+                     required='newuser' in sys.argv,
+                     help="a new system user's new username and password (seperated by a comma)")
+    # apache
+    ins.add_argument('-f', '--force-https', action='store_true',
+                     help='only allow https.  Note that a self signed cert is installed anyway')
+    # aptproxy
+    ins.add_argument('-i', '--host-ip',
+                     required='aptproxy' in sys.argv,
+                     help='Host ip to be used in aptproxy config')
+    # netdata
+    ins.add_argument('--netdata-user-pass', type=userpass, metavar='USERNAME,USERPASS',
+                     help="a new user's name and password (seperated by a comma)")
+
+    ## UNINSTALL ##
+    uni = subparsers.add_parser('uninstall', help='Uninstall modules')
+    uni.add_argument('modules', nargs='+',
+                     help='a list of modules that should be uninstalled')
+    uni.add_argument('-d', '--dry-run', action='store_true',
+                     help='run apt but use `apt-get --simulate` (non apt shell commands will still execute)')
+    uni.add_argument('-D', '--very-dry-run', action='store_true',
+                     help='do not run any shell commands')
+    uni.add_argument('-c', '--cert-basename', required='cert' in sys.argv,
+                     help='basename of the cert to be removed, should be the same as servername')
+    uni.add_argument('-u', '--system-user', required='newuser' in sys.argv,
+                     help='name of the user to be deleted (note: all files will be deleted as well)')
+
+    ## LIST ##
+    lst = subparsers.add_parser('list', help='List available modules')
+
+    ## HELP ##
+    hlp = subparsers.add_parser('help', help='Detailed info for each module')
+    hlp.add_argument('module',
+                     help='The name of the module that you want more info about')
+
+    args = parser.parse_args()
+    #pp(args); exit()
+    try:
+        init(args)
+    except KeyboardInterrupt:
+        print('\nQuiting.')
+        sys.exit(1)
+
