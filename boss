@@ -66,7 +66,8 @@ except ImportError:
     sys.stdout.flush()
     try:
         cmd = 'sudo apt-get --quiet update && sudo apt-get --quiet --yes install python3-colorama'
-        subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
+        # subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
+        subprocess.call(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE)
         import colorama as c
         APTUPDATED = True
     except ImportError:
@@ -237,11 +238,13 @@ class Bash():
         if self.args.dry_run:
             return
         if capture:
-            result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
+            # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
+            result = subprocess.call(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE)
             #print(result.stdout)
             sys.stdout.flush()
         else:
-            result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash')
+            # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash')
+            result = subprocess.call(cmd, shell=True, executable='/bin/bash')
         return result
 
     def curl(self, url, output, capture=False):
