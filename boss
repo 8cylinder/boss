@@ -817,7 +817,8 @@ class Bashrc(Bash):
         self.run('if [[ ! -d ~/bin ]]; then mkdir ~/bin; fi')
         gh_files = {
             'bashrc': 'https://raw.githubusercontent.com/8cylinder/bin/master/bashrc',
-            'bashrc_prompt': 'https://raw.githubusercontent.com/8cylinder/bin/master/bashrc_prompt',
+            'bashrc_prompt.py': 'https://raw.githubusercontent.com/8cylinder/bin/master/bashrc_prompt.py',
+            'bashrc_prompt.themes': 'https://raw.githubusercontent.com/8cylinder/bin/master/bashrc_prompt.themes',
         }
         for ghname, ghurl in gh_files.items():
             self.curl(ghurl, '~/bin/' + ghname)
@@ -827,6 +828,7 @@ class Bashrc(Bash):
         # if .bashrc does not exist, make a link to bin/bashrc
         self.run('if [[ ! -e ~/.bashrc ]]; then ln -s ~/bin/bashrc ~/.bashrc; fi')
         #self.run('echo -e "\n\nalias emacs=\'jmacs\'\n" >> ~/bin/bashrc')
+        self.run('chmod +x ~/bin/bashrc_prompt.py')
 
     def link_boss(self):
         source = __file__
