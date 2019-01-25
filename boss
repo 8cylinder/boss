@@ -153,14 +153,15 @@ def password_gen(level='alpha-num', length=10):
 
 
 class Distro(Enum):
-    UBUNTU = 1
+    UBUNTU = 'Ubuntu'
 
 class Version(Enum):
-    V18_04 = 1
-    V17_10 = 2
-    V17_04 = 3
-    V16_10 = 4
-    V16_04 = 5
+    V16_04 = 16.04
+    V16_10 = 16.10
+    V17_04 = 17.04
+    V17_10 = 17.10
+    V18_04 = 18.04
+    V18_10 = 18.10
 
 class Apt(Enum):
     INSTALL = 1
@@ -184,6 +185,8 @@ class Bash():
         if args and not dry_run:
             action = args.subparser_name
             self.log(action, self.__class__.__name__)
+        self.distro_name = platform.linux_distribution()[0]
+        self.distro_version = platform.linux_distribution()[1]
 
     def log(self, action, name):
         log_name = '~/{}-installed-modules'.format(os.path.basename(__file__))
@@ -225,6 +228,17 @@ class Bash():
         return True
 
     def check_requirments(self, installed):
+        if (self.platform_reqs[0] != self.distro_name or
+            self.platform_reqs[1] != self.distro_version):
+            msg = '\n'.join((
+                'Distro platform and/or version are incorrect:',
+                '    Required: {} {}'.format(self.platform_reqs[0], self.platform_reqs[1]),
+                '     Current: {} {}'.format(self.distro_name, self.distro_version),
+            ))
+            if self.dry_run:
+                warn(msg)
+            else:
+                raise PlatformError(msg)
         missing = []
         for required in self.requires:
             if required.lower() not in installed:
@@ -233,9 +247,6 @@ class Bash():
             raise DependencyError('Module {} requires: {}.'.format(
                 self.__class__.__name__, ', '.join(missing)))
 
-        if (self.platform_reqs[0] != Distro.UBUNTU or
-            self.platform_reqs[1] != Version.V18_04):
-            raise PlatformError('Distro platform and/or version are incorrect: {}'.format(self.platform_reqs))
 
     def run(self, cmd, wrap=True, capture=False):
         if wrap:
@@ -243,18 +254,16 @@ class Bash():
             display_cmd(pretty_cmd, wrap=True)
         else:
             display_cmd(cmd, wrap=False)
-            #print(cmd)
 
         if self.args.dry_run:
             return
         if capture:
             # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
-            result = subprocess.call(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE)
-            #print(result.stdout)
+            result = subprocess.check_output(cmd, shell=True, executable='/bin/bash')
             sys.stdout.flush()
         else:
             # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash')
-            result = subprocess.call(cmd, shell=True, executable='/bin/bash')
+            result = subprocess.check_call(cmd, shell=True, executable='/bin/bash')
         return result
 
     def curl(self, url, output, capture=False):
