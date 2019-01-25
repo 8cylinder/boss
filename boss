@@ -120,6 +120,16 @@ def title(msg):
     sys.stdout.flush()
 
 
+def warn(msg):
+    sys.stdout.write(c.Fore.YELLOW + c.Style.BRIGHT + 'WARNING: ' + c.Style.RESET_ALL +
+                     c.Fore.YELLOW + str(msg) + c.Style.RESET_ALL + '\n')
+    sys.stdout.flush()
+
+def notify(msg):
+    sys.stdout.write(c.Fore.BLUE + c.Style.BRIGHT + 'NOTICE: ' + c.Style.RESET_ALL +
+                     c.Fore.BLUE + str(msg) + c.Style.RESET_ALL + '\n')
+    sys.stdout.flush()
+
 def error(msg, dry_run=False):
     sys.stdout.write(c.Fore.RED + c.Style.BRIGHT + 'ERROR: ' + c.Style.RESET_ALL +
                      c.Fore.RED + str(msg) + c.Style.RESET_ALL + '\n')
