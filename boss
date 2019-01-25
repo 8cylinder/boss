@@ -536,7 +536,7 @@ class Mysql(Bash):
         )
         self.run('mysql -uroot -p{root_pass} <<EOF\n{sql}\nEOF'.format(
             root_pass=root_pass,
-            sql=sql))
+            sql=sql), wrap=False)
 
     def create_schema(self, db_name, root_pass):
         sql = '''
@@ -548,7 +548,7 @@ class Mysql(Bash):
         self.run('mysql -uroot -p{root_pass} <<EOF\n{sql}\nEOF'.format(
             root_pass=root_pass,
             sql=sql
-        ))
+        ), wrap=False)
 
     def import_sql(self, root_pass, sql_file):
         self.run('mysql -uroot -p{root_pass} < {sql_file}'.format(
