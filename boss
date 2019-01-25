@@ -687,6 +687,7 @@ class Craft3(Bash):
                 db_pass=craft_db_pass
             ))
         # run the install
+        username, email, password = self.args.craft_credentials
         self.run('''sudo -u www-data php {craft_dir}/craft install/craft --interactive=0 \
             --email={email} \
             --username={username} \
@@ -694,14 +695,10 @@ class Craft3(Bash):
             --siteName={sitename} \
             --siteUrl={siteurl}'''.format(
                 craft_dir=craft_dir,
-                email='',
-                username='root',
-                password=self.args.db_root_password,
+                email=email,
+                username=username,
+                password=password,
                 sitename=self.args.servername,
-                # email='sm@8cylinder.com',       # FIXME: this variable cannot be hardcoded
-                # username='sm',                  # FIXME: this variable cannot be hardcoded
-                # password='password',            # FIXME: this variable cannot be hardcoded
-                # sitename='Olivesandchocolate',  # FIXME: this variable cannot be hardcoded
                 siteurl="'@web'"
             ))
 
@@ -1070,6 +1067,14 @@ if __name__ == '__main__':
             raise argparse.ArgumentTypeError(msg)
         return (username.strip(), password.strip())
 
+    def userpassemail(s):
+        try:
+            username, email, password = [i.strip() for i in s.split(',', 2) if i.strip()]
+        except ValueError:
+            msg = 'must be a username, email and password seperated by a comma (the password can have a comma in it, but not the username or email).'
+            raise argparse.ArgumentTypeError(msg)
+        return (username.strip(), email.strip(), password.strip())
+
     def file_exists(s):
         if not os.path.exists(s):
             msg = 'file must exist.'
@@ -1137,6 +1142,10 @@ if __name__ == '__main__':
     # apache
     ins.add_argument('-f', '--force-https', action='store_true',
                      help='only allow https.  Note that a self signed cert is installed anyway')
+    # craft 3
+    ins.add_argument('-c', '--craft-credentials', type=userpassemail, metavar='USERNAME,EMAIL,PASSWORD',
+                     required='craft3' in sys.argv,
+                     help='Craft admin credentials')
     # aptproxy
     ins.add_argument('-i', '--host-ip',
                      required='aptproxy' in sys.argv,
