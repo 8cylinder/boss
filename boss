@@ -297,7 +297,7 @@ class First(Bash):
         self.provides = ['first']
         self.platform_reqs = (Distro.UBUNTU, Version.V18_04)
         self.apt_pkgs = [
-            'tree', 'elinks', 'virt-what', 'silversearcher-ag',
+            'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
             'htop', 'source-highlight', 'whois', 'emacs-nox', 'curl',
         ]
     def pre_install(self):
@@ -434,6 +434,7 @@ class Apache2(Bash):
 
         cert = Cert()
         self.run('sudo a2enmod ssl')
+        self.run('sudo a2enmod rewrite')
         _, _, crt, key = cert.cert_names(self.args.servername)
         vhost_config += self.https(self.args.servername, crt, key)
 
@@ -474,7 +475,9 @@ class Php(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['php']
         self.requires = ['apache2']
-        self.apt_pkgs = ['php7.0']
+        # self.apt_pkgs = ['php7.0']
+        self.apt_pkgs = ['php', 'php-mbstring', 'php-imagick', 'php-mcrypt',
+                         'php-curl', 'php-xml', 'php-zip']
 
 
 class PhpInfo(Bash):
@@ -561,7 +564,8 @@ class Mysql(Bash):
 
     def post_install(self):
         if self.args.new_db_user_and_pass:
-            self.setup_user(*self.args.new_db_user_and_pass, self.args.db_root_pass)
+            db_user, db_pass = self.args.new_db_user_and_pass
+            self.setup_user(db_user, db_pass, self.args.db_root_pass)
         if self.args.db_name:
             self.create_schema(self.args.db_name, self.args.db_root_pass)
         if self.args.sql_file:
@@ -593,11 +597,13 @@ class Composer(Bash):
         actual_sig = None
         result = self.run('sha384sum {}'.format(comp_name), capture=True)
         if result:  # could be a dry run
-            actual_sig = result.stdout.decode('utf-8').split()[0].strip()
+            actual_sig = result.decode('utf-8').split()[0].strip()
 
         if expected_sig != actual_sig:
-            self.run('rm {}'.format(comp_name))
             raise SecurityError('Composer\'s signatures do not match')
+        else:
+            # delete the installer
+            self.run('rm {}'.format(comp_name))
 
         [self.run(command) for command in (
             #'php {} --quiet'.format(comp_name),
@@ -622,6 +628,7 @@ class Composer(Bash):
 class Xdebug(Bash):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.provides = ['xdebug']
         self.requires = ['php']
         self.apt_pkgs = ['php-xdebug']    # good enough?
 
@@ -655,6 +662,8 @@ class Craft2(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['craft2']
         self.requires = ['apache2', 'php', 'mysql']
+        self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt', 'php-curl',
+                         'php-xml', 'php-zip', 'php-gd', 'php-mysql']
 
 
 class Craft3(Bash):
@@ -663,8 +672,10 @@ class Craft3(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['craft3']
         self.requires = ['apache2', 'php', 'mysql', 'composer']
-        self.apt_pkgs = ['php7.0-mbstring', 'php-imagick', 'php7.0-mcrypt',
-                         'php7.0-curl', 'php-xml', 'php7.0-zip']
+        self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt',
+                         'php-curl', 'php-xml', 'php-zip']
+        # self.apt_pkgs = ['php7.0-mbstring', 'php-imagick', 'php7.0-mcrypt',
+        #                  'php7.0-curl', 'php-xml', 'php7.0-zip']
         # self.apt_pkgs = ['php7.2-mbstring', 'php-imagick', 'php7.2-curl',
         #                  'php-xml', 'php7.2-zip']
         self.craft_dir = '/var/www/craft'
@@ -681,8 +692,9 @@ class Craft3(Bash):
             self.run('sudo chmod ug+rw {}'.format(d))
 
         # make sure craft dir is empty
-        if os.listdir(craft_dir):
-            error('Craft dir is not empty. ({})'.format(craft_dir), self.args.dry_run)
+        if not self.args.dry_run:
+            if os.listdir(craft_dir):
+                error('Craft dir is not empty. ({})'.format(craft_dir), self.args.dry_run)
 
         # Install craft3 via composer
         craft_db_user = 'root'
@@ -741,7 +753,10 @@ class Craft3(Bash):
         self.run(cmd)
 
     def post_uninstall(self):
-        ...
+        self.run('sudo rm -rf {}'.format(self.craft_dir))
+        for f in ['cpresources', '.htaccess', 'index.php', 'web.config']:
+            # self.run('rm -rf {}/{}'.format(self.html_dir, f))
+            warn('{} should be removed also'.format(f))
 
 
 class VirtualHost(Bash):
@@ -929,6 +944,16 @@ class Lamp(Apache2, Mysql):
         for cls in Lamp.__bases__:
             cls.post_uninstall(self)
 
+class FakeSMTP(Bash):
+    """A fake smtp server for testing
+
+    Other options:
+    https://mailtrap.io
+    http://mailslurper.com/
+    https://mailcatcher.me/
+    """
+    pass
+
 
 # class Last(Bash):
 #     def __init__(self, *args, **kwargs):
@@ -1059,12 +1084,12 @@ def install_uninstall(args, mappings):
 
         try:
             if args.subparser_name == 'install':
-                # if not args.no_dependencies:
-                    # app.check_requirments(installed)
+                if not args.no_dependencies:
+                    app.check_requirments(installed)
                 app.pre_install()
                 app.install()
                 app.post_install()
-                installed.append(module_name.lower())
+                installed += app.provides
             elif args.subparser_name == 'uninstall':
                 app.uninstall()
                 app.post_uninstall()
