@@ -561,7 +561,8 @@ class Mysql(Bash):
 
     def post_install(self):
         if self.args.new_db_user_and_pass:
-            self.setup_user(*self.args.new_db_user_and_pass, self.args.db_root_pass)
+            db_user, db_pass = self.args.new_db_user_and_pass
+            self.setup_user(db_user, db_pass, self.args.db_root_pass)
         if self.args.db_name:
             self.create_schema(self.args.db_name, self.args.db_root_pass)
         if self.args.sql_file:
@@ -593,11 +594,13 @@ class Composer(Bash):
         actual_sig = None
         result = self.run('sha384sum {}'.format(comp_name), capture=True)
         if result:  # could be a dry run
-            actual_sig = result.stdout.decode('utf-8').split()[0].strip()
+            actual_sig = result.decode('utf-8').split()[0].strip()
 
         if expected_sig != actual_sig:
-            self.run('rm {}'.format(comp_name))
             raise SecurityError('Composer\'s signatures do not match')
+        else:
+            # delete the installer
+            self.run('rm {}'.format(comp_name))
 
         [self.run(command) for command in (
             #'php {} --quiet'.format(comp_name),
@@ -681,8 +684,9 @@ class Craft3(Bash):
             self.run('sudo chmod ug+rw {}'.format(d))
 
         # make sure craft dir is empty
-        if os.listdir(craft_dir):
-            error('Craft dir is not empty. ({})'.format(craft_dir), self.args.dry_run)
+        if not self.args.dry_run:
+            if os.listdir(craft_dir):
+                error('Craft dir is not empty. ({})'.format(craft_dir), self.args.dry_run)
 
         # Install craft3 via composer
         craft_db_user = 'root'
@@ -1057,12 +1061,12 @@ def install_uninstall(args, mappings):
 
         try:
             if args.subparser_name == 'install':
-                # if not args.no_dependencies:
-                    # app.check_requirments(installed)
+                if not args.no_dependencies:
+                    app.check_requirments(installed)
                 app.pre_install()
                 app.install()
                 app.post_install()
-                installed.append(module_name.lower())
+                installed += app.provides
             elif args.subparser_name == 'uninstall':
                 app.uninstall()
                 app.post_uninstall()
