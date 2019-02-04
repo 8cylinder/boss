@@ -8,11 +8,11 @@ import random
 from enum import Enum
 import subprocess
 import argparse
-# from textwrap import TextWrapper
 import textwrap
 from pprint import pprint as pp
 import datetime
 # import IPython
+
 
 class FakeColor:
     class Fore:
@@ -33,6 +33,7 @@ class FakeColor:
         LIGHTMAGENTA_EX = ''
         LIGHTYELLOW_EX = ''
         RESET = ''
+
     class Back:
         BLACK = ''
         GREEN = ''
@@ -51,6 +52,7 @@ class FakeColor:
         LIGHTMAGENTA_EX = ''
         LIGHTYELLOW_EX = ''
         RESET = ''
+
     class Style:
         BRIGHT = ''
         DIM = ''
@@ -58,16 +60,20 @@ class FakeColor:
         RESET_ALL = ''
         RESET = ''
 
+
 APTUPDATED = False
+
 try:
     import colorama as c
 except ImportError:
     sys.stdout.write('Installing colorama... ')
     sys.stdout.flush()
     try:
-        cmd = 'sudo apt-get --quiet update && sudo apt-get --quiet --yes install python3-colorama'
-        # subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
-        subprocess.call(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE)
+        cmd = '''sudo apt-get --quiet update && sudo apt-get --quiet --yes
+                 install python3-colorama'''
+
+        subprocess.call(cmd, shell=True, executable='/bin/bash',
+                        stdout=subprocess.PIPE)
         import colorama as c
         APTUPDATED = True
     except ImportError:
@@ -116,7 +122,7 @@ def title(msg):
     msg = '{} [{}] '.format(msg, timestamp).ljust(CONSOLE_WIDTH, '-')
     print()
     # sys.stdout.write(c.Style.BRIGHT + c.Back.MAGENTA + msg + c.Style.RESET_ALL + '\n')
-    sys.stdout.write(c.Style.BRIGHT + c.Fore.YELLOW + msg  + c.Style.RESET_ALL + '\n')
+    sys.stdout.write(c.Style.BRIGHT + c.Fore.YELLOW + msg + c.Style.RESET_ALL + '\n')
     sys.stdout.flush()
 
 
@@ -125,10 +131,12 @@ def warn(msg):
                      c.Fore.YELLOW + str(msg) + c.Style.RESET_ALL + '\n')
     sys.stdout.flush()
 
+
 def notify(msg):
     sys.stdout.write(c.Fore.BLUE + c.Style.BRIGHT + 'NOTICE: ' + c.Style.RESET_ALL +
                      c.Fore.BLUE + str(msg) + c.Style.RESET_ALL + '\n')
     sys.stdout.flush()
+
 
 def error(msg, dry_run=False):
     sys.stdout.write(c.Fore.RED + c.Style.BRIGHT + 'ERROR: ' + c.Style.RESET_ALL +
@@ -148,7 +156,7 @@ def password_gen(level='alpha-num', length=10):
     try:
         source = levels[level]
     except KeyError:
-        ui.error('password level not one of: {}'.format(', '.join(levels.keys())))
+        error('password level not one of: {}'.format(', '.join(levels.keys())))
     return ''.join(random.choices(source, k=length))
 
 
@@ -167,18 +175,19 @@ class Apt(Enum):
     INSTALL = 1
     UNINSTALL = 2
 
+
 class DependencyError(Exception): pass
 class PlatformError(Exception): pass
 class SecurityError(Exception): pass
+
 
 class Bash():
     def __init__(self, dry_run=False, args=None):
         self.ok_code = 0
         self.requires = []
         self.apt_pkgs = []
-        self.platform_reqs = (Distro.UBUNTU, Version.V18_04)
+        self.platform_reqs = (Version.UBUNTU, Version.V18_04)
         self.is_installed = False
-        self.ubuntu = platform.dist()[1]
         self.dry_run = dry_run
         self.args = args
         self.scriptname = os.path.basename(__file__)
@@ -247,7 +256,6 @@ class Bash():
             raise DependencyError('Module {} requires: {}.'.format(
                 self.__class__.__name__, ', '.join(missing)))
 
-
     def run(self, cmd, wrap=True, capture=False):
         if wrap:
             pretty_cmd = ' '.join(cmd.split())
@@ -300,6 +308,7 @@ class First(Bash):
             'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
             'htop', 'source-highlight', 'whois', 'emacs-nox', 'curl',
         ]
+
     def pre_install(self):
         if not APTUPDATED:
             self.run('sudo apt-get --quiet update')
@@ -487,7 +496,7 @@ class PhpInfo(Bash):
         self.provides = ['phpinfo']
         self.requires = ['php']
         self.loc = '/var/www/html'
-        self.info_file = '{}/phpinfo.php'.format(loc)
+        self.info_file = '{}/phpinfo.php'.format(self.loc)
 
     def post_install(self):
         info = '<h1>{}</h1>\n<?php phpinfo();'.format(datetime.datetime.now().isoformat())
@@ -504,6 +513,7 @@ class PhpInfo(Bash):
         cmd = 'if test -e {infofile}; then rm {infofile}; fi'.format(
             infofile=self.info_file
         )
+        self.run(cmd)
 
 
 class Mysql(Bash):
@@ -606,12 +616,12 @@ class Composer(Bash):
             self.run('rm {}'.format(comp_name))
 
         [self.run(command) for command in (
-            #'php {} --quiet'.format(comp_name),
+            # 'php {} --quiet'.format(comp_name),
             'sudo php {} --quiet --install-dir=/usr/local/bin --filename=composer'.format(comp_name),
-            #'rm {}'.format(comp_name),
-            #'sudo mv composer.phar /usr/local/bin/composer',
-            #'if [[ ! -e ~/.composer ]]; then mkdir ~/.composer/; fi',
-            #'chmod a+rw ~/.composer/',
+            # 'rm {}'.format(comp_name),
+            # 'sudo mv composer.phar /usr/local/bin/composer',
+            # 'if [[ ! -e ~/.composer ]]; then mkdir ~/.composer/; fi',
+            # 'chmod a+rw ~/.composer/',
         )]
         # add www-data to the ubuntu group so when running composer as
         # www-data user, it can create a cache in ubuntu's home dir.
@@ -639,6 +649,7 @@ class PhpMyAdmin(Bash):
     Access at http://<servername>/phpmyadmin
     Use the root username and the password specified via --db_root_pass
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['phpmyadmin']
@@ -668,6 +679,7 @@ class Craft2(Bash):
 
 class Craft3(Bash):
     """https://craftcms.com"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['craft3']
@@ -782,8 +794,8 @@ class NewUser(Bash):
     """Create a new user
 
     Create a new user and add them to the sudo and www-data groups.
-    The new user does not require a password for sudo.
-    """
+    The new user does not require a password for sudo."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['newuser']
@@ -821,8 +833,8 @@ class Bashrc(Bash):
     1. Downloads a bashrc from GitHub and creates a bin dir in the $HOME dir.
     2. Backups the orginal .bashrc
     3. Symlinks the ~/bin/bashrc to ~/.bashrc
-    4. Symlink /project/boss to ~/bin/boss
-    """
+    4. Symlink /project/boss to ~/bin/boss"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['bashrc']
@@ -842,7 +854,7 @@ class Bashrc(Bash):
         self.run('if [[ ! -L ~/.bashrc ]]; then mv ~/.bashrc ~/.bashrc.original; fi')
         # if .bashrc does not exist, make a link to bin/bashrc
         self.run('if [[ ! -e ~/.bashrc ]]; then ln -s ~/bin/bashrc ~/.bashrc; fi')
-        #self.run('echo -e "\n\nalias emacs=\'jmacs\'\n" >> ~/bin/bashrc')
+        # self.run('echo -e "\n\nalias emacs=\'jmacs\'\n" >> ~/bin/bashrc')
         self.run('chmod +x ~/bin/bashrc_prompt.py')
 
     def link_boss(self):
@@ -901,6 +913,7 @@ class Netdata(Bash):
     # https://github.com/firehol/netdata/wiki/Running-behind-apache
     # https://www.digitalocean.com/community/tutorials/how-to-set-up-real-time-performance-monitoring-with-netdata-on-ubuntu-16-04
     # args: username (default:netdata), password (default:<random>)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['netdata']
@@ -944,8 +957,11 @@ class Lamp(Apache2, Mysql):
         for cls in Lamp.__bases__:
             cls.post_uninstall(self)
 
+
 class FakeSMTP(Bash):
     """A fake smtp server for testing
+
+    https://github.com/mailhog/MailHog
 
     Other options:
     https://mailtrap.io
@@ -1011,7 +1027,8 @@ def init(args):
                 print(app.__doc__)
                 found = True
         if not found:
-            error('Unknown module: {}.  Try `boss list`'.format(args.module), self.args.dry_run)
+            error('Unknown module: {}.  Try `boss list`'.format(args.module), args.dry_run)
+
 
 def list_modules(args, mappings):
     installed_file = os.path.expanduser('~/boss-installed-modules')
@@ -1031,6 +1048,7 @@ def list_modules(args, mappings):
         modline = state + c.Style.BRIGHT + name.ljust(12) + c.Style.RESET_ALL + description + '\n'
         sys.stdout.write(modline)
         sys.stdout.flush()
+
 
 def install_uninstall(args, mappings):
     modules = args.modules
@@ -1073,8 +1091,8 @@ def install_uninstall(args, mappings):
         App = mapping[1]
         module_name = App.__name__
         title(module_name)
-        #module_title = '{} '.format(module_name)
-        #title(module_title.ljust(CONSOLE_WIDTH, '-'))
+        # module_title = '{} '.format(module_name)
+        # title(module_title.ljust(CONSOLE_WIDTH, '-'))
         app = App(dry_run=args.dry_run, args=args)
 
         # if mapping == 'newuser':
@@ -1228,4 +1246,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print('\nQuiting.')
         sys.exit(1)
-
