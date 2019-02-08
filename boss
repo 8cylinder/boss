@@ -783,7 +783,7 @@ class Craft3(Bash):
         craft_db_name = self.args.db_name
 
         # install from composer
-        self.run('sudo -u www-data composer create-project --remove-vcs --no-interaction craftcms/craft {}'.format(craft_dir))
+        self.run('sudo -u www-data composer create-project --no-ansi --remove-vcs --no-interaction craftcms/craft {}'.format(craft_dir))
 
         # setup the db
         self.run('''sudo -u www-data php {craft_dir}/craft setup/db --interactive 0 \
@@ -875,7 +875,7 @@ class NewUser(Bash):
     def pre_install(self):
         username, password = self.args.new_system_user_and_pass
 
-        self.run('if ! id -u {username}; then sudo useradd --shell=/bin/bash --create-home --password \
+        self.run('if ! id -u {username} >/dev/null; then sudo useradd --shell=/bin/bash --create-home --password \
                   $(mkpasswd -m sha-512 {password}) {username}; fi'.format(
             password=password, username=username
         ))
