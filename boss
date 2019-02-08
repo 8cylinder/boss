@@ -989,7 +989,7 @@ class Netdata(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['netdata']
         self.requires = ['apache2']
-        if self.dist >= (Dist.UBUNTU, Dist.U18_04):
+        if self.distro >= (Dist.UBUNTU, Dist.U18_04):
             self.apt_pkgs = ['netdata']
             self.info('Netdata', 'https://{}:19999')
         else:
