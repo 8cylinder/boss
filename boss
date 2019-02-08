@@ -991,11 +991,14 @@ class Netdata(Bash):
         self.requires = ['apache2']
         if self.distro >= (Dist.UBUNTU, Dist.U18_04):
             self.apt_pkgs = ['netdata']
-            self.info('Netdata', 'https://{}:19999')
         else:
             warn('Netdata only available on Ubuntu 18.04 or greater')
         # bash <(curl -Ss https://my-netdata.io/kickstart.sh) --non-interactive all
         # url: http://localhost:19999
+
+    def post_install(self):
+        self.info('Netdata', 'https://{}:19999'.format(self.args.servername))
+
 
 
 class Lamp(Apache2, Mysql):
@@ -1037,13 +1040,27 @@ class FakeSMTP(Bash):
     """A fake smtp server for testing
 
     https://github.com/mailhog/MailHog
+    https://www.lullabot.com/articles/installing-mailhog-for-ubuntu-1604
 
     Other options:
-    https://mailtrap.io
     http://mailslurper.com/
     https://mailcatcher.me/
     """
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['fakesmtp']
+
+    def post_install(self):
+        url = 'https://github.com/mailhog/MailHog/releases/download/v1.0.0/MailHog_linux_amd64'
+
+    def install_via_go(self):
+        # apt install golang-go
+        # export GOPATH=$HOME/go; go get github.com/mailhog/MailHog
+        # export GOPATH=$HOME/go; go get github.com/mailhog/mhsendmail
+        pass
+
+    def install_via_github(self):
+        pass
 
 
 class Done(Bash):
@@ -1053,8 +1070,8 @@ class Done(Bash):
 
     def pre_install(self):
         for title, msg in info:
-            sys.stdout.write('{}: {}'.format(
-                c.Style.BRIGHT + c.Fore.WHITE + title + c.Style.RESET_ALL,
+            sys.stdout.write('{:12} {}'.format(
+                c.Style.BRIGHT + c.Fore.WHITE + title + ':' + c.Style.RESET_ALL,
                 c.Fore.BLUE + msg + c.Style.RESET_ALL + '\n'
             ))
             sys.stdout.flush()
@@ -1116,8 +1133,9 @@ def list_modules(args, mappings):
     for row in mappings:
         name = row[0]
         module = row[1]
-        state = '[X] ' if name in installed else '[-] '
-        state = 'I ' if name in installed else '  '
+        # state = '[X] ' if name in installed else '[-] '
+        state = ' ✓ ' if name in installed else '   '
+        state = c.Fore.GREEN + state + c.Style.RESET_ALL
         description = module.__doc__ if module.__doc__ else ''
         description = description.split('\n')[0]
         modline = state + c.Style.BRIGHT + name.ljust(12) + c.Style.RESET_ALL + description + '\n'
@@ -1230,10 +1248,25 @@ if __name__ == '__main__':
 
     # help_msg = 'Install various aplications and miscellany to set up a server.'
     help_msg = textwrap.dedent('''
-    Install various aplications and miscellany to set up a server.
+    Install various applications and miscellany to set up a server.
 
-    Its recomended to set up Apt-Cacher NG on the host machine.  Once
-    thats done adding `aptproxy` to the list of modules will configure
+    This can be run standalone or as a Vagrant provider.  When run as
+    a vagrant provider its recommended that is be run unprivileged.
+    This will run as the default user and the script will use sudo
+    when necessary (this assumes the default user can use sudo).  This
+    means that any subsequent uses as the default user will be able to
+    update the '$HOME/boss-installed-modules' file.  Also if the
+    bashrc module is installed during provisioning, then the correct
+    home dir will be setup.
+
+    eg:
+    config.vm.provision :shell,
+                        path: 'boss',
+                        args: 'install server.local ...',
+                        privileged: false
+
+    Its recommended to set up Apt-Cacher NG on the host machine.  Once
+    that's done adding `aptproxy` to the list of modules will configure
     this server to make use of it.
 
     boss will attempt to install colorama when it's run.  If for some
