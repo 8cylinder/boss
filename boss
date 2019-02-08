@@ -256,7 +256,7 @@ class Bash:
             self.log(action, self.__class__.__name__)
 
     def log(self, action, name):
-        log_name = '~/{}-installed-modules'.format(os.path.basename(__file__))
+        log_name = '$HOME/boss-installed-modules'
         mod = '{}\n'.format(name)
         try:
             with open(os.path.expanduser(log_name), 'r') as f:
@@ -657,7 +657,7 @@ class Composer(Bash):
 
     def source_install(self):
         url = 'https://composer.github.io/installer.sig'
-        sig_name = os.path.expanduser('~/composer.sig')
+        sig_name = os.path.expanduser('$HOME/composer.sig')
         self.curl(url, sig_name)
 
         expected_sig = None
@@ -668,7 +668,7 @@ class Composer(Bash):
             self.run('rm {}'.format(sig_name))
 
         url = 'https://getcomposer.org/installer'
-        comp_name = '~/composer_installer'
+        comp_name = '$HOME/composer_installer'
         self.curl(url, comp_name)
 
         actual_sig = None
@@ -684,8 +684,8 @@ class Composer(Bash):
             'sudo php {} --quiet --install-dir=/usr/local/bin --filename=composer'.format(comp_name),
             # 'rm {}'.format(comp_name),
             # 'sudo mv composer.phar /usr/local/bin/composer',
-            # 'if [[ ! -e ~/.composer ]]; then mkdir ~/.composer/; fi',
-            # 'chmod a+rw ~/.composer/',
+            # 'if [[ ! -e $HOME/.composer ]]; then mkdir $HOME/.composer/; fi',
+            # 'chmod a+rw $HOME/.composer/',
         )]
         # add www-data to the ubuntu group so when running composer as
         # www-data user, it can create a cache in ubuntu's home dir.
@@ -695,8 +695,8 @@ class Composer(Bash):
 
     def post_uninstall(self):
         self.run('sudo rm /usr/local/bin/composer')
-        self.run('if [[ -e ~/.composer ]]; then rm -rf ~/.composer/; fi')
-        self.run('if [[ -e ~/composer.sig]]; then rm ~/composer.sig; fi')
+        self.run('if [[ -e $HOME/.composer ]]; then rm -rf $HOME/.composer/; fi')
+        self.run('if [[ -e $HOME/composer.sig]]; then rm $HOME/composer.sig; fi')
 
 
 class Xdebug(Bash):
@@ -875,7 +875,7 @@ class NewUser(Bash):
     def pre_install(self):
         username, password = self.args.new_system_user_and_pass
 
-        self.run('if ! id -u {username} >/dev/null; then sudo useradd --shell=/bin/bash --create-home --password \
+        self.run('if ! id -u {username} &>/dev/null; then sudo useradd --shell=/bin/bash --create-home --password \
                   $(mkpasswd -m sha-512 {password}) {username}; fi'.format(
             password=password, username=username
         ))
@@ -912,26 +912,26 @@ class Bashrc(Bash):
         self.apt_pkgs = ['emacs-nox']
 
     def install_bashrc(self):
-        self.run('if [[ ! -d ~/bin ]]; then mkdir ~/bin; fi')
+        self.run('if [[ ! -d $HOME/bin ]]; then mkdir $HOME/bin; fi')
         gh_files = {
             'bashrc': 'https://raw.githubusercontent.com/8cylinder/bin/master/bashrc',
             'bashrc_prompt.py': 'https://raw.githubusercontent.com/8cylinder/bin/master/bashrc_prompt.py',
             'bashrc_prompt.themes': 'https://raw.githubusercontent.com/8cylinder/bin/master/bashrc_prompt.themes',
         }
         for ghname, ghurl in gh_files.items():
-            self.curl(ghurl, '~/bin/' + ghname)
+            self.curl(ghurl, '$HOME/bin/' + ghname)
 
         # if .bashrc is not a link, back it up
-        self.run('if [[ ! -L ~/.bashrc ]]; then mv ~/.bashrc ~/.bashrc.original; fi')
+        self.run('if [[ ! -L $HOME/.bashrc ]]; then mv $HOME/.bashrc $HOME/.bashrc.original; fi')
         # if .bashrc does not exist, make a link to bin/bashrc
-        self.run('if [[ ! -e ~/.bashrc ]]; then ln -s ~/bin/bashrc ~/.bashrc; fi')
-        # self.run('echo -e "\n\nalias emacs=\'jmacs\'\n" >> ~/bin/bashrc')
-        self.run('chmod +x ~/bin/bashrc_prompt.py')
+        self.run('if [[ ! -e $HOME/.bashrc ]]; then ln -s $HOME/bin/bashrc $HOME/.bashrc; fi')
+        # self.run('echo -e "\n\nalias emacs=\'jmacs\'\n" >> $HOME/bin/bashrc')
+        self.run('chmod +x $HOME/bin/bashrc_prompt.py')
 
     def link_boss(self):
         source = __file__
         name = os.path.basename(source)
-        dest = os.path.expanduser(os.path.join('~/bin', name))
+        dest = os.path.expanduser(os.path.join('$HOME/bin', name))
         self.run('if [[ ! -h {} ]]; then ln -s {} {}; fi'.format(dest, source, dest))
 
     def post_install(self):
@@ -939,9 +939,9 @@ class Bashrc(Bash):
         self.link_boss()
 
     def uninstall(self):
-        self.run('if [[ -d ~/bin ]]; then sudo rm -rf ~/bin; fi')
+        self.run('if [[ -d $HOME/bin ]]; then sudo rm -rf $HOME/bin; fi')
         # if .bashrc.original exists, restore it
-        self.run('if [[ -e ~/.bashrc.original ]]; then mv .bashrc.original .bashrc; fi')
+        self.run('if [[ -e $HOME/.bashrc.original ]]; then mv .bashrc.original .bashrc; fi')
 
 
 class AptProxy(Bash):
