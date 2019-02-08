@@ -2,7 +2,10 @@
 
 import os
 import sys
-import platform
+try:
+    import distro
+except ImportError:
+    import platform
 import string
 import random
 from enum import Enum
@@ -160,16 +163,71 @@ def password_gen(level='alpha-num', length=10):
     return ''.join(random.choices(source, k=length))
 
 
-class Distro(Enum):
-    UBUNTU = 'Ubuntu'
+class Dist:
+    """Test whether the current distro meets certain version requirments.
 
-class Version(Enum):
-    V16_04 = 16.04
-    V16_10 = 16.10
-    V17_04 = 17.04
-    V17_10 = 17.10
-    V18_04 = 18.04
-    V18_10 = 18.10
+    d = Dist()
+    d == Dist.UBUNTU
+    d == (Dist.UBUNTU, Dist.U16_10)
+    d > (Dist.UBUNTU, Dist.U16_10)
+    """
+    UBUNTU = 'Ubuntu'
+    U16_04 = 16.04
+    U16_10 = 16.10
+    U17_04 = 17.04
+    U17_10 = 17.10
+    U18_04 = 18.04
+    U18_10 = 18.10
+
+    REDHAT = 'Redhat'
+    R4 = 4
+    R5 = 5
+    R6 = 6
+    R7 = 7
+
+    CENTOS = 'CentOS'
+    C4 = 4
+    C5 = 5
+    C6 = 6
+    C7 = 7
+
+    def __init__(self):
+        try:
+            self.name = distro.name()
+            self.version = distro.version()
+        except NameError:
+            self.name = platform.dist()[0]
+            self.version = platform.dist()[1]
+
+    def __str__(self):
+        return '{name} {version}'.format(**self.__dict__)
+
+    def __eq__(self, other):
+        """Comparison can be done with the distro name or the distro name and version.
+
+        d = Distro()
+        d == Distro.UBUNTU
+        d == (Distro.UBUNTU, Distro.U16_04)"""
+        if len(other) == 2:
+            return self.name == other[0] and float(self.version) == float(other[1])
+        else:
+            return self.name == other
+
+    def __ne__(self, other):
+        return self.name != other[0] or float(self.version) != float(other[1])
+
+    def __lt__(self, other):
+        return self.name == other[0] and float(self.version) < float(other[1])
+
+    def __le__(self, other):
+        return self.name == other[0] and float(self.version) <= float(other[1])
+
+    def __gt__(self, other):
+        return self.name == other[0] and float(self.version) > float(other[1])
+
+    def __ge__(self, other):
+        return self.name == other[0] and float(self.version) >= float(other[1])
+
 
 class Apt(Enum):
     INSTALL = 1
@@ -181,12 +239,13 @@ class PlatformError(Exception): pass
 class SecurityError(Exception): pass
 
 
-class Bash():
+class Bash:
     def __init__(self, dry_run=False, args=None):
         self.ok_code = 0
         self.requires = []
         self.apt_pkgs = []
-        self.platform_reqs = (Version.UBUNTU, Version.V18_04)
+        self.provides = []
+        self.distro = Dist()
         self.is_installed = False
         self.dry_run = dry_run
         self.args = args
@@ -194,8 +253,6 @@ class Bash():
         if args and not dry_run:
             action = args.subparser_name
             self.log(action, self.__class__.__name__)
-        self.distro_name = platform.linux_distribution()[0]
-        self.distro_version = platform.linux_distribution()[1]
 
     def log(self, action, name):
         log_name = '~/{}-installed-modules'.format(os.path.basename(__file__))
@@ -237,17 +294,6 @@ class Bash():
         return True
 
     def check_requirments(self, installed):
-        if (self.platform_reqs[0] != self.distro_name or
-            self.platform_reqs[1] != self.distro_version):
-            msg = '\n'.join((
-                'Distro platform and/or version are incorrect:',
-                '    Required: {} {}'.format(self.platform_reqs[0], self.platform_reqs[1]),
-                '     Current: {} {}'.format(self.distro_name, self.distro_version),
-            ))
-            if self.dry_run:
-                warn(msg)
-            else:
-                raise PlatformError(msg)
         missing = []
         for required in self.requires:
             if required.lower() not in installed:
@@ -293,7 +339,6 @@ class Bash():
 
 
 # ------------------------------ Modules ------------------------------
-
 class First(Bash):
     """Misc apps that are useful
 
@@ -303,7 +348,6 @@ class First(Bash):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['first']
-        self.platform_reqs = (Distro.UBUNTU, Version.V18_04)
         self.apt_pkgs = [
             'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
             'htop', 'source-highlight', 'whois', 'emacs-nox', 'curl',
@@ -589,6 +633,15 @@ class Composer(Bash):
         self.requires = ['php']
 
     def post_install(self):
+        if self.distro < (Dist.UBUNTU, Dist.U18_04):
+            self.source_install()
+        else:
+            self.apt_install()
+
+    def apt_install(self):
+        self.apt(['composer'])
+
+    def source_install(self):
         url = 'https://composer.github.io/installer.sig'
         sig_name = os.path.expanduser('~/composer.sig')
         self.curl(url, sig_name)
@@ -684,12 +737,14 @@ class Craft3(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['craft3']
         self.requires = ['apache2', 'php', 'mysql', 'composer']
-        self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt',
-                         'php-curl', 'php-xml', 'php-zip']
-        # self.apt_pkgs = ['php7.0-mbstring', 'php-imagick', 'php7.0-mcrypt',
-        #                  'php7.0-curl', 'php-xml', 'php7.0-zip']
-        # self.apt_pkgs = ['php7.2-mbstring', 'php-imagick', 'php7.2-curl',
-        #                  'php-xml', 'php7.2-zip']
+        if self.distro == (Dist.UBUNTU, Dist.U16_04):
+            self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt',
+                             'php-curl', 'php-xml', 'php-zip']
+        elif self.distro == (Dist.UBUNTU, Dist.U18_04):
+            self.apt_pkgs = ['php7.2-mbstring', 'php-imagick', 'php7.2-curl',
+                             'php-xml', 'php7.2-zip']
+        else:
+            raise PlatformError("Platform is not Ubuntu 16.04 or 18.04.  Don't know which php extra packages to install for Craft3")
         self.craft_dir = '/var/www/craft'
         self.html_dir = '/var/www/html'
 
