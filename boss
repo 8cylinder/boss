@@ -238,6 +238,7 @@ class DependencyError(Exception): pass
 class PlatformError(Exception): pass
 class SecurityError(Exception): pass
 
+info = []
 
 class Bash:
     def __init__(self, dry_run=False, args=None):
@@ -339,6 +340,9 @@ class Bash:
             action=action, dry=dry, packages=packages))
         self.is_installed = True
         return True
+
+    def info(self, title, msg):
+        info.append([title, msg])
 
 
 # ------------------------------ Modules ------------------------------
@@ -489,8 +493,10 @@ class Apache2(Bash):
         vhost_config = self.http(self.args.servername)
 
         cert = Cert()
-        self.run('sudo a2enmod ssl')
-        self.run('sudo a2enmod rewrite')
+        mods = ['ssl', 'rewrite']
+        for m in mods:
+            self.run('sudo a2enmod {}'.format(m))
+
         _, _, crt, key = cert.cert_names(self.args.servername)
         vhost_config += self.https(self.args.servername, crt, key)
 
@@ -514,6 +520,9 @@ class Apache2(Bash):
         self.run('sudo a2ensite {}'.format(self.args.servername))
         # restart apache
         self.run('sudo service apache2 restart')
+
+        self.info('Website', 'https://{}'.format(self.args.servername))
+        self.info('Apache conf', conf_file)
 
     def post_uninstall(self):
         self.run('if sudo test -d /etc/apache2; then sudo rm -rf /etc/apache2; fi')
@@ -555,6 +564,8 @@ class PhpInfo(Bash):
             self.run(cmd)
         else:
             error('[PhpInfo] Dir does not exist: {}'.format(self.loc), self.args.dry_run)
+
+        self.info('Php info', 'https://{}/phpinfo.php'.format(self.args.servername))
 
     def post_uninstall(self):
         cmd = 'if test -e {infofile}; then rm {infofile}; fi'.format(
@@ -678,9 +689,9 @@ class Composer(Bash):
         )]
         # add www-data to the ubuntu group so when running composer as
         # www-data user, it can create a cache in ubuntu's home dir.
-        self.run('sudo usermod -aG ubuntu www-data')
-        self.run('sudo chown -R ubuntu: /home/ubuntu/.composer')  # FIXME: don't hard code
-        self.run('sudo chmod -R uga+rw /home/ubuntu/.composer')   # FIXME: don't hard code
+        self.run('sudo usermod -aG $USER www-data')
+        self.run('sudo chown -R $USER: $HOME/.composer')  # FIXME: don't hard code
+        self.run('sudo chmod -R uga+rw $HOME/.composer')   # FIXME: don't hard code
 
     def post_uninstall(self):
         self.run('sudo rm /usr/local/bin/composer')
@@ -719,6 +730,9 @@ class PhpMyAdmin(Bash):
         self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-user string root"')
         self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-pass password {}"'.format(root_pass))
         self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/app-pass password {}"'.format(root_pass))
+
+    def post_install(self):
+        self.info('PhpMyadmin', 'https://{}/phpmyadmin'.format(self.args.servername))
 
 
 class Craft2(Bash):
@@ -818,6 +832,8 @@ class Craft3(Bash):
             index=os.path.join(html_dir, 'index.php')
         )
         self.run(cmd)
+
+        self.info('Craft admin', 'https://{}/admin'.format(self.args.servername))
 
     def post_uninstall(self):
         self.run('sudo rm -rf {}'.format(self.craft_dir))
@@ -973,7 +989,11 @@ class Netdata(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['netdata']
         self.requires = ['apache2']
-        # self.apt_pkgs = ['netdata']  # <-- ubuntu 18.05+ only
+        if self.dist >= (Dist.UBUNTU, Dist.U18_04):
+            self.apt_pkgs = ['netdata']
+            self.info('Netdata', 'https://{}:19999')
+        else:
+            warn('Netdata only available on Ubuntu 18.04 or greater')
         # bash <(curl -Ss https://my-netdata.io/kickstart.sh) --non-interactive all
         # url: http://localhost:19999
 
@@ -1026,19 +1046,19 @@ class FakeSMTP(Bash):
     pass
 
 
-# class Last(Bash):
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.provides = ['last']
+class Done(Bash):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['done']
 
-#     def pre_install(self):
-#         # apache config
-#         # installed mods
-#         # user name & password
-#         # mysql username & password
-#         # mysql root password
-#         # php version
-#         pass
+    def pre_install(self):
+        for title, msg in info:
+            sys.stdout.write('{}: {}'.format(
+                c.Style.BRIGHT + c.Fore.WHITE + title + c.Style.RESET_ALL,
+                c.Fore.BLUE + msg + c.Style.RESET_ALL + '\n'
+            ))
+            sys.stdout.flush()
+        sys.stdout.write('\n')
 
 
 # --------------------------------- UI ---------------------------------
@@ -1065,7 +1085,7 @@ def init(args):
         ('wpcli', WpCli),
         ('netdata', Netdata),
         ('bashrc', Bashrc),
-        # ('last', Last),
+        ('done', Done),
     ]
     if args.subparser_name == 'install':
         install_uninstall(args, mappings)
@@ -1108,7 +1128,7 @@ def list_modules(args, mappings):
 def install_uninstall(args, mappings):
     modules = args.modules
 
-    required = ['first', 'last']
+    required = ['first', 'done']
     # extract the requested modules and the required from mappings
     if args.subparser_name == 'install':
         if args.no_required:
