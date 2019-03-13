@@ -14,6 +14,8 @@ import argparse
 import textwrap
 from pprint import pprint as pp
 import datetime
+import urllib.request
+import json
 # import IPython
 
 
@@ -256,7 +258,7 @@ class Bash:
             self.log(action, self.__class__.__name__)
 
     def log(self, action, name):
-        log_name = '$HOME/boss-installed-modules'
+        log_name = '~/boss-installed-modules'
         mod = '{}\n'.format(name)
         try:
             with open(os.path.expanduser(log_name), 'r') as f:
@@ -325,7 +327,7 @@ class Bash:
         return result
 
     def curl(self, url, output, capture=False):
-        cmd = 'curl -sS {url} --output {output}'.format(
+        cmd = 'curl -sSL {url} --output {output}'.format(
             url=url, output=output)
         result = self.run(cmd, capture=capture)
         return result
@@ -657,7 +659,7 @@ class Composer(Bash):
 
     def source_install(self):
         url = 'https://composer.github.io/installer.sig'
-        sig_name = os.path.expanduser('$HOME/composer.sig')
+        sig_name = os.path.expanduser('~/composer.sig')
         self.curl(url, sig_name)
 
         expected_sig = None
@@ -677,7 +679,9 @@ class Composer(Bash):
             actual_sig = result.decode('utf-8').split()[0].strip()
 
         if expected_sig != actual_sig:
-            raise SecurityError('Composer\'s signatures do not match')
+            raise SecurityError('Composer\'s signatures do not match.\nExpected: "{}"\n  Actual: "{}"'.format(
+                expected_sig, actual_sig
+            ))
 
         [self.run(command) for command in (
             # 'php {} --quiet'.format(comp_name),
@@ -1037,30 +1041,94 @@ class Lamp(Apache2, Mysql):
 
 
 class FakeSMTP(Bash):
-    """A fake smtp server for testing
+    """A fake SMTP server for mail testing
 
-    https://github.com/mailhog/MailHog
     https://www.lullabot.com/articles/installing-mailhog-for-ubuntu-1604
-
-    Other options:
-    http://mailslurper.com/
-    https://mailcatcher.me/
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['fakesmtp']
+        if self.distro == (Dist.UBUNTU, Dist.U16_04):
+            self.phpini = '/etc/php/7.0/apache2/php.ini'
+            self.cliini = '/etc/php/7.0/cli/php.ini'
+        elif self.distro == (Dist.UBUNTU, Dist.U18_04):
+            self.phpini = '/etc/php/7.2/apache2/php.ini'
+            self.cliini = '/etc/php/7.2/cli/php.ini'
+        else:
+            error('FakeSMTP: no php.ini defined')
 
     def post_install(self):
-        url = 'https://github.com/mailhog/MailHog/releases/download/v1.0.0/MailHog_linux_amd64'
+        self.install_via_github()
+        sedcmd = 'sudo sed --in-place=".original" "s|;sendmail_path =|sendmail_path = /usr/local/bin/mhsendmail|" {}'
+        cmds = [
+            'chmod +x mailhog mhsendmail',
+            'sudo mv mailhog mhsendmail /usr/local/bin',
+            sedcmd.format(self.phpini),
+            sedcmd.format(self.cliini),
+        ]
+        [self.run(i) for i in cmds]
+        self.config_systemd()
+
+        self.info('FakeSMTP client', 'http://{}:8025'.format(self.args.servername))
+        self.info('FakeSMTP api', 'curl http://{}:8025/api/v2/messages'.format(self.args.servername))
 
     def install_via_go(self):
-        # apt install golang-go
-        # export GOPATH=$HOME/go; go get github.com/mailhog/MailHog
-        # export GOPATH=$HOME/go; go get github.com/mailhog/mhsendmail
         pass
 
     def install_via_github(self):
-        pass
+        # download mailhog & mhsendmail.  Get the latest release using
+        # GitHub's api.
+        data = [{
+            'release': 'MailHog_linux_amd64',
+            'localname': 'mailhog',
+            'url': 'https://api.github.com/repos/mailhog/MailHog/releases/latest',
+        }, {
+            'release': 'mhsendmail_linux_amd64',
+            'localname': 'mhsendmail',
+            'url': 'https://api.github.com/repos/mailhog/mhsendmail/releases/latest',
+        }]
+        for prog in data:
+            r = urllib.request.urlopen(prog['url']).read()
+            content = json.loads(r.decode('utf-8'))
+            for asset in content['assets']:
+                if asset['name'] == prog['release']:
+                    self.curl(asset['browser_download_url'], prog['localname'])
+
+    def config_systemd(self):
+        service = '''
+            [Unit]
+            Description=MailHog service
+
+            [Service]
+            ExecStart=/usr/local/bin/mailhog \\\\
+              -api-bind-addr 0.0.0.0:8025 \\\\
+              -ui-bind-addr 0.0.0.0:8025 \\\\
+              -smtp-bind-addr 0.0.0.0:1025
+
+            [Install]
+            WantedBy=multi-user.target
+        '''
+        service = '\n'.join([i[12:] for i in service.split('\n')])
+        service_file = '/etc/systemd/system/mailhog.service'
+        self.run('echo | sudo tee {service_file} <<EOF{contents}EOF'.format(
+            service_file=service_file,
+            contents=service
+        ), wrap=False)
+        self.run('sudo systemctl start mailhog')
+        self.run('sudo systemctl enable mailhog')
+
+    def post_uninstall(self):
+        sedcmd = 'sudo sed --in-place=".mailhog" "s|sendmail_path = /usr/local/bin/mhsendmail|;sendmail_path =|" {}'
+        cmds = [
+            'sudo systemctl disable mailhog',
+            'sudo rm /usr/local/bin/mailhog /usr/local/bin/mhsendmail',
+            sedcmd.format(self.phpini),
+            sedcmd.format(self.cliini),
+            'sudo rm /etc/systemd/system/mailhog.service',
+        ]
+        [self.run(i) for i in cmds]
+
+
 
 
 class Done(Bash):
@@ -1098,6 +1166,7 @@ def init(args):
         ('phpmyadmin', PhpMyAdmin),
         ('craft2', Craft2),
         ('craft3', Craft3),
+        ('fakesmtp', FakeSMTP),
         ('newsite', VirtualHost),
         ('wpcli', WpCli),
         ('netdata', Netdata),
