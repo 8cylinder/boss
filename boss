@@ -174,11 +174,12 @@ class Dist:
     d > (Dist.UBUNTU, Dist.U16_10)
     """
     UBUNTU = 'Ubuntu'
-    U16_04 = 16.04
+    U14_04 = 14.04  # LTS
+    U16_04 = 16.04  # LTS
     U16_10 = 16.10
     U17_04 = 17.04
     U17_10 = 17.10
-    U18_04 = 18.04
+    U18_04 = 18.04  # LTS
     U18_10 = 18.10
 
     REDHAT = 'Redhat'
@@ -352,19 +353,36 @@ class First(Bash):
     """Misc apps that are useful
 
     tree, elinks, virt-what, silversearcher-ag,
-    htop, source-highlight, whois, emacs-nox, curl"""
+    htop, source-highlight, whois, joe, curl"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['first']
-        self.apt_pkgs = [
-            'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
-            'htop', 'source-highlight', 'whois', 'emacs-nox', 'curl',
-        ]
+        if self.distro > (Dist.UBUNTU, Dist.U14_04):
+            self.apt_pkgs = [
+                'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
+                'htop', 'source-highlight', 'whois', 'joe', 'curl',
+            ]
+        elif self.distro == (Dist.UBUNTU, Dist.U14_04):
+            self.apt_pkgs = [
+                'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
+                'htop', 'source-highlight', 'whois', 'joe', 'curl',
+            ]
 
     def pre_install(self):
         if not APTUPDATED:
             self.run('sudo apt-get --quiet update')
+
+    def post_install(self):
+        """Ad an alias for jmacs(joe) in .bashrc"""
+        cmds = [
+            "echo alias emacs='jmacs' >> ~/.bashrc",
+            "echo export EDITOR='jmacs' >> ~/.bashrc",
+            "echo export VISUAL='jmacs' >> ~/.bashrc",
+            "echo export SUDO_EDITOR='jmacs' >> ~/.bashrc",
+        ]
+        for cmd in cmds:
+            self.run(cmd)
 
 
 class Cert(Bash):
@@ -543,8 +561,11 @@ class Php(Bash):
         self.provides = ['php']
         self.requires = ['apache2']
         # self.apt_pkgs = ['php7.0']
-        self.apt_pkgs = ['php', 'php-mbstring', 'php-imagick', 'php-mcrypt',
-                         'php-curl', 'php-xml', 'php-zip']
+        if self.distro > (Dist.UBUNTU, Dist.U14_04):
+            self.apt_pkgs = ['php', 'php-mbstring', 'php-imagick', 'php-mcrypt',
+                             'php-curl', 'php-xml', 'php-zip']
+        elif self.distro == (Dist.UBUNTU, Dist.U14_04):
+            self.apt_pkgs = ['php5']
 
 
 class PhpInfo(Bash):
@@ -744,8 +765,12 @@ class Craft2(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['craft2']
         self.requires = ['apache2', 'php', 'mysql']
-        self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt', 'php-curl',
-                         'php-xml', 'php-zip', 'php-gd', 'php-mysql']
+        if self.distro > (Dist.UBUNTU, Dist.U14_04):
+            self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt', 'php-curl',
+                             'php-xml', 'php-zip', 'php-gd', 'php-mysql']
+        elif self.distro == (Dist.UBUNTU, Dist.U14_04):
+            self.apt_pkgs = ['php5', 'php5-imagick', 'php5-mcrypt', 'php5-curl',
+                             'php5-gd', 'php5-mysql' , 'libapache2-mod-php5']
 
 
 class Craft3(Bash):
@@ -1054,6 +1079,9 @@ class FakeSMTP(Bash):
         elif self.distro == (Dist.UBUNTU, Dist.U18_04):
             self.phpini = '/etc/php/7.2/apache2/php.ini'
             self.cliini = '/etc/php/7.2/cli/php.ini'
+        elif self.distro == (Dist.UBUNTU, Dist.U14_04):
+            self.phpini = '/etc/php5/apache2/php.ini'
+            self.cliini = '/etc/php5/cli/php.ini'
         else:
             error('FakeSMTP: no php.ini defined')
 
@@ -1067,7 +1095,10 @@ class FakeSMTP(Bash):
             sedcmd.format(self.cliini),
         ]
         [self.run(i) for i in cmds]
-        self.config_systemd()
+        if self.distro == (Dist.UBUNTU, Dist.U14_04):
+            self.config_upstart()
+        elif self.distro >= (Dist.UBUNTU, Dist.U16_04):
+            self.config_systemd()
 
         self.info('FakeSMTP client', 'http://{}:8025'.format(self.args.servername))
         self.info('FakeSMTP api', 'curl http://{}:8025/api/v2/messages'.format(self.args.servername))
@@ -1094,7 +1125,26 @@ class FakeSMTP(Bash):
                 if asset['name'] == prog['release']:
                     self.curl(asset['browser_download_url'], prog['localname'])
 
+    def config_upstart(self):
+        # 14.04 uses upstart
+        service = '''
+            description "Mailhog"
+            start on runlevel [2345]
+            stop on runlevel [!2345]
+            exec /usr/bin/env /usr/local/bin/mailhog > /dev/null 2>&1 &
+        '''
+        service_file = '/etc/init/mailhog.conf'
+        service = '\n'.join([i[12:] for i in service.split('\n')])
+        self.run('echo | sudo tee {service_file} <<EOF{contents}EOF'.format(
+            service_file=service_file,
+            contents=service
+        ), wrap=False)
+
+        self.run('sudo ln -s {} /etc/init.d/mailhog'.format(service_file))
+        self.run('sudo service mailhog start')
+
     def config_systemd(self):
+        # 16.04 + uses systemd
         service = '''
             [Unit]
             Description=MailHog service
@@ -1108,8 +1158,9 @@ class FakeSMTP(Bash):
             [Install]
             WantedBy=multi-user.target
         '''
-        service = '\n'.join([i[12:] for i in service.split('\n')])
         service_file = '/etc/systemd/system/mailhog.service'
+
+        service = '\n'.join([i[12:] for i in service.split('\n')])
         self.run('echo | sudo tee {service_file} <<EOF{contents}EOF'.format(
             service_file=service_file,
             contents=service
@@ -1119,16 +1170,24 @@ class FakeSMTP(Bash):
 
     def post_uninstall(self):
         sedcmd = 'sudo sed --in-place=".mailhog" "s|sendmail_path = /usr/local/bin/mhsendmail|;sendmail_path =|" {}'
-        cmds = [
-            'sudo systemctl disable mailhog',
+
+        if self.distro == (Dist.UBUNTU, Dist.U14_04):
+            cmds = [
+                # 'sudo service mailhog stop',
+                'sudo rm /etc/init/mailhog.conf',
+                'sudo rm /etc/init.d/mailhog',
+            ]
+        elif self.distro >= (Dist.UBUNTU, Dist.U16_04):
+            cmds = [
+                'sudo systemctl disable mailhog',
+                'sudo rm /etc/systemd/system/mailhog.service',
+            ]
+        cmds = cmds + [
             'sudo rm /usr/local/bin/mailhog /usr/local/bin/mhsendmail',
             sedcmd.format(self.phpini),
             sedcmd.format(self.cliini),
-            'sudo rm /etc/systemd/system/mailhog.service',
         ]
         [self.run(i) for i in cmds]
-
-
 
 
 class Done(Bash):
