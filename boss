@@ -1060,11 +1060,14 @@ class Netdata(Bash):
             self.apt_pkgs = ['netdata']
         else:
             warn('Netdata only available on Ubuntu 18.04 or greater')
-        # bash <(curl -Ss https://my-netdata.io/kickstart.sh) --non-interactive all
-        # url: http://localhost:19999
+
+        # manual install: bash <(curl -Ss https://my-netdata.io/kickstart.sh) --non-interactive all
 
     def post_install(self):
-        self.info('Netdata', 'https://{}:19999'.format(self.args.servername))
+        if self.distro >= (Dist.UBUNTU, Dist.U18_04):
+            self.run("sudo sed --in-place=.orginal 's/bind socket to IP = .*$/bind socket to IP = *.*.*.*/' /etc/netdata/netdata.conf")
+            self.run('sudo systemctl restart netdata')
+            self.info('Netdata', 'https://{}:19999'.format(self.args.servername))
 
 
 
