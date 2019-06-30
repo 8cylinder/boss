@@ -354,7 +354,7 @@ class First(Bash):
     """Misc apps that are useful
 
     tree, elinks, virt-what, silversearcher-ag,
-    htop, source-highlight, whois, joe, curl"""
+    htop, source-highlight, whois, joe, curl, figlet"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -362,26 +362,31 @@ class First(Bash):
         if self.distro > (Dist.UBUNTU, Dist.U14_04):
             self.apt_pkgs = [
                 'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
-                'htop', 'source-highlight', 'whois', 'joe', 'curl',
+                'htop', 'source-highlight', 'whois', 'curl', 'figlet',
             ]
         elif self.distro == (Dist.UBUNTU, Dist.U14_04):
             self.apt_pkgs = [
                 'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
-                'htop', 'source-highlight', 'whois', 'joe', 'curl',
+                'htop', 'source-highlight', 'whois', 'curl', 'figlet'
             ]
+        # self.apt_pkgs += ['joe']
+        self.apt_pkgs += ['emacs-nox'] # adds aprox 100mb
 
     def pre_install(self):
         if not APTUPDATED:
             self.run('sudo apt-get --quiet update')
 
     def post_install(self):
-        """Ad an alias for jmacs(joe) in .bashrc"""
+        """Ad an alias for jmacs(joe) or emacs in .bashrc"""
+        # editor = 'jmacs'
+        editor = 'emacs'
         cmds = [
-            "echo alias emacs='jmacs' >> ~/.bashrc",
-            "echo export EDITOR='jmacs' >> ~/.bashrc",
-            "echo export VISUAL='jmacs' >> ~/.bashrc",
-            "echo export SUDO_EDITOR='jmacs' >> ~/.bashrc",
+            "echo export EDITOR='{}' >> ~/.bashrc".format(editor),
+            "echo export VISUAL='{}' >> ~/.bashrc".format(editor),
+            "echo export SUDO_EDITOR='{}' >> ~/.bashrc".format(editor),
         ]
+        if editor == 'jmacs':
+            cmds += ["echo alias emacs='jmacs' >> ~/.bashrc"]
         for cmd in cmds:
             self.run(cmd)
 
@@ -1229,6 +1234,7 @@ class Done(Bash):
         self.provides = ['done']
 
     def pre_install(self):
+        self.run('figlet -k -w89 {}'.format(self.args.servername))
         for title, msg in info:
             sys.stdout.write('{:12} {}'.format(
                 c.Style.BRIGHT + c.Fore.WHITE + title + ':' + c.Style.RESET_ALL,
@@ -1381,7 +1387,8 @@ if __name__ == '__main__':
         try:
             username, password = [i.strip() for i in s.split(',', 1) if i.strip()]
         except ValueError:
-            msg = 'must be a username and password seperated by a comma (the password can have a comma in it, but not the username).'
+            msg = '''must be a username and password seperated by a comma
+            (the password can have a comma in it, but not the username).'''
             raise argparse.ArgumentTypeError(msg)
         return username.strip(), password.strip()
 
@@ -1389,7 +1396,8 @@ if __name__ == '__main__':
         try:
             username, email, password = [i.strip() for i in s.split(',', 2) if i.strip()]
         except ValueError:
-            msg = 'must be a username, email and password seperated by a comma (the password can have a comma in it, but not the username or email).'
+            msg = '''must be a username, email and password seperated by a comma
+            (the password can have a comma in it, but not the username or email).'''
             raise argparse.ArgumentTypeError(msg)
         return username.strip(), email.strip(), password.strip()
 
