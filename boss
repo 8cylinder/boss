@@ -96,11 +96,15 @@ except OSError:
     CONSOLE_WIDTH = 80
 
 
-def display_cmd(cmd, indent=0, wrap=True):
+def display_cmd(cmd, indent=0, wrap=True, script=False):
     indent = ' ' * indent
     leader = '+ '
     initial_indent = indent + leader
     subsequent_indent = indent + (' ' * len(leader))
+    if script:
+        leader = ''
+        initial_indent = ''
+        subsequent_indent = '  '
     if wrap:
         w = textwrap.TextWrapper(
             initial_indent=initial_indent,
@@ -116,25 +120,35 @@ def display_cmd(cmd, indent=0, wrap=True):
     else:
         cmd = cmd.split('\n')
         first = [initial_indent + cmd[0]]
-        rest = [subsequent_indent + i for i in cmd[1:]]
+        rest = [i for i in cmd[1:]]
         fancy = '\n'.join(first + rest)
 
-    sys.stdout.write(c.Fore.YELLOW + fancy + c.Style.RESET_ALL + '\n')
+    if not script:
+        sys.stdout.write(c.Fore.YELLOW + fancy + c.Style.RESET_ALL + '\n')
+    else:
+        sys.stdout.write(fancy + '\n')
     sys.stdout.flush()
 
-
-def title(msg):
+def title(msg, script=False):
     timestamp = datetime.datetime.now().isoformat()
-    msg = '{} [{}] '.format(msg, timestamp).ljust(CONSOLE_WIDTH, '-')
+    if script:
+        msg = '# {} '.format(msg).ljust(CONSOLE_WIDTH, '-')
+    else:
+        msg = '{} [{}] '.format(msg, timestamp).ljust(CONSOLE_WIDTH, '-')
     print()
-    # sys.stdout.write(c.Style.BRIGHT + c.Back.MAGENTA + msg + c.Style.RESET_ALL + '\n')
-    sys.stdout.write(c.Style.BRIGHT + c.Fore.YELLOW + msg + c.Style.RESET_ALL + '\n')
+    if not script:
+        sys.stdout.write(c.Style.BRIGHT + c.Fore.YELLOW + msg + c.Style.RESET_ALL + '\n')
+    else:
+        sys.stdout.write(msg + '\n')
     sys.stdout.flush()
 
 
-def warn(msg):
-    sys.stdout.write(c.Fore.YELLOW + c.Style.BRIGHT + 'WARNING: ' + c.Style.RESET_ALL +
-                     c.Fore.YELLOW + str(msg) + c.Style.RESET_ALL + '\n')
+def warn(msg, script=False):
+    if script:
+        sys.stdout.write('# !!! WARNING: {} !!!\n'.format(msg))
+    else:
+        sys.stdout.write(c.Fore.YELLOW + c.Style.BRIGHT + 'WARNING: ' + c.Style.RESET_ALL +
+                         c.Fore.YELLOW + str(msg) + c.Style.RESET_ALL + '\n')
     sys.stdout.flush()
 
 
@@ -313,11 +327,11 @@ class Bash:
     def run(self, cmd, wrap=True, capture=False):
         if wrap:
             pretty_cmd = ' '.join(cmd.split())
-            display_cmd(pretty_cmd, wrap=True)
+            display_cmd(pretty_cmd, wrap=True, script=self.args.generate_script)
         else:
-            display_cmd(cmd, wrap=False)
+            display_cmd(cmd, wrap=False, script=self.args.generate_script)
 
-        if self.args.dry_run:
+        if self.args.dry_run or self.args.generate_script:
             return
         if capture:
             # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
@@ -339,6 +353,10 @@ class Bash:
         packages = ' '.join(packages)
         if not packages:
             return False
+        global APTUPDATED
+        if not APTUPDATED:
+            self.run('sudo apt-get --quiet update')
+            APTUPDATED = True
         action = 'install' if action == Apt.INSTALL else 'purge'
         self.run('export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet {action} {packages}'.format(
             action=action, dry=dry, packages=packages))
@@ -373,8 +391,7 @@ class First(Bash):
         self.apt_pkgs += ['emacs-nox'] # adds aprox 100mb
 
     def pre_install(self):
-        if not APTUPDATED:
-            self.run('sudo apt-get --quiet update')
+        pass
 
     def post_install(self):
         """Ad an alias for jmacs(joe) or emacs in .bashrc"""
@@ -474,10 +491,8 @@ class Php(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['php']
         self.requires = ['apache2']
-        # self.apt_pkgs = ['php7.0']
         if self.distro > (Dist.UBUNTU, Dist.U14_04):
-            self.apt_pkgs = ['php', 'php-mbstring', 'php-imagick', 'php-mcrypt',
-                             'php-curl', 'php-xml', 'php-zip']
+            self.apt_pkgs = ['php']
         elif self.distro == (Dist.UBUNTU, Dist.U14_04):
             self.apt_pkgs = ['php5']
 
@@ -786,12 +801,8 @@ class Craft3(Bash):
 
 
 class VirtualHost(Bash):
-    """Create virtualhost configuration files for http and https
+    """Create virtualhost configuration files for http and https"""
 
-    Arguments:
-      servername
-      document root
-    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['virtualhost']
@@ -903,7 +914,7 @@ class VirtualHost(Bash):
             # enable this site
             self.run('sudo a2ensite {}'.format(site_name))
             self.info('Website', 'https://{}'.format(site_name))
-            self.info('Apache conf', conf_file)
+            self.info(' └─ Apache conf', conf_file)
 
         # restart apache
         self.run('sudo service apache2 restart')
@@ -1045,6 +1056,34 @@ class AptProxy(Bash):
         self.run(cmd)
 
 
+class Webmin(Bash):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['webmin']
+        self.requires = ['apache2', 'php', 'cert']
+        self.apt_pkgs = ['webmin']
+
+    def pre_install(self):
+        # add webmin to sources.list, get PGP key
+        cmds = [
+            'sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak',
+            'echo "deb http://download.webmin.com/download/repository sarge contrib" | sudo tee -a /etc/apt/sources.list',
+            # 'wget http://www.webmin.com/jcameron-key.asc',
+            # 'sudo apt-key add jcameron-key.asc',
+        ]
+        self.curl('http://www.webmin.com/jcameron-key.asc', 'jcameron-key.asc')
+        self.run('sudo apt-key add jcameron-key.asc')
+        for cmd in cmds:
+            global APTUPDATED
+            APTUPDATED = False
+            self.run(cmd)
+
+        self.info('Webmin', 'http://{}:10000 (user & password for any user that can sudo)'.format(self.args.servername))
+
+    def post_install(self):
+        pass
+
+
 class Netdata(Bash):
     """Netdata server monitoring"""
     # https://github.com/firehol/netdata
@@ -1067,7 +1106,7 @@ class Netdata(Bash):
         if self.distro >= (Dist.UBUNTU, Dist.U18_04):
             self.run("sudo sed --in-place=.orginal 's/bind socket to IP = .*$/bind socket to IP = *.*.*.*/' /etc/netdata/netdata.conf")
             self.run('sudo systemctl restart netdata')
-            self.info('Netdata', 'https://{}:19999'.format(self.args.servername))
+            self.info('Netdata', 'http://{}:19999'.format(self.args.servername))
 
 
 
@@ -1114,6 +1153,7 @@ class FakeSMTP(Bash):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['fakesmtp']
+        self.requires = ['php']
         if self.distro == (Dist.UBUNTU, Dist.U16_04):
             self.phpini = '/etc/php/7.0/apache2/php.ini'
             self.cliini = '/etc/php/7.0/cli/php.ini'
@@ -1142,7 +1182,7 @@ class FakeSMTP(Bash):
             self.config_systemd()
 
         self.info('FakeSMTP client', 'http://{}:8025'.format(self.args.servername))
-        self.info('FakeSMTP api', 'curl http://{}:8025/api/v2/messages'.format(self.args.servername))
+        self.info(' └─ FakeSMTP api', 'curl http://{}:8025/api/v2/messages'.format(self.args.servername))
 
     def install_via_go(self):
         pass
@@ -1159,12 +1199,17 @@ class FakeSMTP(Bash):
             'localname': 'mhsendmail',
             'url': 'https://api.github.com/repos/mailhog/mhsendmail/releases/latest',
         }]
-        for prog in data:
-            r = urllib.request.urlopen(prog['url']).read()
-            content = json.loads(r.decode('utf-8'))
-            for asset in content['assets']:
-                if asset['name'] == prog['release']:
-                    self.curl(asset['browser_download_url'], prog['localname'])
+        # Sometimes github returns 'forbidden' when accessing the api.
+        # Rate limiting maybe? I don't know.
+        try:
+            for prog in data:
+                r = urllib.request.urlopen(prog['url']).read()
+                content = json.loads(r.decode('utf-8'))
+                for asset in content['assets']:
+                    if asset['name'] == prog['release']:
+                        self.curl(asset['browser_download_url'], prog['localname'])
+        except urllib.error.HTTPError as e:
+            error('MAILHOG github api: {}'.format(e.msg))
 
     def config_upstart(self):
         # 14.04 uses upstart
@@ -1239,10 +1284,13 @@ class Done(Bash):
     def pre_install(self):
         self.run('figlet -k -w89 {}'.format(self.args.servername))
         for title, msg in info:
-            sys.stdout.write('{:12} {}'.format(
-                c.Style.BRIGHT + c.Fore.WHITE + title + ':' + c.Style.RESET_ALL,
-                c.Fore.BLUE + msg + c.Style.RESET_ALL + '\n'
-            ))
+            if self.args.generate_script:
+                sys.stdout.write("echo '{:12} {}'\n".format(title + ':', msg))
+            else:
+                sys.stdout.write('{:12} {}'.format(
+                    c.Style.BRIGHT + c.Fore.WHITE + title + ':' + c.Style.RESET_ALL,
+                    c.Fore.BLUE + msg + c.Style.RESET_ALL + '\n'
+                ))
             sys.stdout.flush()
         sys.stdout.write('\n')
 
@@ -1271,6 +1319,7 @@ def init(args):
         ('newsite', VirtualHost),
         ('wpcli', WpCli),
         ('netdata', Netdata),
+        ('webmin', Webmin),
         ('bashrc', Bashrc),
         ('done', Done),
     ]
@@ -1353,7 +1402,7 @@ def install_uninstall(args, mappings):
     for mapping in apps:
         App = mapping[1]
         module_name = App.__name__
-        title(module_name)
+        title(module_name, script=args.generate_script)
         # module_title = '{} '.format(module_name)
         # title(module_title.ljust(CONSOLE_WIDTH, '-'))
         app = App(dry_run=args.dry_run, args=args)
@@ -1371,9 +1420,11 @@ def install_uninstall(args, mappings):
                 app.install()
                 app.post_install()
                 installed += app.provides
+                app.log('install', module_name)
             elif args.subparser_name == 'uninstall':
                 app.uninstall()
                 app.post_uninstall()
+                app.log('uninstall', module_name)
         except subprocess.CalledProcessError as e:
             error(e)
         except DependencyError as e:
@@ -1448,8 +1499,7 @@ if __name__ == '__main__':
     eg:
     config.vm.provision :shell,
                         path: 'boss',
-                        args: 'install server.local ...',
-                        privileged: false
+                        args: 'install server.local ...'
 
     Its recommended to set up Apt-Cacher NG on the host machine.  Once
     that's done adding `aptproxy` to the list of modules will configure
@@ -1479,6 +1529,8 @@ if __name__ == '__main__':
                      help="Don't install the required modules")
     ins.add_argument('-O', '--no-dependencies', action='store_true',
                      help="Don't install dependent modules")
+    ins.add_argument('--generate-script', action='store_true',
+                     help='Output suitable for a bash script instead of running them')
     # unix user
     ins.add_argument('-n', '--new-user-and-pass', type=userpass, metavar='USERNAME,USERPASS',
                      help="a new unix user's name and password (seperated by a comma), they will be added to the www-data group")
