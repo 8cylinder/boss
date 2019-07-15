@@ -185,29 +185,20 @@ class Dist:
 
     d = Dist()
     d == Dist.UBUNTU
-    d == (Dist.UBUNTU, Dist.U16_10)
-    d > (Dist.UBUNTU, Dist.U16_10)
+    d == (Dist.UBUNTU, Dist.V16_10)
+    d > (Dist.UBUNTU, Dist.V16_10)
     """
     UBUNTU = 'Ubuntu'
-    U14_04 = 14.04  # LTS
-    U16_04 = 16.04  # LTS
-    U16_10 = 16.10
-    U17_04 = 17.04
-    U17_10 = 17.10
-    U18_04 = 18.04  # LTS
-    U18_10 = 18.10
+    V14_04 = 14.04
+    V16_04 = 16.04
+    V18_04 = 18.04
 
     REDHAT = 'Redhat'
-    R4 = 4
-    R5 = 5
-    R6 = 6
-    R7 = 7
-
     CENTOS = 'CentOS'
-    C4 = 4
-    C5 = 5
-    C6 = 6
-    C7 = 7
+    V4 = 4
+    V5 = 5
+    V6 = 6
+    V7 = 7
 
     def __init__(self):
         try:
@@ -225,7 +216,7 @@ class Dist:
 
         d = Distro()
         d == Distro.UBUNTU
-        d == (Distro.UBUNTU, Distro.U16_04)"""
+        d == (Distro.UBUNTU, Distro.V16_04)"""
         if len(other) == 2:
             return self.name == other[0] and float(self.version) == float(other[1])
         else:
@@ -377,12 +368,12 @@ class First(Bash):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['first']
-        if self.distro > (Dist.UBUNTU, Dist.U14_04):
+        if self.distro > (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = [
                 'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
                 'htop', 'source-highlight', 'whois', 'curl', 'figlet',
             ]
-        elif self.distro == (Dist.UBUNTU, Dist.U14_04):
+        elif self.distro == (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = [
                 'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
                 'htop', 'source-highlight', 'whois', 'curl', 'figlet'
@@ -491,9 +482,9 @@ class Php(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['php']
         self.requires = ['apache2']
-        if self.distro > (Dist.UBUNTU, Dist.U14_04):
+        if self.distro > (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = ['php']
-        elif self.distro == (Dist.UBUNTU, Dist.U14_04):
+        elif self.distro == (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = ['php5']
 
 
@@ -599,7 +590,7 @@ class Composer(Bash):
         self.requires = ['php']
 
     def post_install(self):
-        if self.distro < (Dist.UBUNTU, Dist.U18_04):
+        if self.distro < (Dist.UBUNTU, Dist.V18_04):
             self.source_install()
         else:
             self.apt_install()
@@ -694,10 +685,10 @@ class Craft2(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['craft2']
         self.requires = ['apache2', 'php', 'mysql']
-        if self.distro > (Dist.UBUNTU, Dist.U14_04):
+        if self.distro > (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt', 'php-curl',
                              'php-xml', 'php-zip', 'php-gd', 'php-mysql']
-        elif self.distro == (Dist.UBUNTU, Dist.U14_04):
+        elif self.distro == (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = ['php5', 'php5-imagick', 'php5-mcrypt', 'php5-curl',
                              'php5-gd', 'php5-mysql' , 'libapache2-mod-php5']
 
@@ -709,10 +700,10 @@ class Craft3(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['craft3']
         self.requires = ['apache2', 'php', 'mysql', 'composer']
-        if self.distro == (Dist.UBUNTU, Dist.U16_04):
+        if self.distro == (Dist.UBUNTU, Dist.V16_04):
             self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt',
                              'php-curl', 'php-xml', 'php-zip']
-        elif self.distro == (Dist.UBUNTU, Dist.U18_04):
+        elif self.distro == (Dist.UBUNTU, Dist.V18_04):
             self.apt_pkgs = ['php7.2-mbstring', 'php-imagick', 'php7.2-curl',
                              'php-xml', 'php7.2-zip']
         else:
@@ -1095,7 +1086,7 @@ class Netdata(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['netdata']
         self.requires = ['apache2']
-        if self.distro >= (Dist.UBUNTU, Dist.U18_04):
+        if self.distro >= (Dist.UBUNTU, Dist.V18_04):
             self.apt_pkgs = ['netdata']
         else:
             warn('Netdata only available on Ubuntu 18.04 or greater')
@@ -1103,7 +1094,7 @@ class Netdata(Bash):
         # manual install: bash <(curl -Ss https://my-netdata.io/kickstart.sh) --non-interactive all
 
     def post_install(self):
-        if self.distro >= (Dist.UBUNTU, Dist.U18_04):
+        if self.distro >= (Dist.UBUNTU, Dist.V18_04):
             self.run("sudo sed --in-place=.orginal 's/bind socket to IP = .*$/bind socket to IP = *.*.*.*/' /etc/netdata/netdata.conf")
             self.run('sudo systemctl restart netdata')
             self.info('Netdata', 'http://{}:19999'.format(self.args.servername))
@@ -1154,13 +1145,13 @@ class FakeSMTP(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['fakesmtp']
         self.requires = ['php']
-        if self.distro == (Dist.UBUNTU, Dist.U16_04):
+        if self.distro == (Dist.UBUNTU, Dist.V16_04):
             self.phpini = '/etc/php/7.0/apache2/php.ini'
             self.cliini = '/etc/php/7.0/cli/php.ini'
-        elif self.distro == (Dist.UBUNTU, Dist.U18_04):
+        elif self.distro == (Dist.UBUNTU, Dist.V18_04):
             self.phpini = '/etc/php/7.2/apache2/php.ini'
             self.cliini = '/etc/php/7.2/cli/php.ini'
-        elif self.distro == (Dist.UBUNTU, Dist.U14_04):
+        elif self.distro == (Dist.UBUNTU, Dist.V14_04):
             self.phpini = '/etc/php5/apache2/php.ini'
             self.cliini = '/etc/php5/cli/php.ini'
         else:
@@ -1176,9 +1167,9 @@ class FakeSMTP(Bash):
             sedcmd.format(self.cliini),
         ]
         [self.run(i) for i in cmds]
-        if self.distro == (Dist.UBUNTU, Dist.U14_04):
+        if self.distro == (Dist.UBUNTU, Dist.V14_04):
             self.config_upstart()
-        elif self.distro >= (Dist.UBUNTU, Dist.U16_04):
+        elif self.distro >= (Dist.UBUNTU, Dist.V16_04):
             self.config_systemd()
 
         self.info('FakeSMTP client', 'http://{}:8025'.format(self.args.servername))
@@ -1257,13 +1248,13 @@ class FakeSMTP(Bash):
     def post_uninstall(self):
         sedcmd = 'sudo sed --in-place=".mailhog" "s|sendmail_path = /usr/local/bin/mhsendmail|;sendmail_path =|" {}'
 
-        if self.distro == (Dist.UBUNTU, Dist.U14_04):
+        if self.distro == (Dist.UBUNTU, Dist.V14_04):
             cmds = [
                 # 'sudo service mailhog stop',
                 'sudo rm /etc/init/mailhog.conf',
                 'sudo rm /etc/init.d/mailhog',
             ]
-        elif self.distro >= (Dist.UBUNTU, Dist.U16_04):
+        elif self.distro >= (Dist.UBUNTU, Dist.V16_04):
             cmds = [
                 'sudo systemctl disable mailhog',
                 'sudo rm /etc/systemd/system/mailhog.service',
