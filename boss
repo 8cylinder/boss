@@ -1344,14 +1344,30 @@ def init(args):
         list_modules(args, mappings)
     elif args.subparser_name == 'help':
         found = False
+        w = textwrap.TextWrapper(initial_indent='', subsequent_indent='  ', break_on_hyphens=False)
         for mapping in mappings:
-            if args.module == mapping[0]:
-                app = mapping[1]
+            if args.module.lower() in mapping[0].lower() or args.module == 'all':
+                app = mapping[1]()
                 print()
-                print(app.__doc__)
+                title(app.__class__.__name__, show_date=False)
+                if app.__doc__:
+                    lines = app.__doc__.split('\n')
+                    lines = [i.strip() for i in lines]
+                    print('\n'.join(lines))
+                else:
+                    print('(No documentation)')
+                if app.apt_pkgs:
+                    print()
+                    # print('Installed apt packages:', end=' ')
+                    installed = w.wrap('Installed packages: {}'.format(', '.join(app.apt_pkgs)))
+                    print('\n'.join(installed))
+                if app.requires:
+                    print()
+                    print('Requires: {}'.format(', '.join(app.requires)))
+
                 found = True
         if not found:
-            error('Unknown module: {}.  Try `boss list`'.format(args.module), args.dry_run)
+            error('Unknown module: {}.  Try `boss list`'.format(args.module))
 
 
 def list_modules(args, mappings):
@@ -1597,7 +1613,7 @@ if __name__ == '__main__':
 
     ## HELP ##
     hlp = subparsers.add_parser('help', help='Detailed info for each module')
-    hlp.add_argument('module',
+    hlp.add_argument('module', nargs='?', default='all',
                      help='The name of the module that you want more info about')
 
     args = parser.parse_args()
