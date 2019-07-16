@@ -285,6 +285,12 @@ class Bash:
         with open(os.path.expanduser(log_name), 'w') as f:
             f.writelines(installed_mods)
 
+    def sed(self, sed_exp, config_file):
+        now = datetime.datetime.now().strftime('%y-%m-%d-%X')
+        new_ext = '.original-{}'.format(now)
+        sed_cmd = 'sudo sed --in-place="{}" "{}" "{}"'.format(new_ext, sed_exp, config_file)
+        self.run(sed_cmd)
+
     def apt(self, progs):
         self._apt(Apt.INSTALL, progs)
 
@@ -774,13 +780,10 @@ class Craft3(Bash):
             'sudo service apache2 restart',
         )]
 
-        # edit craft's html/index.php to point to the craft dir
-        cmd = 'sudo -u www-data sed --in-place=".original" \
-               "s|dirname(__DIR__)|\'{craftdir}\'|" {index}'.format(
-            craftdir=craft_dir,
-            index=os.path.join(html_dir, 'index.php')
-        )
-        self.run(cmd)
+        sed_exp = 's|dirname(__DIR__)|\'{}\'|'.format(craft_dir)
+        index = os.path.join(html_dir, 'index.php')
+        self.sed(sed_exp, index)
+        self.run('sudo chown www-data:www-data {}'.format(index))
 
         self.info('Craft admin', 'https://{}/admin'.format(self.args.servername))
 
@@ -1095,7 +1098,7 @@ class Netdata(Bash):
 
     def post_install(self):
         if self.distro >= (Dist.UBUNTU, Dist.V18_04):
-            self.run("sudo sed --in-place=.orginal 's/bind socket to IP = .*$/bind socket to IP = *.*.*.*/' /etc/netdata/netdata.conf")
+            self.sed('s/bind socket to IP = .*$/bind socket to IP = *.*.*.*/', '/etc/netdata/netdata.conf')
             self.run('sudo systemctl restart netdata')
             self.info('Netdata', 'http://{}:19999'.format(self.args.servername))
 
@@ -1159,14 +1162,15 @@ class FakeSMTP(Bash):
 
     def post_install(self):
         self.install_via_github()
-        sedcmd = 'sudo sed --in-place=".original" "s|;sendmail_path =|sendmail_path = /usr/local/bin/mhsendmail|" {}'
+        sedcmd = 's|;sendmail_path =|sendmail_path = /usr/local/bin/mhsendmail|'
         cmds = [
             'chmod +x mailhog mhsendmail',
             'sudo mv mailhog mhsendmail /usr/local/bin',
-            sedcmd.format(self.phpini),
-            sedcmd.format(self.cliini),
         ]
         [self.run(i) for i in cmds]
+        self.sed(sedcmd, self.phpini)
+        self.sed(sedcmd, self.cliini)
+
         if self.distro == (Dist.UBUNTU, Dist.V14_04):
             self.config_upstart()
         elif self.distro >= (Dist.UBUNTU, Dist.V16_04):
@@ -1246,8 +1250,6 @@ class FakeSMTP(Bash):
         self.run('sudo systemctl enable mailhog')
 
     def post_uninstall(self):
-        sedcmd = 'sudo sed --in-place=".mailhog" "s|sendmail_path = /usr/local/bin/mhsendmail|;sendmail_path =|" {}'
-
         if self.distro == (Dist.UBUNTU, Dist.V14_04):
             cmds = [
                 # 'sudo service mailhog stop',
@@ -1259,10 +1261,12 @@ class FakeSMTP(Bash):
                 'sudo systemctl disable mailhog',
                 'sudo rm /etc/systemd/system/mailhog.service',
             ]
-        cmds = cmds + [
-            'sudo rm /usr/local/bin/mailhog /usr/local/bin/mhsendmail',
-            sedcmd.format(self.phpini),
-            sedcmd.format(self.cliini),
+
+        self.run('sudo rm /usr/local/bin/mailhog /usr/local/bin/mhsendmail')
+        sed_exp = 's|sendmail_path = /usr/local/bin/mhsendmail|;sendmail_path =|'
+        self.sed(sed_exp, self.phpini)
+        self.sed(sed_exp, self.cliini)
+
         ]
         [self.run(i) for i in cmds]
 
