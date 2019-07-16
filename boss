@@ -375,8 +375,9 @@ class Bash:
 class First(Bash):
     """Misc apps that are useful
 
-    tree, elinks, virt-what, silversearcher-ag,
-    htop, source-highlight, whois, joe, curl, figlet"""
+    The timezone is set to America/Los_Angeles and Emacs is configured
+    as the defalt editor.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -398,7 +399,6 @@ class First(Bash):
         pass
 
     def post_install(self):
-        """Ad an alias for jmacs(joe) or emacs in .bashrc"""
         # editor = 'jmacs'
         editor = 'emacs'
         cmds = [
@@ -468,11 +468,10 @@ class Cert(Bash):
 
 
 class Apache2(Bash):
-    """Apache and a conf named from the servername
+    """Stand alone Apache
 
-    The default apache conf is disabled and a new on is made using the
-    SERVERNAME argument value, /etc/apache/sites-enabled/SERVERNAME.conf.
-    It has an http and https section using the cert created via the cert module."""
+    With a default site at /var/www/html.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -491,6 +490,7 @@ class Nginx(Bash):
 
 
 class Php(Bash):
+    """Base PHP, nothing else."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['php']
@@ -502,7 +502,10 @@ class Php(Bash):
 
 
 class PhpInfo(Bash):
-    """Create a phpinfo.php file in /var/www/html"""
+    """Create a phpinfo.php file in /var/www/html
+
+    It is available at https://<servername>/phpinfo.php"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['phpinfo']
@@ -533,9 +536,13 @@ class PhpInfo(Bash):
 class Mysql(Bash):
     """Mysql db and password configuration
 
+    Requires root's password and new db to create.  Optionally, a new
+    user can be created.
+
     root's password: --db-root-password=PASSWORD
     New db: --db-name=DBNAME
-    Optional new user and password: --new-db-user-and-pass=USER,PASSWORD"""
+    Optional new user and password: --new-db-user-and-pass=USER,PASSWORD
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -597,6 +604,10 @@ class Mysql(Bash):
 
 
 class Composer(Bash):
+    """If the distro is older than 18.04 composer is installed from source
+    from github.  Otherwise it is installed from the apt repo.
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['composer']
