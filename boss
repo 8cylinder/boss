@@ -105,6 +105,9 @@ def display_cmd(cmd, indent=0, wrap=True, script=False):
         leader = ''
         initial_indent = ''
         subsequent_indent = '  '
+        global CONSOLE_WIDTH
+        CONSOLE_WIDTH = 80
+        wrap = False if '<<' in cmd else True
     if wrap:
         w = textwrap.TextWrapper(
             initial_indent=initial_indent,
@@ -129,12 +132,16 @@ def display_cmd(cmd, indent=0, wrap=True, script=False):
         sys.stdout.write(fancy + '\n')
     sys.stdout.flush()
 
-def title(msg, script=False):
-    timestamp = datetime.datetime.now().isoformat()
+def title(msg, script=False, show_date=True):
+    timestamp = ''
+    if show_date:
+        timestamp = ' [{}]'.format(datetime.datetime.now().isoformat())
     if script:
+        global CONSOLE_WIDTH
+        CONSOLE_WIDTH = 80
         msg = '# {} '.format(msg).ljust(CONSOLE_WIDTH, '-')
     else:
-        msg = '{} [{}] '.format(msg, timestamp).ljust(CONSOLE_WIDTH, '-')
+        msg = '{}{} '.format(msg, timestamp).ljust(CONSOLE_WIDTH, '-')
     print()
     if not script:
         sys.stdout.write(c.Style.BRIGHT + c.Fore.YELLOW + msg + c.Style.RESET_ALL + '\n')
@@ -1280,9 +1287,9 @@ class Done(Bash):
         self.run('figlet -k -w89 {}'.format(self.args.servername))
         for title, msg in info:
             if self.args.generate_script:
-                sys.stdout.write("echo '{:12} {}'\n".format(title + ':', msg))
+                sys.stdout.write("echo '{:20} {}'\n".format(title + ':', msg))
             else:
-                sys.stdout.write('{:12} {}'.format(
+                sys.stdout.write('{:30} {}'.format(
                     c.Style.BRIGHT + c.Fore.WHITE + title + ':' + c.Style.RESET_ALL,
                     c.Fore.BLUE + msg + c.Style.RESET_ALL + '\n'
                 ))
