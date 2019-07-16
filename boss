@@ -578,12 +578,12 @@ class Mysql(Bash):
             sql=sql), wrap=False)
 
     def create_schema(self, db_name, root_pass):
-        sql = '''
+        sql = ' '.join('''
           DROP DATABASE IF EXISTS {db_name};
           CREATE DATABASE IF NOT EXISTS {db_name};
         '''.format(
             db_name=db_name,
-        )
+        ).split())
         self.run('mysql -uroot -p{root_pass} <<EOF\n{sql}\nEOF'.format(
             root_pass=root_pass,
             sql=sql
@@ -624,6 +624,12 @@ class Composer(Bash):
         else:
             self.apt_install()
 
+        # add www-data to the ubuntu group so when running composer as
+        # www-data user, it can create a cache in ubuntu's home dir.
+        self.run('sudo usermod -aG $USER www-data')
+        self.run('sudo chown -R $USER: $HOME/.composer')
+        self.run('sudo chmod -R uga+rw $HOME/.composer')
+
     def apt_install(self):
         self.apt(['composer'])
 
@@ -661,11 +667,6 @@ class Composer(Bash):
             # 'if [[ ! -e $HOME/.composer ]]; then mkdir $HOME/.composer/; fi',
             # 'chmod a+rw $HOME/.composer/',
         )]
-        # add www-data to the ubuntu group so when running composer as
-        # www-data user, it can create a cache in ubuntu's home dir.
-        self.run('sudo usermod -aG $USER www-data')
-        self.run('sudo chown -R $USER: $HOME/.composer')  # FIXME: don't hard code
-        self.run('sudo chmod -R uga+rw $HOME/.composer')   # FIXME: don't hard code
 
     def post_uninstall(self):
         self.run('sudo rm /usr/local/bin/composer')
@@ -732,7 +733,7 @@ class Craft3(Bash):
         if self.distro == (Dist.UBUNTU, Dist.V16_04):
             self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt',
                              'php-curl', 'php-xml', 'php-zip']
-        elif self.distro == (Dist.UBUNTU, Dist.V18_04):
+        elif self.distro >= (Dist.UBUNTU, Dist.V18_04):
             self.apt_pkgs = ['php7.2-mbstring', 'php-imagick', 'php7.2-curl',
                              'php-xml', 'php7.2-zip']
         else:
@@ -1171,15 +1172,15 @@ class FakeSMTP(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['fakesmtp']
         self.requires = ['php']
-        if self.distro == (Dist.UBUNTU, Dist.V16_04):
-            self.phpini = '/etc/php/7.0/apache2/php.ini'
-            self.cliini = '/etc/php/7.0/cli/php.ini'
-        elif self.distro == (Dist.UBUNTU, Dist.V18_04):
-            self.phpini = '/etc/php/7.2/apache2/php.ini'
-            self.cliini = '/etc/php/7.2/cli/php.ini'
-        elif self.distro == (Dist.UBUNTU, Dist.V14_04):
+        if self.distro == (Dist.UBUNTU, Dist.V14_04):
             self.phpini = '/etc/php5/apache2/php.ini'
             self.cliini = '/etc/php5/cli/php.ini'
+        elif self.distro == (Dist.UBUNTU, Dist.V16_04):
+            self.phpini = '/etc/php/7.0/apache2/php.ini'
+            self.cliini = '/etc/php/7.0/cli/php.ini'
+        elif self.distro >= (Dist.UBUNTU, Dist.V18_04):
+            self.phpini = '/etc/php/7.2/apache2/php.ini'
+            self.cliini = '/etc/php/7.2/cli/php.ini'
         else:
             error('FakeSMTP: no php.ini defined')
 
