@@ -360,6 +360,7 @@ class Bash:
         global APTUPDATED
         if not APTUPDATED:
             self.run('sudo apt-get --quiet update')
+            self.run('sudo apt-get --quiet --yes upgrade')
             APTUPDATED = True
         action = 'install' if action == Apt.INSTALL else 'purge'
         self.run('export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet {action} {packages}'.format(
@@ -1278,24 +1279,17 @@ class FakeSMTP(Bash):
 
     def post_uninstall(self):
         if self.distro == (Dist.UBUNTU, Dist.V14_04):
-            cmds = [
-                # 'sudo service mailhog stop',
-                'sudo rm /etc/init/mailhog.conf',
-                'sudo rm /etc/init.d/mailhog',
-            ]
+            # self.run('sudo service mailhog stop')
+            self.run('sudo rm /etc/init/mailhog.conf')
+            self.run('sudo rm /etc/init.d/mailhog')
         elif self.distro >= (Dist.UBUNTU, Dist.V16_04):
-            cmds = [
-                'sudo systemctl disable mailhog',
-                'sudo rm /etc/systemd/system/mailhog.service',
-            ]
+            self.run('sudo systemctl disable mailhog')
+            self.run('sudo rm /etc/systemd/system/mailhog.service')
 
         self.run('sudo rm /usr/local/bin/mailhog /usr/local/bin/mhsendmail')
         sed_exp = 's|sendmail_path = /usr/local/bin/mhsendmail|;sendmail_path =|'
         self.sed(sed_exp, self.phpini)
         self.sed(sed_exp, self.cliini)
-
-        ]
-        [self.run(i) for i in cmds]
 
 
 class Done(Bash):
@@ -1435,6 +1429,12 @@ def install_uninstall(args, mappings):
             if len(required - provided):
                 error('Requirements not met for {}: {}.'.format(
                     app.__class__.__name__, ', '.join(app.requires)))
+
+    if args.generate_script:
+        sys.stdout.write('#!/usr/bin/env bash\n\n')
+        sys.stdout.write('# {}\n\n'.format(' '.join(sys.argv)))
+        sys.stdout.write('PS4=\'+ ${LINENO}: \'\n')
+        sys.stdout.write('set -x\n')
 
     user = None
     installed = []
