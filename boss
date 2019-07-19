@@ -627,8 +627,6 @@ class Composer(Bash):
         # add www-data to the ubuntu group so when running composer as
         # www-data user, it can create a cache in ubuntu's home dir.
         self.run('sudo usermod -aG $USER www-data')
-        self.run('sudo chown -R $USER: $HOME/.composer')
-        self.run('sudo chmod -R uga+rw $HOME/.composer')
 
     def apt_install(self):
         self.apt(['composer'])
@@ -667,6 +665,8 @@ class Composer(Bash):
             # 'if [[ ! -e $HOME/.composer ]]; then mkdir $HOME/.composer/; fi',
             # 'chmod a+rw $HOME/.composer/',
         )]
+        self.run('sudo chown -R $USER: $HOME/.composer')
+        self.run('sudo chmod -R uga+rw $HOME/.composer')
 
     def post_uninstall(self):
         self.run('sudo rm /usr/local/bin/composer')
@@ -742,6 +742,9 @@ class Craft3(Bash):
         self.html_dir = '/var/www/html'
 
     def post_install(self):
+        if not self.args.craft_credentials:
+            return
+
         # setup the dirs
         craft_dir = self.craft_dir
         html_dir = self.html_dir
@@ -837,8 +840,8 @@ class VirtualHost(Bash):
 
                 ServerName {servername}
                 {https_redirect}
-                DocumentRoot /var/www/{document_root}
-                <Directory "/var/www">
+                DocumentRoot {document_root}
+                <Directory "{document_root}">
                     AllowOverride All
                 </Directory>
 
@@ -862,8 +865,8 @@ class VirtualHost(Bash):
                 ServerName {servername}
                 # ServerAlias www.{servername}
 
-                DocumentRoot /var/www/{document_root}
-                <Directory "/var/www">
+                DocumentRoot {document_root}
+                <Directory "{document_root}">
                     AllowOverride All
                 </Directory>
 
@@ -911,12 +914,12 @@ class VirtualHost(Bash):
 
         for site in self.args.site_name_and_root:
             site_name = site[0]
-            document_root = site[1]
-            vhost_config = self._http(site_name, document_root)
+            full_document_root = os.path.join('/var/www', site[1])
+            vhost_config = self._http(site_name, full_document_root)
 
             crt, key = self.existing_cert(self.args.servername)
             # crt, key = self.new_cert(site_name)
-            vhost_config += self._https(site_name, document_root, crt, key)
+            vhost_config += self._https(site_name, full_document_root, crt, key)
 
             conf_file = '/etc/apache2/sites-available/{}.conf'.format(site_name)
 
@@ -1301,6 +1304,7 @@ class Done(Bash):
         self.provides = ['done']
 
     def pre_install(self):
+        # https://github.com/pwaller/pyfiglet/blob/master/doc/figfont.txt
         self.run('figlet -k -w89 {}'.format(self.args.servername))
         for title, msg in info:
             if self.args.generate_script:
@@ -1499,8 +1503,8 @@ if __name__ == '__main__':
             except ValueError:
                 msg = 'must be a sitename and document root seperated by a comma.'
                 raise argparse.ArgumentTypeError(msg)
-            if '/' in documentroot:
-                raise argparse.ArgumentTypeError('DOCUMENTROOT cannot have a "/" in it.')
+            # if '/' in documentroot:
+            #     raise argparse.ArgumentTypeError('DOCUMENTROOT cannot have a "/" in it.')
             cleaned_sites.append((sitename, documentroot))
         return cleaned_sites
 
@@ -1591,8 +1595,7 @@ if __name__ == '__main__':
                        Multiple sites can be specified by seperating them with a ":", eg: -s site1,root1:site2,root2''')
     # craft 3
     ins.add_argument('-c', '--craft-credentials', type=userpassemail, metavar='USERNAME,EMAIL,PASSWORD',
-                     required='craft3' in sys.argv,
-                     help='Craft admin credentials')
+                     help='Craft admin credentials. If not set, only system requirements for Craft will be installed')
     # aptproxy
     ins.add_argument('-i', '--host-ip',
                      required='aptproxy' in sys.argv,
@@ -1628,3 +1631,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print('\nQuiting.')
         sys.exit(1)
+
