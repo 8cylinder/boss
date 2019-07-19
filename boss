@@ -360,6 +360,7 @@ class Bash:
         global APTUPDATED
         if not APTUPDATED:
             self.run('sudo apt-get --quiet update')
+            self.run('sudo apt-get --quiet --yes upgrade')
             APTUPDATED = True
         action = 'install' if action == Apt.INSTALL else 'purge'
         self.run('export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet {action} {packages}'.format(
@@ -1424,6 +1425,12 @@ def install_uninstall(args, mappings):
             if len(required - provided):
                 error('Requirements not met for {}: {}.'.format(
                     app.__class__.__name__, ', '.join(app.requires)))
+
+    if args.generate_script:
+        sys.stdout.write('#!/usr/bin/env bash\n\n')
+        sys.stdout.write('# {}\n\n'.format(' '.join(sys.argv)))
+        sys.stdout.write('PS4=\'+ ${LINENO}: \'\n')
+        sys.stdout.write('set -x\n')
 
     user = None
     installed = []
