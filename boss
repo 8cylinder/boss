@@ -739,12 +739,19 @@ class Craft3(Bash):
                              'php-xml', 'php7.2-zip']
         else:
             raise PlatformError("Platform is not Ubuntu 16.04 or 18.04.  Don't know which php extra packages to install for Craft3")
-        self.craft_dir = '/var/www/craft'
-        self.html_dir = '/var/www/html'
 
     def post_install(self):
         if not self.args.craft_credentials:
             return
+
+        # if site_name_and_root used, use the first one for craft
+        self.craft_dir = '/var/www/craft'
+        if self.args.site_name_and_root:
+            html_dir = os.path.join('/var/www/', self.args.site_name_and_root[0][1])
+            if os.path.exists(html_dir):
+                self.html_dir = html_dir
+        else:
+            self.html_dir = '/var/www/html'
 
         # setup the dirs
         craft_dir = self.craft_dir
@@ -1299,6 +1306,8 @@ class Done(Bash):
 
     def pre_install(self):
         # https://github.com/pwaller/pyfiglet/blob/master/doc/figfont.txt
+        if self.args.generate_script:
+            sys.stdout.write('set +x\n')
         self.run('figlet -k -w89 {}'.format(self.args.servername))
         for title, msg in info:
             if self.args.generate_script:
