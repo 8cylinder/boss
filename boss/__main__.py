@@ -63,7 +63,7 @@ def display_cmd(cmd, indent=0, wrap=True, script=False):
         fancy = '\n'.join(first + rest)
 
     if not script:
-        sys.stdout.write(c.Fore.YELLOW + fancy + c.Style.RESET_ALL + '\n')
+        click.secho(fancy, fg='yellow')
     else:
         sys.stdout.write(fancy + '\n')
     sys.stdout.flush()
@@ -80,7 +80,7 @@ def title(msg, script=False, show_date=True):
         msg = '{}{} '.format(msg, timestamp).ljust(CONSOLE_WIDTH, '-')
     print()
     if not script:
-        sys.stdout.write(c.Style.BRIGHT + c.Fore.YELLOW + msg + c.Style.RESET_ALL + '\n')
+        click.secho(msg, bold=True)
     else:
         sys.stdout.write(msg + '\n')
     sys.stdout.flush()
@@ -90,20 +90,20 @@ def warn(msg, script=False):
     if script:
         sys.stdout.write('# !!! WARNING: {} !!!\n'.format(msg))
     else:
-        sys.stdout.write(c.Fore.YELLOW + c.Style.BRIGHT + 'WARNING: ' + c.Style.RESET_ALL +
-                         c.Fore.YELLOW + str(msg) + c.Style.RESET_ALL + '\n')
+        click.echo(click.style('WARNING: ', fg='yellow', bold=True) +
+                   click.style(str(msg), fg='yellow'))
     sys.stdout.flush()
 
 
 def notify(msg):
-    sys.stdout.write(c.Fore.BLUE + c.Style.BRIGHT + 'NOTICE: ' + c.Style.RESET_ALL +
-                     c.Fore.BLUE + str(msg) + c.Style.RESET_ALL + '\n')
+    click.echo(click.style('NOTICE: ', fg='blue', bold=True) +
+               click.style(str(msg), fg='blue'))
     sys.stdout.flush()
 
 
 def error(msg, dry_run=False):
-    sys.stdout.write(c.Fore.RED + c.Style.BRIGHT + 'ERROR: ' + c.Style.RESET_ALL +
-                     c.Fore.RED + str(msg) + c.Style.RESET_ALL + '\n')
+    click.echo(click.style('ERROR: ', fg='red', bold=True) +
+               click.style(str(msg), fg='red'))
     sys.stdout.flush()
     if not dry_run:
         sys.exit(1)
@@ -1277,10 +1277,10 @@ class Done(Bash):
             if self.args.generate_script:
                 sys.stdout.write("echo '{:20} {}'\n".format(title + ':', msg))
             else:
-                sys.stdout.write('{:30} {}'.format(
-                    c.Style.BRIGHT + c.Fore.WHITE + title + ':' + c.Style.RESET_ALL,
-                    c.Fore.BLUE + msg + c.Style.RESET_ALL + '\n'
-                ))
+                click.echo('{:30} {}'.format(
+                    click.style(title, fg='white'),
+                    click.style(msg, fg='blue')))
+
             sys.stdout.flush()
         sys.stdout.write('\n')
 
@@ -1360,11 +1360,14 @@ def list_modules(args, mappings):
         module = row[1]
         # state = '[X] ' if name in installed else '[-] '
         state = ' ✓ ' if name in installed else '   '
-        state = c.Fore.GREEN + state + c.Style.RESET_ALL
+        state = click.style(state, fg='green')
         description = module.__doc__ if module.__doc__ else ''
         description = description.split('\n')[0]
-        modline = state + c.Style.BRIGHT + name.ljust(12) + c.Style.RESET_ALL + description + '\n'
-        sys.stdout.write(modline)
+        click.echo(
+            state +
+            click.style(name.ljust(12)) +
+            description
+        )
         sys.stdout.flush()
 
 
