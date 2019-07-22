@@ -3,3 +3,4 @@ ubuntu*.log
 .vagrant
 boss.pyz
 __pycache__
+boss/click
