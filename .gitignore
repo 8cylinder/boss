@@ -2,3 +2,4 @@
 ubuntu*.log
 .vagrant
 boss.pyz
+__pycache__
