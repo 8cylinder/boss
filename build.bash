@@ -5,7 +5,7 @@ BOSS_DIR='boss'
 
 cd $PROJECT_ROOT
 if python3 -m zipapp --compress --python "/usr/bin/env python3" $BOSS_DIR; then
-    echo 'Boss built'
+    echo "Boss built, $(du -h $PROJECT_ROOT/boss.pyz | cut -f1)"
 fi
 
 

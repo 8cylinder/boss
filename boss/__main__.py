@@ -14,40 +14,43 @@ import datetime
 import urllib.request
 import json
 from collections import namedtuple
-import click
+import deps.click
 # import IPython
 
-from util import * # display_cmd title warn notify password_gen
+from util import display_cmd
+from util import title
+from util import warn
+from util import notify
+from util import password_gen
+
 from dist import Dist
 from bash import Bash
 
-from aptproxy import AptProxy
-from bashrc import Bashrc
-from cert import Cert
-from cert import Cert
-from composer import Composer
-from craft2 import Craft2
-from craft3 import Craft3
-# from django import Django
-# from django import Wagtail
-from databases import Mysql
-from done import Done
-from fakesmtp import FakeSMTP
-from first import First
-from first import First
-from lamp import Lamp
-from netdata import Netdata
-from newuser import NewUser
-from php import Php
-from phpinfo import PhpInfo
-from phpmyadmin import PhpMyAdmin
-from virtualhost import VirtualHost
-from webmin import Webmin
-from webservers import Apache2
-from webservers import Nginx
-from wordpress import Wordpress
-from wordpress import WpCli
-from xdebug import Xdebug
+from mods.aptproxy import AptProxy
+from mods.bashrc import Bashrc
+from mods.cert import Cert
+from mods.craft import Craft2
+from mods.craft import Craft3
+from mods.django import Django
+from mods.django import Wagtail
+from mods.databases import Mysql
+from mods.done import Done
+from mods.fakesmtp import FakeSMTP
+from mods.first import First
+from mods.lamp import Lamp
+from mods.netdata import Netdata
+from mods.newuser import NewUser
+from mods.php import Php
+from mods.php import Xdebug
+from mods.php import PhpInfo
+from mods.php import Composer
+from mods.phpmyadmin import PhpMyAdmin
+from mods.virtualhost import VirtualHost
+from mods.webmin import Webmin
+from mods.webservers import Apache2
+from mods.webservers import Nginx
+from mods.wordpress import Wordpress
+from mods.wordpress import WpCli
 
 
 class DependencyError(Exception): pass

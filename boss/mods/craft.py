@@ -2,6 +2,76 @@ from bash import Bash
 from dist import Dist
 
 
+class Craft2(Bash):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.provides = ['craft2']
+        self.requires = ['apache2', 'php', 'mysql']
+        if self.distro == (Dist.UBUNTU, Dist.V14_04):
+            self.apt_pkgs = ['php5', 'php5-imagick', 'php5-mcrypt', 'php5-curl',
+                             'php5-gd', 'php5-mysql' , 'libapache2-mod-php5']
+        elif self.distro == (Dist.UBUNTU, Dist.V16_04):
+            self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt', 'php-curl',
+                             'php-xml', 'php-zip', 'php-gd', 'php-mysql']
+        elif self.distro == (Dist.UBUNTU, Dist.V18_04):
+            self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-curl', # no php-mcrypt on 18.04
+                             'php-xml', 'php-zip', 'php-gd', 'php-mysql']
+
+    def post_install(self):
+        if self.distro >= (Dist.UBUNTU, Dist.V18_04):
+            self.install_mcrypt()
+            self.disable_groupby()
+
+    def install_mcrypt(self):
+        """Manualy compile and install mcrypt since it has be depreciated and not available on 18.04
+
+        https://askubuntu.com/a/1037418"""
+
+        # Install prerequisites
+        self.apt('php-dev', 'libmcrypt-dev', 'gcc', 'make autoconf', 'libc-dev', 'pkg-config')
+
+        # Compile mcrypt extension
+        self.run('yes '' | sudo pecl install mcrypt-1.0.1')
+        # Just press enter when it asks about libmcrypt prefix
+        # `yes ''` causes pecl to accept the default
+
+        # Enable extension for apache
+        self.run('echo "extension=mcrypt.so" | sudo tee -a /etc/php/7.2/apache2/conf.d/mcrypt.ini')
+
+        # Restart apache
+        self.run('sudo service apache2 restart')
+
+    def disable_groupby(self):
+        '''
+        mycnf_dir='/etc/mysql/conf.d/'
+        mycnf_file='disable_only_full_group_by.cnf'
+        if [[ -d "$mycnf_dir" ]]; then
+            cat <<-EOF > ~/$mycnf_file
+        [mysqld]
+        sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+        EOF
+            sudo mv ~/$mycnf_file $mycnf_dir || error "cannot create ${mycnf_dir}${mycnf_file}"
+            echo "Created ${mycnf_dir}${mycnf_file}"
+        fi
+        sudo service mysql restart
+        '''
+
+        mycnf_dir = '/etc/mysql/conf.d/'
+        mycnf_file = 'disable_only_full_group_by.cnf'
+        if os.path.exists(mycnf_dir):
+            setting = '''
+              [mysqld]
+              sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+            '''
+            setting = '\n'.join(i[14:] for i in setting.split('\n'))
+            self.run('echo | sudo tee {file} <<EOF\n{contents}\nEOF'.format(
+                file=mycnf_file,
+                contents=setting,
+            ))
+        else:
+            error('In disable_groupby(), {} not found'.format(mycnf_dir))
+
+
 class Craft3(Bash):
     """https://craftcms.com"""
 

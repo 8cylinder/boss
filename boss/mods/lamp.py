@@ -1,10 +1,10 @@
 from bash import Bash
 from dist import Dist
 
-from webservers import Apache2
-from webservers import Nginx
-from databases import Mysql
-from php import Php
+from mods.webservers import Apache2
+from mods.webservers import Nginx
+from mods.databases import Mysql
+from mods.php import Php
 
 
 class Lamp(Apache2, Mysql):
