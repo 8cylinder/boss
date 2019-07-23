@@ -1,3 +1,5 @@
+# run-shell-command :: ../../build.bash
+
 import sys
 
 from bash import Bash
