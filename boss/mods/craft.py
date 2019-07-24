@@ -81,10 +81,10 @@ class Craft3(Bash):
         self.requires = ['apache2', 'php', 'mysql', 'composer']
         if self.distro == (Dist.UBUNTU, Dist.V16_04):
             self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt',
-                             'php-curl', 'php-xml', 'php-zip']
+                             'php-curl', 'php-xml', 'php-zip', 'php-soap']
         elif self.distro >= (Dist.UBUNTU, Dist.V18_04):
             self.apt_pkgs = ['php7.2-mbstring', 'php-imagick', 'php7.2-curl',
-                             'php-xml', 'php7.2-zip']
+                             'php-xml', 'php7.2-zip', 'php-soap']
         else:
             raise PlatformError("Craft3 requires PHP7, it is not available on this platform: {}".format(self.distro))
 
