@@ -1,3 +1,5 @@
+# run-shell-command :: ../build.bash
+
 import os
 from dist import Dist
 from enum import Enum

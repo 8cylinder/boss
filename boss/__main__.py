@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # run-shell-command :: ../build.bash
 
 import os

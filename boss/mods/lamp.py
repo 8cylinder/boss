@@ -1,3 +1,5 @@
+# run-shell-command :: ../../build.bash
+
 from bash import Bash
 from dist import Dist
 

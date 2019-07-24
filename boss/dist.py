@@ -1,3 +1,5 @@
+# run-shell-command :: ../build.bash
+
 try:
     import distro
 except ImportError:
