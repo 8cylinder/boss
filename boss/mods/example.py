@@ -24,6 +24,11 @@ class Example(Bash):
     # List of apt packages to be installed via apt.
     self.apt_pkgs = ['package1', 'package2']
 
+    # dist can be used to different things based on what version of
+    # linux being used.
+    if self.distro == (Dist.UBUNTU, Dist.V18_04):
+        self.apt_pkgs = ['package1', 'package2', '18.04_package_only']
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
