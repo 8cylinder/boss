@@ -1,6 +1,6 @@
 .idea
 ubuntu*.log
 .vagrant
-boss.pyz
+boss
 __pycache__
 boss/click
