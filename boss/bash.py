@@ -10,22 +10,15 @@ from util import warn
 from util import notify
 
 
-APTUPDATED = False
-
-
-class Apt(Enum):
-    INSTALL = 1
-    UNINSTALL = 2
-
-
 class Bash:
+    APTUPDATED = False
+
     def __init__(self, dry_run=False, args=None):
         self.ok_code = 0
         self.requires = []
         self.apt_pkgs = []
         self.provides = []
         self.distro = Dist()
-        self.is_installed = False
         self.dry_run = dry_run
         self.args = args
         self.scriptname = os.path.basename(__file__)
@@ -61,24 +54,16 @@ class Bash:
         self.run(sed_cmd)
 
     def apt(self, progs):
-        self._apt(Apt.INSTALL, progs)
+        self._apt(progs)
 
     def install(self):
-        self._apt(Apt.INSTALL, self.apt_pkgs)
+        self._apt(self.apt_pkgs)
         return True
 
     def pre_install(self):
         return True
 
     def post_install(self):
-        return True
-
-    def uninstall(self):
-        if self._apt(Apt.UNINSTALL, self.apt_pkgs):
-            self.run('sudo apt-get --yes --quiet autoremove')
-        return True
-
-    def post_uninstall(self):
         return True
 
     def check_requirments(self, installed):
@@ -114,20 +99,17 @@ class Bash:
         result = self.run(cmd, capture=capture)
         return result
 
-    def _apt(self, action, packages):
+    def _apt(self, packages):
         dry = '--dry-run' if self.dry_run else ''
         packages = ' '.join(packages)
         if not packages:
             return False
-        global APTUPDATED
-        if not APTUPDATED:
+        if not Bash.APTUPDATED:
             self.run('sudo apt-get --quiet update')
-            self.run('sudo apt-get --quiet --yes upgrade')
-            APTUPDATED = True
-        action = 'install' if action == Apt.INSTALL else 'purge'
-        self.run('export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet {action} {packages}'.format(
+            #self.run('sudo apt-get --quiet --yes upgrade')   # not really necessary
+            Bash.APTUPDATED = True
+        self.run('export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet install {packages}'.format(
             action=action, dry=dry, packages=packages))
-        self.is_installed = True
         return True
 
     def info(self, title, msg):

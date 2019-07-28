@@ -38,7 +38,9 @@ class Example(Bash):
         self.apt(['list', 'of', 'packages'])
         self.curl('url', 'output-filename', capture=True)
         self.info('title', 'message')
-        self.run('any valid bash command string')
+        self.run('any valid bash command string', wrap=True, capture=False)
+        # capture the result of the command
+        result = self.run('any valid bash command string', wrap=True, capture=True)
 
 
     # Run before apt installs the apt_pkgs.
@@ -47,12 +49,4 @@ class Example(Bash):
 
     # Run after apt installs the apt_pkgs.
     def post_install(self):
-        pass
-
-    # Run before apt uninstalls the apt_pkgs.
-    def pre_uninstall(self):
-        pass
-
-    # Run after apt uninstalls the apt_pkgs.
-    def post_uninstall(self):
         pass
