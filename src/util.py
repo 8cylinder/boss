@@ -4,7 +4,7 @@ import sys
 import os
 import datetime
 import textwrap
-import click
+import deps.click as click
 
 
 try:

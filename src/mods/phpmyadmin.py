@@ -2,6 +2,7 @@
 
 from bash import Bash
 from dist import Dist
+from errors import *
 
 
 class PhpMyAdmin(Bash):
@@ -11,10 +12,12 @@ class PhpMyAdmin(Bash):
     Use the root username and the password specified via --db_root_pass
     """
 
+    provides = ['phpmyadmin']
+    requires = ['apache2', 'php', 'mysql']
+    title = 'PhpMyAdmin'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['phpmyadmin']
-        self.requires = ['apache2', 'php', 'mysql']
         self.apt_pkgs = ['phpmyadmin']
 
     def pre_install(self):

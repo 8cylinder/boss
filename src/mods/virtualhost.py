@@ -1,16 +1,22 @@
 # run-shell-command :: ../../build.bash
 
+import os
+
 from bash import Bash
 from dist import Dist
+from errors import *
+from mods.cert import Cert
 
 
 class VirtualHost(Bash):
     """Create virtualhost configuration files for http and https"""
 
+    provides = ['virtualhost']
+    requires = ['apache2', 'cert']
+    title = 'Virtual host'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['virtualhost']
-        self.requires = ['apache2', 'cert']
 
     def _http(self, servername, document_root):
         https_redirect = '# Redirect permanent "/" https://{servername}/'.format(

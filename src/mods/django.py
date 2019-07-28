@@ -2,6 +2,7 @@
 
 from bash import Bash
 from dist import Dist
+from errors import *
 
 
 class Django(Bash):
@@ -9,10 +10,12 @@ class Django(Bash):
 
 
     """
+    provides = ['django']
+    requires = ['apache', 'mysql']
+    title = 'Django'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['django']
-        self.requires = ['apache', 'mysql']
         self.apt_pkgs = ['python3-pip', 'libapache2-mod-wsgi-py3', 'python3-mysqldb', 'python3-virtualenv', 'python3-venv']
 
     def pre_install(self):
@@ -27,7 +30,9 @@ class Django(Bash):
 
 
 class Wagtail(Bash):
+    provides = ['wagtail']
+    requires = ['django']
+    title = 'Wagtail'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['wagtail']
-        self.requires = ['django']

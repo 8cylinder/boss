@@ -4,11 +4,16 @@ import sys
 
 from bash import Bash
 from dist import Dist
+from errors import *
+
 
 class Done(Bash):
+    provides = ['done']
+    requires = []
+    title = 'Done'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['done']
 
     def pre_install(self):
         # https://github.com/pwaller/pyfiglet/blob/master/doc/figfont.txt

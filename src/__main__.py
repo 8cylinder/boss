@@ -1,21 +1,15 @@
 # run-shell-command :: ../build.bash
 
-import os
 import sys
-import string
-import random
-# from enum import Enum
-import subprocess
 import argparse
 import textwrap
-from pprint import pprint as pp
-import datetime
-import urllib.request
-import json
-from collections import namedtuple
+import subprocess
+# from pprint import pprint as pp
 import deps.click as click
-# import IPython
 
+from errors import DependencyError
+from errors import PlatformError
+from errors import SecurityError
 from util import display_cmd
 from util import title
 from util import warn
@@ -53,12 +47,7 @@ from mods.wordpress import Wordpress
 from mods.wordpress import WpCli
 
 
-class DependencyError(Exception): pass
-class PlatformError(Exception): pass
-class SecurityError(Exception): pass
-
 info = []
-
 
 # --------------------------------- UI ---------------------------------
 
@@ -66,7 +55,7 @@ def init(args):
     # list of all modules and the order they should be executed in.
     mods = [
         AptProxy,
-        First,  # this is a required module
+        First,      # required module
         NewUser,
         Cert,
         Lamp,
@@ -82,11 +71,10 @@ def init(args):
         Craft3,
         FakeSMTP,
         VirtualHost,
-        WpCli,
         Netdata,
         Webmin,
         Bashrc,
-        Done,
+        Done,       # required module
     ]
     if args.subparser_name == 'install':
         install(args, mods)
@@ -96,7 +84,6 @@ def init(args):
         found = False
         w = textwrap.TextWrapper(initial_indent='', subsequent_indent='  ', break_on_hyphens=False)
         for mod in mods:
-            # if args.module.lower() in mapping[0].lower() or args.module == 'all':
             if args.module.lower() in mod.__class__.__name__.lower() or args.module == 'all':
                 app = mod()
                 print()
@@ -109,7 +96,6 @@ def init(args):
                     print('(No documentation)')
                 if app.apt_pkgs:
                     print()
-                    # print('Installed apt packages:', end=' ')
                     installed = w.wrap('Installed packages: {}'.format(', '.join(app.apt_pkgs)))
                     print('\n'.join(installed))
                 if app.requires:
@@ -145,22 +131,18 @@ def list_modules(args, mods):
         sys.stdout.flush()
 
 
-def install(args, mods):
-    modules = args.modules
-
-    required = ['first', 'done']
-    # extract the requested modules and the required from mods list
-    if args.subparser_name == 'install':
-        if args.no_required:
-            apps = [i for i in mods if i in modules]
-        else:
-            apps = [i for i in mods if i in modules or i in required]
+def install(args, available_mods): # available
+    wanted_mods = [i.lower() for i in args.modules]
+    required_mods = ['first', 'done']
+    # extract the requested modules and the required from available_mods list
+    if args.no_required:
+        wanted_apps = [i for i in available_mods if i.__name__.lower() in wanted_mods]
     else:
-        apps = [i for i in mods if i in modules]
+        wanted_apps = [i for i in available_mods if i.__name__.lower() in wanted_mods or i.__name__.lower() in required_mods]
 
     # check if the user is asking for non-existent modules
-    mapping_keys = [i.__name__.lower() for i in mods]
-    invalid_modules = [i for i in modules if i not in mapping_keys]
+    mapping_keys = [i.__name__.lower() for i in available_mods]
+    invalid_modules = [i for i in wanted_mods if i not in mapping_keys]
     if invalid_modules:
         error('module(s) "{invalid}" does not exist.\nValid modules are:\n{valid}'.format(
             valid=', '.join(mapping_keys),
@@ -170,27 +152,13 @@ def install(args, mods):
     # check if the requested modules have their dependencies met
     if args.subparser_name == 'install' and not args.no_dependencies:
         install_reqs = []
-        print(apps)
-        for mapping in apps:
-            try:
-                app = mapping()
-            except subprocess.CalledProcessError as e:
-                error(e)
-            except DependencyError as e:
-                error(e)
-            except PlatformError as e:
-                # print(e)
-                error(e)
-            except SecurityError as e:
-                error(e)
-
+        for app in wanted_apps:
             install_reqs += app.provides
             provided = set(install_reqs)
             required = set(app.requires)
-            # print(provided, required)
             if len(required - provided):
                 error('Requirements not met for {}: {}.'.format(
-                    app.__class__.__name__, ', '.join(app.requires)))
+                    app.__name__.lower(), ', '.join(app.requires)))
 
     if args.generate_script:
         sys.stdout.write('#!/usr/bin/env bash\n\n')
@@ -198,30 +166,16 @@ def install(args, mods):
         sys.stdout.write('PS4=\'+ ${LINENO}: \'\n')
         sys.stdout.write('set -x\n')
 
-    user = None
-    installed = []
-    for mapping in apps:
-        App = mapping[1]
-        module_name = App.__name__
+    # installed = []
+    for App in wanted_apps:
+        module_name = App.title
         title(module_name, script=args.generate_script)
-        # module_title = '{} '.format(module_name)
-        # title(module_title.ljust(CONSOLE_WIDTH, '-'))
-        app = App(dry_run=args.dry_run, args=args)
-
-        # if mapping == 'newuser':
-        #     # set the user after 'newuser' has run so the rest of the modules
-        #     # will use the new user.
-        #     user, _ = self.args.new_system_user_and_pass
-
         try:
-            if args.subparser_name == 'install':
-                if not args.no_dependencies:
-                    app.check_requirments(installed)
-                app.pre_install()
-                app.install()
-                app.post_install()
-                installed += app.provides
-                app.log('install', module_name)
+            app = App(dry_run=args.dry_run, args=args)
+            app.pre_install()
+            app.install()
+            app.post_install()
+            app.log('install', module_name)
         except subprocess.CalledProcessError as e:
             error(e)
         except DependencyError as e:
@@ -230,6 +184,8 @@ def install(args, mods):
             error(e)
         except SecurityError as e:
             error(e)
+        except FileNotFoundError as e:
+            error(e.args[0])
 
 
 if __name__ == '__main__':
@@ -345,9 +301,9 @@ if __name__ == '__main__':
     ins.add_argument('-u', '--new-system-user-and-pass', type=userpass, metavar='USERNAME,PASSWORD',
                      required='newuser' in sys.argv,
                      help="a new system user's new username and password (seperated by a comma)")
-    # newsite
+    # virtualhost
     ins.add_argument('-s', '--site-name-and-root', type=newsite, metavar='SITENAME,DOCUMENTROOT[:...]',
-                    required='newsite' in sys.argv,
+                    required='virtualhost' in sys.argv,
                      help='''SITENAME and DOCUMENTROOT seperated by a comma (doc root will be put in /var/www).
                        Multiple sites can be specified by seperating them with a ":", eg: -s site1,root1:site2,root2''')
     # craft 3

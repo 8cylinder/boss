@@ -1,7 +1,11 @@
 # run-shell-command :: ../../build.bash
 
+import urllib.request
+import json
+
 from bash import Bash
 from dist import Dist
+from errors import *
 
 
 class FakeSMTP(Bash):
@@ -9,10 +13,12 @@ class FakeSMTP(Bash):
 
     https://www.lullabot.com/articles/installing-mailhog-for-ubuntu-1604
     """
+    provides = ['fakesmtp']
+    requires = ['php']
+    title = 'FakeSMTP (Mailhog)'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['fakesmtp']
-        self.requires = ['php']
         if self.distro == (Dist.UBUNTU, Dist.V14_04):
             self.phpini = '/etc/php5/apache2/php.ini'
             self.cliini = '/etc/php5/cli/php.ini'

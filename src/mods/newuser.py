@@ -2,6 +2,7 @@
 
 from bash import Bash
 from dist import Dist
+from errors import *
 
 
 class NewUser(Bash):
@@ -10,10 +11,12 @@ class NewUser(Bash):
     Create a new user and add them to the sudo and www-data groups.
     The new user does not require a password for sudo."""
 
+    provides = ['newuser']
+    requires = ['first']
+    title = 'New user'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['newuser']
-        self.requires = ['first']
 
     def pre_install(self):
         username, password = self.args.new_system_user_and_pass

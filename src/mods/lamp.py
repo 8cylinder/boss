@@ -2,6 +2,7 @@
 
 from bash import Bash
 from dist import Dist
+from errors import *
 
 from mods.webservers import Apache2
 from mods.webservers import Nginx
@@ -24,9 +25,12 @@ class Lamp(Apache2, Mysql):
     mysql-server-core-5.7, rename, php-common, php-mysql,
     php7.0-mysql, php7.0-readline"""
 
+    provides = ['apache2', 'php', 'mysql', 'lamp']
+    requires = []
+    title = 'Lamp'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['apache2', 'php', 'mysql', 'lamp']
         self.apt_pkgs = ['lamp-server^']
 
     def pre_install(self):

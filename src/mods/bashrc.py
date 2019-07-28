@@ -1,7 +1,9 @@
 # run-shell-command :: ../../build.bash
 
+import os
 from bash import Bash
 from dist import Dist
+from errors import *
 
 
 class Bashrc(Bash):
@@ -12,9 +14,12 @@ class Bashrc(Bash):
     3. Symlinks the ~/bin/bashrc to ~/.bashrc
     4. Symlink /project/boss to ~/bin/boss"""
 
+    provides = ['bashrc']
+    requires = []
+    title = 'Custom .bashrc'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['bashrc']
         self.apt_pkgs = ['emacs-nox']
 
     def install_bashrc(self):

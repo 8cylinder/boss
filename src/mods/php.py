@@ -2,9 +2,18 @@
 
 from bash import Bash
 from dist import Dist
+from errors import *
+from util import error
+
+import os
+import datetime
 
 
 class Php(Bash):
+    provides = ['php']
+    requires = ['apache2']
+    title = 'PHP'
+
     """Base PHP, nothing else."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -17,10 +26,12 @@ class Php(Bash):
 
 
 class Xdebug(Bash):
+    provides = ['xdebug']
+    requires = ['php']
+    title = 'Xdebug'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['xdebug']
-        self.requires = ['php']
         self.apt_pkgs = ['php-xdebug']    # good enough?
 
 
@@ -29,25 +40,27 @@ class PhpInfo(Bash):
 
     It is available at https://<servername>/phpinfo.php"""
 
+    provides = ['phpinfo']
+    requires = ['php']
+    title = 'PHP Info'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['phpinfo']
-        self.requires = ['php']
         self.loc = '/var/www/html'
         self.info_file = '{}/phpinfo.php'.format(self.loc)
 
     def post_install(self):
         info = '<h1>{}</h1>\n<?php phpinfo();'.format(datetime.datetime.now().isoformat())
-        if os.path.exists(self.loc):
+
+        if self.args.dry_run or self.args.generate_script or os.path.exists(self.loc):
             cmd = 'echo \'{info}\' | sudo -u www-data tee {loc}'.format(
                 info=info,
                 loc=self.info_file
             )
             self.run(cmd)
         else:
-            error('[PhpInfo] Dir does not exist: {}'.format(self.loc), self.args.dry_run)
-
-        # self.info('Php info', 'https://{}/phpinfo.php'.format(self.args.servername))
+            if not self.args.dry_run:
+                raise FileNotFoundError('[PhpInfo] Dir does not exist: {}'.format(self.loc))
 
 
 class Composer(Bash):
@@ -55,10 +68,12 @@ class Composer(Bash):
     from github.  Otherwise it is installed from the apt repo.
     """
 
+    provides = ['composer']
+    requires = ['php']
+    title = 'Composer'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['composer']
-        self.requires = ['php']
 
     def post_install(self):
         if self.distro < (Dist.UBUNTU, Dist.V18_04):

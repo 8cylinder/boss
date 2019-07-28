@@ -2,6 +2,7 @@
 
 from bash import Bash
 from dist import Dist
+from errors import *
 
 
 class Mysql(Bash):
@@ -15,9 +16,12 @@ class Mysql(Bash):
     Optional new user and password: --new-db-user-and-pass=USER,PASSWORD
     """
 
+    provides = ['mysql']
+    requires = []
+    title = 'MySQL'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['mysql']
         self.apt_pkgs = ['mysql-server']
 
     def configure_root_password(self):

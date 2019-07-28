@@ -1,7 +1,10 @@
 # run-shell-command :: ../../build.bash
 
+import os
+
 from bash import Bash
 from dist import Dist
+from errors import *
 
 
 class Cert(Bash):
@@ -10,9 +13,12 @@ class Cert(Bash):
     It's name is the servername, SERVERNAME.crt and SERVERNAME.key.
     They are install in /etc/ssl."""
 
+    provides = ['cert']
+    requires = []
+    title = 'Self signed cert'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['cert']
 
     def cert_names(self, cert_basename):
         crt = '{}.crt'.format(cert_basename)

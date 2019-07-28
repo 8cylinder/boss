@@ -2,13 +2,16 @@
 
 from bash import Bash
 from dist import Dist
+from errors import *
 
 
 class Webmin(Bash):
+    provides = ['webmin']
+    requires = ['apache2', 'php', 'cert']
+    title = 'Webmin console'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['webmin']
-        self.requires = ['apache2', 'php', 'cert']
         self.apt_pkgs = ['webmin']
 
     def pre_install(self):

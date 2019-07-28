@@ -2,6 +2,7 @@
 
 from bash import Bash
 from dist import Dist
+from errors import *
 
 
 class First(Bash):
@@ -10,10 +11,12 @@ class First(Bash):
     The timezone is set to America/Los_Angeles and Emacs is configured
     as the defalt editor.
     """
+    provides = ['first']
+    requires = []
+    title = 'First'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['first']
         if self.distro > (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = [
                 'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',

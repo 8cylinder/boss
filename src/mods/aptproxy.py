@@ -2,6 +2,7 @@
 
 from bash import Bash
 from dist import Dist
+from errors import *
 
 
 class AptProxy(Bash):
@@ -20,9 +21,12 @@ class AptProxy(Bash):
 
     conf_file = '/etc/apt/apt.conf.d/00aptproxy'
 
+    provides = ['aptproxy']
+    requires = []
+    title = 'Apt Proxy'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['aptproxy']
 
     def post_install(self):
         host_ip = self.args.host_ip

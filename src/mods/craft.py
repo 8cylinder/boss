@@ -1,14 +1,19 @@
 # run-shell-command :: ../../build.bash
 
+import os
+
 from bash import Bash
 from dist import Dist
+from errors import *
 
 
 class Craft2(Bash):
+    provides = ['craft2']
+    requires = ['apache2', 'php', 'mysql']
+    title = 'Craft 2'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.provides = ['craft2']
-        self.requires = ['apache2', 'php', 'mysql']
         if self.distro == (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = ['php5', 'php5-imagick', 'php5-mcrypt', 'php5-curl',
                              'php5-gd', 'php5-mysql' , 'libapache2-mod-php5']
@@ -18,6 +23,10 @@ class Craft2(Bash):
         elif self.distro == (Dist.UBUNTU, Dist.V18_04):
             self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-curl', # no php-mcrypt on 18.04
                              'php-xml', 'php-zip', 'php-gd', 'php-mysql']
+        else:
+            raise PlatformError(
+                'Craft2 dependencies have not been determined for this platform: {}'.format(
+                self.distro))
 
     def post_install(self):
         if self.distro >= (Dist.UBUNTU, Dist.V18_04):
@@ -30,7 +39,7 @@ class Craft2(Bash):
         https://askubuntu.com/a/1037418"""
 
         # Install prerequisites
-        self.apt('php-dev', 'libmcrypt-dev', 'gcc', 'make autoconf', 'libc-dev', 'pkg-config')
+        self.apt(['php-dev', 'libmcrypt-dev', 'gcc', 'make autoconf', 'libc-dev', 'pkg-config'])
 
         # Compile mcrypt extension
         self.run('yes '' | sudo pecl install mcrypt-1.0.1')
@@ -60,7 +69,7 @@ class Craft2(Bash):
 
         mycnf_dir = '/etc/mysql/conf.d/'
         mycnf_file = 'disable_only_full_group_by.cnf'
-        if os.path.exists(mycnf_dir):
+        if self.args.dry_run or self.args.generate_script or os.path.exists(mycnf_dir):
             setting = '''
               [mysqld]
               sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
@@ -71,11 +80,15 @@ class Craft2(Bash):
                 contents=setting,
             ))
         else:
-            error('In disable_groupby(), {} not found'.format(mycnf_dir))
+            raise FileNotFoundError('In disable_groupby(), {} not found'.format(mycnf_dir))
 
 
 class Craft3(Bash):
     """https://craftcms.com"""
+
+    provides = ['craft3']
+    requires = ['apache2', 'php', 'mysql', 'composer']
+    title = 'Craft 3'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -98,8 +111,7 @@ class Craft3(Bash):
         self.craft_dir = '/var/www/craft'
         if self.args.site_name_and_root:
             html_dir = os.path.join('/var/www/', self.args.site_name_and_root[0][1])
-            if os.path.exists(html_dir):
-                self.html_dir = html_dir
+            self.html_dir = html_dir
         else:
             self.html_dir = '/var/www/html'
 

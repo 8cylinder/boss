@@ -3,11 +3,14 @@
 import os
 from dist import Dist
 from enum import Enum
+import datetime
 
+from errors import *
 from util import display_cmd
 from util import title
 from util import warn
 from util import notify
+
 
 
 class Bash:
@@ -66,14 +69,14 @@ class Bash:
     def post_install(self):
         return True
 
-    def check_requirments(self, installed):
-        missing = []
-        for required in self.requires:
-            if required.lower() not in installed:
-                missing.append(required)
-        if missing:
-            raise DependencyError('Module {} requires: {}.'.format(
-                self.__class__.__name__, ', '.join(missing)))
+    # def check_requirments(self, installed):
+    #     missing = []
+    #     for required in self.requires:
+    #         if required.lower() not in installed:
+    #             missing.append(required)
+    #     if missing:
+    #         raise DependencyError('Module {} requires: {}.'.format(
+    #             self.__class__.__name__, ', '.join(missing)))
 
     def run(self, cmd, wrap=True, capture=False):
         if wrap:
@@ -109,7 +112,7 @@ class Bash:
             #self.run('sudo apt-get --quiet --yes upgrade')   # not really necessary
             Bash.APTUPDATED = True
         self.run('export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet install {packages}'.format(
-            action=action, dry=dry, packages=packages))
+            dry=dry, packages=packages))
         return True
 
     def info(self, title, msg):
