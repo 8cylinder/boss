@@ -15,6 +15,7 @@ from util import notify
 
 class Bash:
     APTUPDATED = False
+    info_messages = []
 
     def __init__(self, dry_run=False, args=None):
         self.ok_code = 0
@@ -116,4 +117,4 @@ class Bash:
         return True
 
     def info(self, title, msg):
-        info.append([title, msg])
+        self.info_messages.append([title, msg])

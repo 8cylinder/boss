@@ -1,6 +1,7 @@
 # run-shell-command :: ../../build.bash
 
 import sys
+import deps.click as click
 
 from bash import Bash
 from dist import Dist
@@ -20,13 +21,14 @@ class Done(Bash):
         if self.args.generate_script:
             sys.stdout.write('set +x\n')
         self.run('figlet -k -w89 {}'.format(self.args.servername))
-        # for title, msg in info:
-        #     if self.args.generate_script:
-        #         sys.stdout.write("echo '{:20} {}'\n".format(title + ':', msg))
-        #     else:
-        #         click.echo('{:30} {}'.format(
-        #             click.style(title, fg='white'),
-        #             click.style(msg, fg='blue')))
-        #     sys.stdout.flush()
+
+        for title, msg in self.info_messages:
+            if self.args.generate_script:
+                sys.stdout.write("echo '{:20} {}'\n".format(title + ':', msg))
+            else:
+                click.echo('{:30} {}'.format(
+                    click.style(title, fg='white'),
+                    click.style(msg, fg='blue')))
+            sys.stdout.flush()
 
         sys.stdout.write('\n')

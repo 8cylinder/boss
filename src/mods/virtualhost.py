@@ -123,8 +123,8 @@ class VirtualHost(Bash):
 
             # enable this site
             self.run('sudo a2ensite {}'.format(site_name))
-            # self.info('Website', 'https://{}'.format(site_name))
-            # self.info(' └─ Apache conf', conf_file)
+            self.info('Website', 'https://{}'.format(site_name))
+            self.info(' └─ Apache conf', conf_file)
 
         # restart apache
         self.run('sudo service apache2 restart')

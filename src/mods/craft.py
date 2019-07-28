@@ -181,4 +181,4 @@ class Craft3(Bash):
         self.sed(sed_exp, index)
         self.run('sudo chown www-data:www-data {}'.format(index))
 
-        # self.info('Craft admin', 'https://{}/admin'.format(self.args.servername))
+        self.info('Craft admin', 'https://{}/admin'.format(self.args.servername))

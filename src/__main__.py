@@ -47,8 +47,6 @@ from mods.wordpress import Wordpress
 from mods.wordpress import WpCli
 
 
-info = []
-
 # --------------------------------- UI ---------------------------------
 
 def init(args):

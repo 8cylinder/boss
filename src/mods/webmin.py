@@ -29,4 +29,4 @@ class Webmin(Bash):
             APTUPDATED = False
             self.run(cmd)
 
-        # self.info('Webmin', 'http://{}:10000 (user & password for any user that can sudo)'.format(self.args.servername))
+        self.info('Webmin', 'http://{}:10000 (user & password for any user that can sudo)'.format(self.args.servername))

@@ -47,8 +47,8 @@ class FakeSMTP(Bash):
         elif self.distro >= (Dist.UBUNTU, Dist.V16_04):
             self.config_systemd()
 
-        # self.info('FakeSMTP client', 'http://{}:8025'.format(self.args.servername))
-        # self.info(' └─ FakeSMTP api', 'curl http://{}:8025/api/v2/messages'.format(self.args.servername))
+        self.info('FakeSMTP client', 'http://{}:8025'.format(self.args.servername))
+        self.info(' └─ FakeSMTP api', 'curl http://{}:8025/api/v2/messages'.format(self.args.servername))
 
     def install_via_go(self):
         pass
