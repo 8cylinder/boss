@@ -38,7 +38,3 @@ class Lamp(Apache2, Mysql):
             cls.post_install(self)
 
         self.run('sudo service apache2 restart')
-
-    def post_uninstall(self):
-        for cls in Lamp.__bases__:
-            cls.post_uninstall(self)

@@ -15,9 +15,6 @@ class Apache2(Bash):
         self.provides = ['apache2']
         self.apt_pkgs = ['apache2']
 
-    def post_uninstall(self):
-        self.run('if sudo test -d /etc/apache2; then sudo rm -rf /etc/apache2; fi')
-
 
 class Nginx(Bash):
     def __init__(self, *args, **kwargs):

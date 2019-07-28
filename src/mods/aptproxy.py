@@ -32,7 +32,3 @@ class AptProxy(Bash):
             ip=self.conf_file
         )
         self.run(cmd)
-
-    def post_uninstall(self):
-        cmd = 'sudo rm {}'.format(self.conf_file)
-        self.run(cmd)

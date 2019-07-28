@@ -170,9 +170,3 @@ class Craft3(Bash):
         self.run('sudo chown www-data:www-data {}'.format(index))
 
         # self.info('Craft admin', 'https://{}/admin'.format(self.args.servername))
-
-    def post_uninstall(self):
-        self.run('sudo rm -rf {}'.format(self.craft_dir))
-        for f in ['cpresources', '.htaccess', 'index.php', 'web.config']:
-            # self.run('rm -rf {}/{}'.format(self.html_dir, f))
-            warn('{} should be removed also'.format(f))

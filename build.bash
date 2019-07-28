@@ -13,6 +13,10 @@ for d in $(find -iname '__pycache__' -type d); do
     rm -rf "$d"
 done
 
+if [[ -e $BOSS_APP ]]; then
+    rm $BOSS_APP
+fi
+
 if python3 -m zipapp --compress --python "/usr/bin/env python3" --output=$BOSS_APP $BOSS_DIR; then
-    echo "Boss built, $(du -h $PROJECT_ROOT/boss.pyz | cut -f1)"
+    echo "$BOSS_APP built, $(du -h $PROJECT_ROOT/$BOSS_APP | cut -f1)"
 fi

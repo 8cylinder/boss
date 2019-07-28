@@ -48,12 +48,3 @@ class Cert(Bash):
             cert_basename=cert_basename))
         self.run('sudo cp {cert_basename}.key /etc/ssl/private/{cert_basename}.key'.format(
             cert_basename=cert_basename))
-
-    def post_uninstall(self):
-        cert_basename = self.args.cert_basename
-        home_crt, home_key, real_crt, real_key = self.cert_names(cert_basename)
-
-        self.run('[[ -e {f} ]] && sudo rm {f}'.format(f=home_crt))
-        self.run('[[ -e {f} ]] && sudo rm {f}'.format(f=home_key))
-        self.run('sudo test -e {f} && sudo rm {f}'.format(f=real_crt))
-        self.run('sudo test -e {f} && sudo rm {f}'.format(f=real_key))

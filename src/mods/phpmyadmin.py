@@ -27,7 +27,3 @@ class PhpMyAdmin(Bash):
         self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-user string root"')
         self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-pass password {}"'.format(root_pass))
         self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/app-pass password {}"'.format(root_pass))
-
-    def post_install(self):
-        # self.info('PhpMyadmin', 'https://{}/phpmyadmin'.format(self.args.servername))
-        pass

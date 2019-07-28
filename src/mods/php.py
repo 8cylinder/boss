@@ -49,12 +49,6 @@ class PhpInfo(Bash):
 
         # self.info('Php info', 'https://{}/phpinfo.php'.format(self.args.servername))
 
-    def post_uninstall(self):
-        cmd = 'if test -e {infofile}; then rm {infofile}; fi'.format(
-            infofile=self.info_file
-        )
-        self.run(cmd)
-
 
 class Composer(Bash):
     """If the distro is older than 18.04 composer is installed from source
@@ -115,8 +109,3 @@ class Composer(Bash):
         )]
         self.run('sudo chown -R $USER: $HOME/.composer')
         self.run('sudo chmod -R uga+rw $HOME/.composer')
-
-    def post_uninstall(self):
-        self.run('sudo rm /usr/local/bin/composer')
-        self.run('if [[ -e $HOME/.composer ]]; then rm -rf $HOME/.composer/; fi')
-        self.run('if [[ -e $HOME/composer.sig]]; then rm $HOME/composer.sig; fi')

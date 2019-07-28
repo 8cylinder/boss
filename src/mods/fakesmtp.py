@@ -113,17 +113,3 @@ class FakeSMTP(Bash):
         ), wrap=False)
         self.run('sudo systemctl start mailhog')
         self.run('sudo systemctl enable mailhog')
-
-    def post_uninstall(self):
-        if self.distro == (Dist.UBUNTU, Dist.V14_04):
-            # self.run('sudo service mailhog stop')
-            self.run('sudo rm /etc/init/mailhog.conf')
-            self.run('sudo rm /etc/init.d/mailhog')
-        elif self.distro >= (Dist.UBUNTU, Dist.V16_04):
-            self.run('sudo systemctl disable mailhog')
-            self.run('sudo rm /etc/systemd/system/mailhog.service')
-
-        self.run('sudo rm /usr/local/bin/mailhog /usr/local/bin/mhsendmail')
-        sed_exp = 's|sendmail_path = /usr/local/bin/mhsendmail|;sendmail_path =|'
-        self.sed(sed_exp, self.phpini)
-        self.sed(sed_exp, self.cliini)

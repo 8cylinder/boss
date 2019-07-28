@@ -33,9 +33,3 @@ class NewUser(Bash):
         # make user not need a password for sudo
         sudo_file = '/etc/sudoers.d/{}-{}'.format(self.scriptname, username)  # filename cannot have a . or ~
         self.run("echo '{} ALL=(ALL) NOPASSWD:ALL' | sudo tee {}".format(username, sudo_file))
-
-    def uninstall(self):
-        username = self.args.system_user
-        self.run('sudo userdel -r {}'.format(username))
-        sudo_file = '/etc/sudoers.d/{}-{}'.format(self.scriptname, username)
-        self.run('sudo rm {}'.format(sudo_file))

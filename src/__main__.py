@@ -89,9 +89,7 @@ def init(args):
         Done,
     ]
     if args.subparser_name == 'install':
-        install_uninstall(args, mods)
-    elif args.subparser_name == 'uninstall':
-        install_uninstall(args, mods)
+        install(args, mods)
     elif args.subparser_name == 'list':
         list_modules(args, mods)
     elif args.subparser_name == 'help':
@@ -147,7 +145,7 @@ def list_modules(args, mods):
         sys.stdout.flush()
 
 
-def install_uninstall(args, mods):
+def install(args, mods):
     modules = args.modules
 
     required = ['first', 'done']
@@ -224,10 +222,6 @@ def install_uninstall(args, mods):
                 app.post_install()
                 installed += app.provides
                 app.log('install', module_name)
-            elif args.subparser_name == 'uninstall':
-                app.uninstall()
-                app.post_uninstall()
-                app.log('uninstall', module_name)
         except subprocess.CalledProcessError as e:
             error(e)
         except DependencyError as e:
@@ -309,11 +303,7 @@ if __name__ == '__main__':
 
     Its recommended to set up Apt-Cacher NG on the host machine.  Once
     that's done adding `aptproxy` to the list of modules will configure
-    this server to make use of it.
-
-    boss will attempt to install colorama when it's run.  If for some
-    reason that doesn't work, it can be manually installed by:
-    `sudo apt install python3-colorama`''')
+    this server to make use of it.''')
 
     epilog_msg = 'https://www.github.com/8cylinder/sink'
 
@@ -370,19 +360,6 @@ if __name__ == '__main__':
     # netdata
     ins.add_argument('--netdata-user-pass', type=userpass, metavar='USERNAME,USERPASS',
                      help="a new user's name and password (seperated by a comma)")
-
-    ## UNINSTALL ##
-    uni = subparsers.add_parser('uninstall', help='Uninstall modules')
-    uni.add_argument('modules', nargs='+',
-                     help='a list of modules that should be uninstalled')
-    uni.add_argument('-d', '--dry-run', action='store_true',
-                     help='run apt but use `apt-get --simulate` (non apt shell commands will still execute)')
-    uni.add_argument('-D', '--very-dry-run', action='store_true',
-                     help='do not run any shell commands')
-    uni.add_argument('-c', '--cert-basename', required='cert' in sys.argv,
-                     help='basename of the cert to be removed, should be the same as servername')
-    uni.add_argument('-u', '--system-user', required='newuser' in sys.argv,
-                     help='name of the user to be deleted (note: all files will be deleted as well)')
 
     ## LIST ##
     lst = subparsers.add_parser('list', help='List available modules')

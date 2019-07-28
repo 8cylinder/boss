@@ -27,6 +27,3 @@ class Webmin(Bash):
             self.run(cmd)
 
         # self.info('Webmin', 'http://{}:10000 (user & password for any user that can sudo)'.format(self.args.servername))
-
-    def post_install(self):
-        pass
