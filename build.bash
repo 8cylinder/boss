@@ -13,6 +13,9 @@ for d in $(find -iname '__pycache__' -type d); do
     rm -rf "$d"
 done
 
+# delete the lock files (broken symlinks) that emacs creates
+find ./$BOSS_DIR -type l -delete
+
 if [[ -e $BOSS_APP ]]; then
     rm $BOSS_APP
 fi
