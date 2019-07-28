@@ -13,12 +13,13 @@ import datetime
 import urllib.request
 import json
 from collections import namedtuple
-import deps.click
+import deps.click as click
 # import IPython
 
 from util import display_cmd
 from util import title
 from util import warn
+from util import error
 from util import notify
 from util import password_gen
 
@@ -63,42 +64,43 @@ info = []
 
 def init(args):
     # list of all modules and the order they should be executed in.
-    mappings = [
-        ('aptproxy', AptProxy),
-        ('first', First),  # this is a required module
-        ('newuser', NewUser),
-        ('cert', Cert),
-        ('lamp', Lamp),
-        ('apache2', Apache2),
-        ('nginx', Nginx),
-        ('php', Php),
-        ('phpinfo', PhpInfo),
-        ('mysql', Mysql),
-        ('composer', Composer),
-        ('xdebug', Xdebug),
-        ('phpmyadmin', PhpMyAdmin),
-        ('craft2', Craft2),
-        ('craft3', Craft3),
-        ('fakesmtp', FakeSMTP),
-        ('newsite', VirtualHost),
-        ('wpcli', WpCli),
-        ('netdata', Netdata),
-        ('webmin', Webmin),
-        ('bashrc', Bashrc),
-        ('done', Done),
+    mods = [
+        AptProxy,
+        First,  # this is a required module
+        NewUser,
+        Cert,
+        Lamp,
+        Apache2,
+        Nginx,
+        Php,
+        PhpInfo,
+        Mysql,
+        Composer,
+        Xdebug,
+        PhpMyAdmin,
+        Craft2,
+        Craft3,
+        FakeSMTP,
+        VirtualHost,
+        WpCli,
+        Netdata,
+        Webmin,
+        Bashrc,
+        Done,
     ]
     if args.subparser_name == 'install':
-        install_uninstall(args, mappings)
+        install_uninstall(args, mods)
     elif args.subparser_name == 'uninstall':
-        install_uninstall(args, mappings)
+        install_uninstall(args, mods)
     elif args.subparser_name == 'list':
-        list_modules(args, mappings)
+        list_modules(args, mods)
     elif args.subparser_name == 'help':
         found = False
         w = textwrap.TextWrapper(initial_indent='', subsequent_indent='  ', break_on_hyphens=False)
-        for mapping in mappings:
-            if args.module.lower() in mapping[0].lower() or args.module == 'all':
-                app = mapping[1]()
+        for mod in mods:
+            # if args.module.lower() in mapping[0].lower() or args.module == 'all':
+            if args.module.lower() in mod.__class__.__name__.lower() or args.module == 'all':
+                app = mod()
                 print()
                 title(app.__class__.__name__, show_date=False)
                 if app.__doc__:
@@ -121,7 +123,7 @@ def init(args):
             error('Unknown module: {}.  Try `boss list`'.format(args.module))
 
 
-def list_modules(args, mappings):
+def list_modules(args, mods):
     installed_file = os.path.expanduser('~/boss-installed-modules')
     installed = []
     if os.path.exists(installed_file):
@@ -129,9 +131,9 @@ def list_modules(args, mappings):
             installed = f.readlines()
         installed = [i.lower().strip() for i in installed]
 
-    for row in mappings:
-        name = row[0]
-        module = row[1]
+    for mod in mods:
+        name = mod.__name__
+        module = mod
         # state = '[X] ' if name in installed else '[-] '
         state = ' ✓ ' if name in installed else '   '
         state = click.style(state, fg='green')
@@ -139,27 +141,27 @@ def list_modules(args, mappings):
         description = description.split('\n')[0]
         click.echo(
             state +
-            click.style(name.ljust(12)) +
+            click.style(name.ljust(13), bold=True) +
             description
         )
         sys.stdout.flush()
 
 
-def install_uninstall(args, mappings):
+def install_uninstall(args, mods):
     modules = args.modules
 
     required = ['first', 'done']
-    # extract the requested modules and the required from mappings
+    # extract the requested modules and the required from mods list
     if args.subparser_name == 'install':
         if args.no_required:
-            apps = [i for i in mappings if i[0] in modules]
+            apps = [i for i in mods if i in modules]
         else:
-            apps = [i for i in mappings if i[0] in modules or i[0] in required]
+            apps = [i for i in mods if i in modules or i in required]
     else:
-        apps = [i for i in mappings if i[0] in modules]
+        apps = [i for i in mods if i in modules]
 
     # check if the user is asking for non-existent modules
-    mapping_keys = [i[0] for i in mappings]
+    mapping_keys = [i.__name__.lower() for i in mods]
     invalid_modules = [i for i in modules if i not in mapping_keys]
     if invalid_modules:
         error('module(s) "{invalid}" does not exist.\nValid modules are:\n{valid}'.format(
@@ -170,14 +172,16 @@ def install_uninstall(args, mappings):
     # check if the requested modules have their dependencies met
     if args.subparser_name == 'install' and not args.no_dependencies:
         install_reqs = []
+        print(apps)
         for mapping in apps:
             try:
-                app = mapping[1]()
+                app = mapping()
             except subprocess.CalledProcessError as e:
                 error(e)
             except DependencyError as e:
                 error(e)
             except PlatformError as e:
+                # print(e)
                 error(e)
             except SecurityError as e:
                 error(e)
