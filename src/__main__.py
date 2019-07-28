@@ -25,10 +25,12 @@ from mods.bashrc import Bashrc
 from mods.cert import Cert
 from mods.craft import Craft2
 from mods.craft import Craft3
-from mods.django import Django
-from mods.django import Wagtail
+# from mods.django import Django
+# from mods.django import Wagtail
 from mods.databases import Mysql
+from mods.databases import PhpMyAdmin
 from mods.done import Done
+# from mods.example import Example
 from mods.fakesmtp import FakeSMTP
 from mods.first import First
 from mods.lamp import Lamp
@@ -38,7 +40,6 @@ from mods.php import Php
 from mods.php import Xdebug
 from mods.php import PhpInfo
 from mods.php import Composer
-from mods.phpmyadmin import PhpMyAdmin
 from mods.virtualhost import VirtualHost
 from mods.webmin import Webmin
 from mods.webservers import Apache2
