@@ -5,8 +5,10 @@ import os
 import argparse
 import textwrap
 import subprocess
-# from pprint import pprint as pp
+import socket
+from pprint import pprint as pp
 import deps.click as click
+from collections import namedtuple
 
 from errors import DependencyError
 from errors import PlatformError
@@ -49,65 +51,264 @@ from mods.wordpress import Wordpress
 from mods.wordpress import WpCli
 
 
+mods = [
+    AptProxy,
+    First,      # required module
+    NewUser,
+    Cert,
+    Lamp,
+    Apache2,
+    Nginx,
+    Php,
+    PhpInfo,
+    Mysql,
+    Composer,
+    Xdebug,
+    PhpMyAdmin,
+    Craft2,
+    Craft3,
+    FakeSMTP,
+    VirtualHost,
+    Netdata,
+    Webmin,
+    Bashrc,
+    Done,       # required module
+]
+
+
+# ---------------------------- Custom types ----------------------------
+
+class Server(click.ParamType):
+    """Check if a string sort of looks like a url by checking for a '.' in it"""
+    name = 'server'
+    def convert(self, value, param, ctx):
+        if '.' not in value:
+            msg = 'the servername must have a "." in it, eg. something.local'
+            self.fail(msg, param, ctx)
+            # raise argparse.ArgumentTypeError(msg)
+        else:
+            return value
+SERVER = Server()
+
+class UserPass(click.ParamType):
+    """Check if a string is a username and password
+
+    format: username,password"""
+
+    name = 'user_pass'
+    def convert(self, value, param, ctx):
+        try:
+            username, password = [i.strip() for i in value.split(',', 1) if i.strip()]
+        except ValueError:
+            msg = '''must be a username and password seperated by a comma
+            (the password can have a comma in it, but not the username).'''
+            self.fail(msg, param, ctx)
+            # raise argparse.ArgumentTypeError(msg)
+        return username.strip(), password.strip()
+USER_PASS = UserPass()
+
+class SiteDocroot(click.ParamType):
+    """Check if a string is a sitename and document root
+
+    Format: sitename,docroot[:...]
+    Example: siteone.local,siteone/html:sitetwo.local,sitetwo/html"""
+
+    name = 'site_docroot'
+    def convert(self, value, param, ctx):
+        sites = value.split(':')
+        cleaned_sites = []
+        for site in sites:
+            try:
+                sitename, documentroot = [i.strip() for i in site.split(',', 1) if i.strip()]
+            except ValueError:
+                msg = 'must be a sitename and document root seperated by a comma.'
+                self.fail(msg, param, ctx)
+                # raise argparse.ArgumentTypeError(msg)
+            # if '/' in documentroot:
+            #     raise argparse.ArgumentTypeError('DOCUMENTROOT cannot have a "/" in it.')
+            cleaned_sites.append((sitename, documentroot))
+        return cleaned_sites
+SITE_DOCROOT = SiteDocroot()
+
+class UserEmailPass(click.ParamType):
+    name = 'user_email_pass'
+    def convert(self, value, param, ctx):
+        try:
+            username, email, password = [i.strip() for i in value.split(',', 2) if i.strip()]
+        except ValueError:
+            msg = '''must be a username, email and password seperated by a comma
+            (the password can have a comma in it, but not the username or email).'''
+            self.fail(msg, param, ctx)
+            # raise argparse.ArgumentTypeError(msg)
+        return username.strip(), email.strip(), password.strip()
+USER_EMAIL_PASS = UserEmailPass()
+
+class IpAddress(click.ParamType):
+    name = 'ip_address'
+    def convert(self, value, param, ctx):
+        try:
+            socket.inet_pton(socket.AF_INET, value)
+        except OSError:
+            msg = 'Ip address is not vaid'
+            self.fail(msg, param, ctx)
+        return value
+IP_ADDRESS = IpAddress()
+
+def deps(*dependencies):
+    # remove the first three arguments and any options so only
+    # the wanted modules are left
+    cmd_mods = [i for i in sys.argv if not i.startswith('-')][3:]
+    for i in dependencies:
+        if i in cmd_mods:
+            return True
+    return False
+
+
 # --------------------------------- UI ---------------------------------
 
-def init(args):
-    # list of all modules and the order they should be executed in.
-    mods = [
-        AptProxy,
-        First,      # required module
-        NewUser,
-        Cert,
-        Lamp,
-        Apache2,
-        Nginx,
-        Php,
-        PhpInfo,
-        Mysql,
-        Composer,
-        Xdebug,
-        PhpMyAdmin,
-        Craft2,
-        Craft3,
-        FakeSMTP,
-        VirtualHost,
-        Netdata,
-        Webmin,
-        Bashrc,
-        Done,       # required module
-    ]
-    if args.subparser_name == 'install':
-        install(args, mods)
-    elif args.subparser_name == 'list':
-        list_modules(args, mods)
-    elif args.subparser_name == 'help':
-        found = False
-        w = textwrap.TextWrapper(initial_indent='', subsequent_indent='  ', break_on_hyphens=False)
-        for mod in mods:
-            if args.module.lower() in mod.__class__.__name__.lower() or args.module == 'all':
-                app = mod()
-                print()
-                title(app.__class__.__name__, show_date=False)
-                if app.__doc__:
-                    lines = app.__doc__.split('\n')
-                    lines = [i.strip() for i in lines]
-                    print('\n'.join(lines))
-                else:
-                    print('(No documentation)')
-                if app.apt_pkgs:
-                    print()
-                    installed = w.wrap('Installed packages: {}'.format(', '.join(app.apt_pkgs)))
-                    print('\n'.join(installed))
-                if app.requires:
-                    print()
-                    print('Requires: {}'.format(', '.join(app.requires)))
+CONTEXT_SETTINGS = {
+    # add -h in addition to --help
+    'help_option_names': ['-h', '--help'],
+    # allow case insensitive commands
+    'token_normalize_func': lambda x: x.lower(),
+}
 
-                found = True
-        if not found:
-            error('Unknown module: {}.  Try `boss list`'.format(args.module))
+@click.group(no_args_is_help=True, context_settings=CONTEXT_SETTINGS)
+def boss():
+    """👔 Install various applications and miscellany to set up a dev server.
+
+    This can be run standalone or as a Vagrant provider.  When run as
+    a vagrant provider its recommended that is be run unprivileged.
+    This will run as the default user and the script will use sudo
+    when necessary (this assumes the default user can use sudo).  This
+    means that any subsequent uses as the default user will be able to
+    update the '$HOME/boss-installed-modules' file.  Also if the
+    bashrc module is installed during provisioning, then the correct
+    home dir will be setup.
+
+    \b
+    eg:
+    config.vm.provision :shell,
+                        path: 'boss',
+                        args: 'install server.local ...'
+
+    Its recommended to set up Apt-Cacher NG on the host machine.  Once
+    that's done adding `aptproxy` to the list of modules will configure
+    this server to make use of it."""
 
 
-def list_modules(args, mods):
+@boss.command()     # no_args_is_help=True # Click 7.1
+@click.argument('servername', type=SERVER)
+@click.argument('modules', nargs=-1, required=True)
+
+@click.option('-d', '--dry-run', is_flag=True,
+              help='Only print the commands that would be used')
+@click.option('-o', '--no-required', is_flag=True,
+              help="Don't install the required modules")
+@click.option('-O', '--no-dependencies', is_flag=True,
+              help="Don't install dependent modules")
+@click.option('--generate-script', is_flag=True,
+              help='Output suitable for a bash script instead of running them')
+
+# unix user
+@click.option('-n', '--new-user-and-pass', type=USER_PASS, metavar='USERNAME,USERPASS',
+              help="a new unix user's name and password (seperated by a comma), they will be added to the www-data group")
+# mysql
+@click.option('-S', '--sql-file', type=click.Path(exists=True, dir_okay=False), metavar='SQLFILE',
+              help='sql file to be run during install')
+@click.option('-N', '--db-name', metavar='DB-NAME',
+              required=deps('mysql', 'lamp', 'craft3'),
+              help="the name the schema to create")
+@click.option('-P', '--db-root-pass', default="password", metavar='PASSWORD',
+              required=deps('mysql', 'lamp', 'craft3', 'phpmyadmin'),
+              help='password for mysql root user, required for the mysql module')
+@click.option('-A', '--new-db-user-and-pass', type=USER_PASS, metavar='USERNAME,PASSWORD',
+              help="a new db user's new username and password (seperated by a comma)")
+# new user
+@click.option('-u', '--new-system-user-and-pass', type=USER_PASS, metavar='USERNAME,PASSWORD',
+              required=deps('newuser'),
+              help="a new system user's new username and password (seperated by a comma)")
+# virtualhost
+@click.option('-s', '--site-name-and-root', type=SITE_DOCROOT, metavar='SITENAME,DOCUMENTROOT[:...]',
+              required=deps('virtualhost'),
+              help='''SITENAME and DOCUMENTROOT seperated by a comma (doc root will be put in /var/www).
+Multiple sites can be specified by seperating them with a ":", eg: -s site1,root1:site2,root2''')
+# craft 3
+@click.option('-c', '--craft-credentials', type=USER_EMAIL_PASS, metavar='USERNAME,EMAIL,PASSWORD',
+              help='Craft admin credentials. If not set, only system requirements for Craft will be installed')
+# aptproxy
+@click.option('-i', '--host-ip', type=IP_ADDRESS,
+              required=deps('aptproxy'),
+              help='Host ip to be used in aptproxy config')
+# netdata
+@click.option('--netdata-user-pass', type=USER_PASS, metavar='USERNAME,USERPASS',
+              help="a new user's name and password (seperated by a comma)")
+
+def install(**args):
+    """
+    used for the cert name and apache ServerName, eg: 'something.local'
+    """
+    Args = namedtuple('Args', sorted(args))
+    args = Args(**args)
+
+    available_mods = mods
+    wanted_mods = [i.lower() for i in args.modules]
+    required_mods = ['first', 'done']
+    # extract the requested modules and the required from available_mods list
+    if args.no_required:
+        wanted_apps = [i for i in available_mods if i.__name__.lower() in wanted_mods]
+    else:
+        wanted_apps = [i for i in available_mods if i.__name__.lower() in wanted_mods or i.__name__.lower() in required_mods]
+
+    # check if the user is asking for non-existent modules
+    mapping_keys = [i.__name__.lower() for i in available_mods]
+    invalid_modules = [i for i in wanted_mods if i not in mapping_keys]
+    if invalid_modules:
+        error('module(s) "{invalid}" does not exist.\nValid modules are:\n{valid}'.format(
+            valid=', '.join(mapping_keys),
+            invalid=', '.join(invalid_modules)
+        ))
+
+    # check if the requested modules have their dependencies met
+    if not args.no_dependencies:
+        install_reqs = []
+        for app in wanted_apps:
+            install_reqs += app.provides
+            provided = set(install_reqs)
+            required = set(app.requires)
+            if len(required - provided):
+                error('Requirements not met for {}: {}.'.format(
+                    app.__name__.lower(), ', '.join(app.requires)))
+
+    if args.generate_script:
+        sys.stdout.write('#!/usr/bin/env bash\n\n')
+        sys.stdout.write('# {}\n\n'.format(' '.join(sys.argv)))
+        sys.stdout.write('PS4=\'+ ${LINENO}: \'\n')
+        sys.stdout.write('set -x\n')
+
+    for App in wanted_apps:
+        module_name = App.title
+        title(module_name, script=args.generate_script)
+        try:
+            app = App(dry_run=args.dry_run, args=args)
+            app.pre_install()
+            app.install()
+            app.post_install()
+            app.log('install', module_name)
+        except subprocess.CalledProcessError as e:
+            error(e)
+        except DependencyError as e:
+            error(e)
+        except PlatformError as e:
+            error(e)
+        except SecurityError as e:
+            error(e)
+        except FileNotFoundError as e:
+            error(e.args[0])
+
+@boss.command()
+def list():
+    """List available modules"""
     installed_file = os.path.expanduser('~/boss-installed-modules')
     installed = []
     if os.path.exists(installed_file):
@@ -130,205 +331,40 @@ def list_modules(args, mods):
         )
         sys.stdout.flush()
 
+@boss.command()
+def help():
+    """Show help for each module"""
 
-def install(args, available_mods): # available
-    wanted_mods = [i.lower() for i in args.modules]
-    required_mods = ['first', 'done']
-    # extract the requested modules and the required from available_mods list
-    if args.no_required:
-        wanted_apps = [i for i in available_mods if i.__name__.lower() in wanted_mods]
-    else:
-        wanted_apps = [i for i in available_mods if i.__name__.lower() in wanted_mods or i.__name__.lower() in required_mods]
-
-    # check if the user is asking for non-existent modules
-    mapping_keys = [i.__name__.lower() for i in available_mods]
-    invalid_modules = [i for i in wanted_mods if i not in mapping_keys]
-    if invalid_modules:
-        error('module(s) "{invalid}" does not exist.\nValid modules are:\n{valid}'.format(
-            valid=', '.join(mapping_keys),
-            invalid=', '.join(invalid_modules)
-        ))
-
-    # check if the requested modules have their dependencies met
-    if args.subparser_name == 'install' and not args.no_dependencies:
-        install_reqs = []
-        for app in wanted_apps:
-            install_reqs += app.provides
-            provided = set(install_reqs)
-            required = set(app.requires)
-            if len(required - provided):
-                error('Requirements not met for {}: {}.'.format(
-                    app.__name__.lower(), ', '.join(app.requires)))
-
-    if args.generate_script:
-        sys.stdout.write('#!/usr/bin/env bash\n\n')
-        sys.stdout.write('# {}\n\n'.format(' '.join(sys.argv)))
-        sys.stdout.write('PS4=\'+ ${LINENO}: \'\n')
-        sys.stdout.write('set -x\n')
-
-    # installed = []
-    for App in wanted_apps:
-        module_name = App.title
-        title(module_name, script=args.generate_script)
+    content = []
+    w = textwrap.TextWrapper(initial_indent='', subsequent_indent='  ', break_on_hyphens=False)
+    for mod in mods:
         try:
-            app = App(dry_run=args.dry_run, args=args)
-            app.pre_install()
-            app.install()
-            app.post_install()
-            app.log('install', module_name)
-        except subprocess.CalledProcessError as e:
-            error(e)
-        except DependencyError as e:
-            error(e)
+            app = mod()
         except PlatformError as e:
-            error(e)
-        except SecurityError as e:
-            error(e)
-        except FileNotFoundError as e:
-            error(e.args[0])
+            content.append('')
+            warn(e)
+        content.append('')
+
+        title = '{} ({})'.format(app.title, app.__class__.__name__.lower())
+        under = '-' * len(title)
+        content.append(click.style(title, fg='blue', bold=True))
+        content.append(click.style(under, fg='blue'))
+
+        if app.__doc__:
+            lines = app.__doc__.split('\n')
+            lines = [i.strip() for i in lines]
+            content.append('\n'.join(lines))
+        else:
+            content.append(click.style('(No documentation)', dim=True))
+        if app.apt_pkgs:
+            content.append('')
+            installed = w.wrap('Installed packages: {}'.format(', '.join(app.apt_pkgs)))
+            content.append('\n'.join(installed))
+        if app.requires:
+            content.append('')
+            content.append('Requires: {}'.format(', '.join(app.requires)))
+    click.echo_via_pager('\n'.join(content))
 
 
 if __name__ == '__main__':
-    # https://stackoverflow.com/questions/44247099/click-command-line-interfaces-make-options-required-if-other-optional-option-is
-    # https://docs.python.org/3/library/zipapp.html
-
-    # custom types for argparse
-    def userpass(s):
-        try:
-            username, password = [i.strip() for i in s.split(',', 1) if i.strip()]
-        except ValueError:
-            msg = '''must be a username and password seperated by a comma
-            (the password can have a comma in it, but not the username).'''
-            raise argparse.ArgumentTypeError(msg)
-        return username.strip(), password.strip()
-
-    def userpassemail(s):
-        try:
-            username, email, password = [i.strip() for i in s.split(',', 2) if i.strip()]
-        except ValueError:
-            msg = '''must be a username, email and password seperated by a comma
-            (the password can have a comma in it, but not the username or email).'''
-            raise argparse.ArgumentTypeError(msg)
-        return username.strip(), email.strip(), password.strip()
-
-    def newsite(s):
-        sites = s.split(':')
-        cleaned_sites = []
-        for site in sites:
-            try:
-                sitename, documentroot = [i.strip() for i in site.split(',', 1) if i.strip()]
-            except ValueError:
-                msg = 'must be a sitename and document root seperated by a comma.'
-                raise argparse.ArgumentTypeError(msg)
-            # if '/' in documentroot:
-            #     raise argparse.ArgumentTypeError('DOCUMENTROOT cannot have a "/" in it.')
-            cleaned_sites.append((sitename, documentroot))
-        return cleaned_sites
-
-    def file_exists(s):
-        if not os.path.exists(s):
-            msg = 'file must exist.'
-            raise argparse.ArgumentTypeError(msg)
-        else:
-            return s
-
-    def url(s):
-        if '.' not in s:
-            msg = 'the servername must have a "." in it, eg. something.local'
-            raise argparse.ArgumentTypeError(msg)
-        else:
-            return s
-
-    # help_msg = 'Install various aplications and miscellany to set up a server.'
-    help_msg = textwrap.dedent('''
-    Install various applications and miscellany to set up a server.
-
-    This can be run standalone or as a Vagrant provider.  When run as
-    a vagrant provider its recommended that is be run unprivileged.
-    This will run as the default user and the script will use sudo
-    when necessary (this assumes the default user can use sudo).  This
-    means that any subsequent uses as the default user will be able to
-    update the '$HOME/boss-installed-modules' file.  Also if the
-    bashrc module is installed during provisioning, then the correct
-    home dir will be setup.
-
-    eg:
-    config.vm.provision :shell,
-                        path: 'boss',
-                        args: 'install server.local ...'
-
-    Its recommended to set up Apt-Cacher NG on the host machine.  Once
-    that's done adding `aptproxy` to the list of modules will configure
-    this server to make use of it.''')
-
-    epilog_msg = 'https://www.github.com/8cylinder/sink'
-
-    parser = argparse.ArgumentParser(
-        description=help_msg, epilog=epilog_msg,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    subparsers = parser.add_subparsers(dest='subparser_name')
-
-    ## INSTALL ##
-    ins = subparsers.add_parser('install', help='Install modules')
-    ins.add_argument('servername', type=url,
-                     help="used for the cert name and apache ServerName, eg: 'something.local'")
-    ins.add_argument('modules', nargs='+',
-                     help='a list of modules that should be installed')
-
-    ins.add_argument('-d', '--dry-run', action='store_true',
-                     help='Only print the commands that would be used')
-    ins.add_argument('-o', '--no-required', action='store_true',
-                     help="Don't install the required modules")
-    ins.add_argument('-O', '--no-dependencies', action='store_true',
-                     help="Don't install dependent modules")
-    ins.add_argument('--generate-script', action='store_true',
-                     help='Output suitable for a bash script instead of running them')
-    # unix user
-    ins.add_argument('-n', '--new-user-and-pass', type=userpass, metavar='USERNAME,USERPASS',
-                     help="a new unix user's name and password (seperated by a comma), they will be added to the www-data group")
-    # mysql
-    ins.add_argument('-S', '--sql-file', type=file_exists, metavar='SQLFILE',
-                     help='sql file to be run during install')
-    ins.add_argument('-N', '--db-name', metavar='DB-NAME',
-                     required='mysql' in sys.argv or 'lamp' in sys.argv or 'craft3' in sys.argv,
-                     help="the name the schema to create")
-    ins.add_argument('-P', '--db-root-pass', metavar='PASSWORD',
-                     required='mysql' in sys.argv or 'lamp' in sys.argv or 'craft3' in sys.argv or 'phpmyadmin' in sys.argv,
-                     help='password for mysql root user, required for the mysql module')
-    ins.add_argument('-A', '--new-db-user-and-pass', type=userpass, metavar='USERNAME,PASSWORD',
-                     help="a new db user's new username and password (seperated by a comma)")
-    # new user
-    ins.add_argument('-u', '--new-system-user-and-pass', type=userpass, metavar='USERNAME,PASSWORD',
-                     required='newuser' in sys.argv,
-                     help="a new system user's new username and password (seperated by a comma)")
-    # virtualhost
-    ins.add_argument('-s', '--site-name-and-root', type=newsite, metavar='SITENAME,DOCUMENTROOT[:...]',
-                    required='virtualhost' in sys.argv,
-                     help='''SITENAME and DOCUMENTROOT seperated by a comma (doc root will be put in /var/www).
-                       Multiple sites can be specified by seperating them with a ":", eg: -s site1,root1:site2,root2''')
-    # craft 3
-    ins.add_argument('-c', '--craft-credentials', type=userpassemail, metavar='USERNAME,EMAIL,PASSWORD',
-                     help='Craft admin credentials. If not set, only system requirements for Craft will be installed')
-    # aptproxy
-    ins.add_argument('-i', '--host-ip',
-                     required='aptproxy' in sys.argv,
-                     help='Host ip to be used in aptproxy config')
-    # netdata
-    ins.add_argument('--netdata-user-pass', type=userpass, metavar='USERNAME,USERPASS',
-                     help="a new user's name and password (seperated by a comma)")
-
-    ## LIST ##
-    lst = subparsers.add_parser('list', help='List available modules')
-
-    ## HELP ##
-    hlp = subparsers.add_parser('help', help='Detailed info for each module')
-    hlp.add_argument('module', nargs='?', default='all',
-                     help='The name of the module that you want more info about')
-
-    args = parser.parse_args()
-    try:
-        init(args)
-    except KeyboardInterrupt:
-        print('\nQuiting.')
-        sys.exit(1)
-
+    boss()
