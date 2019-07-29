@@ -7,18 +7,15 @@ Provision a Vagrant server
 : $ boss -h
 
 #+BEGIN_SRC
+
 usage: boss [-h] {install,uninstall,list,help} ...
-
 Install various aplications and miscellany to set up a server.
-
 Its recomended to set up Apt-Cacher NG on the host machine.  Once
 thats done adding `aptproxy` to the list of modules will configure
 this server to make use of it.
-
 boss will attempt to install colorama when it's run.  If for some
 reason that doesn't work, it can be manually installed by:
 `sudo apt install python3-colorama`
-
 positional arguments:
   {install,uninstall,list,help}
     install             Install modules
@@ -34,17 +31,16 @@ optional arguments:
 : $ boss install -h
 
 #+BEGIN_SRC
+
 usage: boss install [-h] [-d] [-o] [-O] [-n USERNAME,USERPASS] [-S SQLFILE]
                     [-N DB-NAME] [-P PASSWORD] [-A USERNAME,PASSWORD]
                     [-u USERNAME,PASSWORD] [-f] [-c USERNAME,EMAIL,PASSWORD]
                     [-i HOST_IP] [--netdata-user-pass USERNAME,USERPASS]
                     servername modules [modules ...]
-
 positional arguments:
   servername            used for the cert name and apache ServerName, eg:
                         'something.local'
   modules               a list of modules that should be installed
-
 optional arguments:
   -h, --help            show this help message and exit
   -d, --dry-run         Only print the commands that would be used
@@ -79,14 +75,12 @@ optional arguments:
 
 *** Uninstall
 : $ boss uninstall -h
-
 #+BEGIN_SRC
+
 usage: boss uninstall [-h] [-d] [-D] [-c CERT_BASENAME] [-u SYSTEM_USER]
                       modules [modules ...]
-
 positional arguments:
   modules               a list of modules that should be uninstalled
-
 optional arguments:
   -h, --help            show this help message and exit
   -d, --dry-run         run apt but use `apt-get --simulate` (non apt shell
@@ -104,8 +98,9 @@ optional arguments:
 : $ boss list -h
 
 #+BEGIN_SRC
-usage: boss list [-h]
 
+usage: boss list [-h]
 optional arguments:
   -h, --help  show this help message and exit
 #+END_SRC
+

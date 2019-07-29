@@ -1,0 +1,13 @@
+# -*- mode: ruby -*-
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/trusty64" # 14.04
+  # config.vm.provision :shell, path: "../../boss",
+  #                     args: "install test.local first phpinfo phpmyadmin cert lamp composer craft3 newuser xdebug netdata bashrc fakesmtp -Ndbname -Ppassword -usm,password -csm,sm@8cylinder.com,password",
+  #                     keep_color: true,
+  #                     privileged: false
+  config.vm.synced_folder "../../", "/project"
+  config.vm.network "private_network", ip: "192.168.56.175"
+  config.vm.hostname = "test14.local"
+end
+
