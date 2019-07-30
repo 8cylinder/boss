@@ -6,6 +6,7 @@ from bash import Bash
 from dist import Dist
 from errors import *
 from mods.cert import Cert
+from collections import namedtuple
 
 
 class VirtualHost(Bash):
