@@ -50,23 +50,9 @@ class Craft2(Bash):
         self.run('echo "extension=mcrypt.so" | sudo tee -a /etc/php/7.2/apache2/conf.d/mcrypt.ini')
 
         # Restart apache
-        self.run('sudo service apache2 restart')
+        self.restart_apache()
 
     def disable_groupby(self):
-        '''
-        mycnf_dir='/etc/mysql/conf.d/'
-        mycnf_file='disable_only_full_group_by.cnf'
-        if [[ -d "$mycnf_dir" ]]; then
-            cat <<-EOF > ~/$mycnf_file
-        [mysqld]
-        sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
-        EOF
-            sudo mv ~/$mycnf_file $mycnf_dir || error "cannot create ${mycnf_dir}${mycnf_file}"
-            echo "Created ${mycnf_dir}${mycnf_file}"
-        fi
-        sudo service mysql restart
-        '''
-
         mycnf_dir = '/etc/mysql/conf.d/'
         mycnf_file = 'disable_only_full_group_by.cnf'
         if self.args.dry_run or self.args.generate_script or os.path.exists(mycnf_dir):
@@ -99,7 +85,7 @@ class Craft3(Bash):
                              'php-curl', 'php-xml', 'php-zip', 'php-soap']
         elif self.distro >= (Dist.UBUNTU, Dist.V18_04):
             self.apt_pkgs = ['php7.2-mbstring', 'php-imagick', 'php7.2-curl',
-                             'php-xml', 'php7.2-zip', 'php-soap']
+                             'php-xml', 'php7.2-zip', 'php-soap', 'php7.2-gmp'] # php7.2-gmp or php7.2-bcmath
         else:
             raise PlatformError("Craft3 requires PHP7, it is not available on this platform: {}".format(self.distro))
 
@@ -173,8 +159,8 @@ class Craft3(Bash):
             'sudo chmod -R g+rw {}'.format(craft_dir),
             'sudo chmod -R g+rw {}'.format(html_dir),
             'sudo a2enmod rewrite',
-            'sudo service apache2 restart',
         )]
+        self.restart_apache()
 
         sed_exp = 's|dirname(__DIR__)|\'{}\'|'.format(craft_dir)
         index = os.path.join(html_dir, 'index.php')

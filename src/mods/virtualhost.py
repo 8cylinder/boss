@@ -127,5 +127,4 @@ class VirtualHost(Bash):
             self.info('Website', 'https://{}'.format(site_name))
             self.info(' └─ Apache conf', conf_file)
 
-        # restart apache
-        self.run('sudo service apache2 restart')
+        self.restart_apache()

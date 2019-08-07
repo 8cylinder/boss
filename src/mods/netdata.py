@@ -30,3 +30,4 @@ class Netdata(Bash):
             self.sed('s/bind socket to IP = .*$/bind socket to IP = *.*.*.*/', '/etc/netdata/netdata.conf')
             self.run('sudo systemctl restart netdata')
             self.info('Netdata', 'http://{}:19999'.format(self.args.servername))
+

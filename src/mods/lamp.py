@@ -41,4 +41,4 @@ class Lamp(Apache2, Mysql):
         for cls in Lamp.__bases__:
             cls.post_install(self)
 
-        self.run('sudo service apache2 restart')
+        self.restart_apache()

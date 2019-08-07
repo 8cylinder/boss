@@ -70,15 +70,6 @@ class Bash:
     def post_install(self):
         return True
 
-    # def check_requirments(self, installed):
-    #     missing = []
-    #     for required in self.requires:
-    #         if required.lower() not in installed:
-    #             missing.append(required)
-    #     if missing:
-    #         raise DependencyError('Module {} requires: {}.'.format(
-    #             self.__class__.__name__, ', '.join(missing)))
-
     def run(self, cmd, wrap=True, capture=False):
         if wrap:
             pretty_cmd = ' '.join(cmd.split())
@@ -102,6 +93,17 @@ class Bash:
             url=url, output=output)
         result = self.run(cmd, capture=capture)
         return result
+
+    def restart_apache(self):
+        """Restart Apache using the apropriate command
+
+        Details about wether to use service or systemctl
+        https://askubuntu.com/a/903405"""
+
+        if self.distro == Dist.UBUNTU:
+            self.run('sudo service apache2 restart')
+        else:
+            error('restart_apache has unknown platform')
 
     def _apt(self, packages):
         dry = '--dry-run' if self.dry_run else ''

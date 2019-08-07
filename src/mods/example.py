@@ -45,6 +45,7 @@ class Example(Bash):
         self.apt(['list', 'of', 'packages'])
         self.curl('url', 'output-filename', capture=True)
         self.info('title', 'message')
+        self.restart_apache()
         self.run('any valid bash command string', wrap=True, capture=False)
         # capture the result of the command
         result = self.run('any valid bash command string', wrap=True, capture=True)
