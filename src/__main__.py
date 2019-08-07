@@ -2,6 +2,7 @@
 
 import sys
 import os
+import re
 import argparse
 import textwrap
 import subprocess
@@ -51,9 +52,10 @@ from mods.wordpress import Wordpress
 from mods.wordpress import WpCli
 
 
-mods = [
+# All the mods available in the order they should be run
+mods = (
     AptProxy,
-    First,      # required module
+    First,      # required
     NewUser,
     Cert,
     Lamp,
@@ -72,9 +74,25 @@ mods = [
     Netdata,
     Webmin,
     Bashrc,
-    Done,       # required module
-]
+    Done,       # required
+)
 
+def is_server(server):
+    if '.' not in server:
+        return False
+    return True
+
+def is_email(email):
+    if not re.match("[^@]+@[^@]+\.[^@]+", email):
+        return False
+    return True
+
+def is_ipaddress(ip):
+    try:
+        socket.inet_pton(socket.AF_INET, ip)
+        return True
+    except OSError:
+        return False
 
 # ---------------------------- Custom types ----------------------------
 
@@ -82,10 +100,9 @@ class Server(click.ParamType):
     """Check if a string sort of looks like a url by checking for a '.' in it"""
     name = 'server'
     def convert(self, value, param, ctx):
-        if '.' not in value:
+        if not is_server(value):
             msg = 'the servername must have a "." in it, eg. something.local'
             self.fail(msg, param, ctx)
-            # raise argparse.ArgumentTypeError(msg)
         else:
             return value
 SERVER = Server()
@@ -103,7 +120,6 @@ class UserPass(click.ParamType):
             msg = '''must be a username and password seperated by a comma
             (the password can have a comma in it, but not the username).'''
             self.fail(msg, param, ctx)
-            # raise argparse.ArgumentTypeError(msg)
         return username.strip(), password.strip()
 USER_PASS = UserPass()
 
@@ -117,39 +133,40 @@ class SiteDocroot(click.ParamType):
     def convert(self, value, param, ctx):
         sites = value.split(':')
         cleaned_sites = []
+        msg = 'must be a sitename and document root seperated by a comma, and sitename must have a . in it'
+        msg = ' '.join(msg.split())
         for site in sites:
             try:
                 sitename, documentroot = [i.strip() for i in site.split(',', 1) if i.strip()]
             except ValueError:
-                msg = 'must be a sitename and document root seperated by a comma.'
                 self.fail(msg, param, ctx)
-                # raise argparse.ArgumentTypeError(msg)
-            # if '/' in documentroot:
-            #     raise argparse.ArgumentTypeError('DOCUMENTROOT cannot have a "/" in it.')
+            if not is_server(sitename):
+                self.fail(msg, param, ctx)
             cleaned_sites.append((sitename, documentroot))
         return cleaned_sites
 SITE_DOCROOT = SiteDocroot()
 
 class UserEmailPass(click.ParamType):
+    """Check if a string is a username, email and password seperated by a comma."""
     name = 'user_email_pass'
     def convert(self, value, param, ctx):
+        msg = '''must be a username, email and password seperated by a comma
+                 (the password can have a comma in it, but not the username or email).'''
+        msg = ' '.join(msg.split())
         try:
             username, email, password = [i.strip() for i in value.split(',', 2) if i.strip()]
         except ValueError:
-            msg = '''must be a username, email and password seperated by a comma
-            (the password can have a comma in it, but not the username or email).'''
             self.fail(msg, param, ctx)
-            # raise argparse.ArgumentTypeError(msg)
+        if not is_email(email):
+            self.fail(msg, param, ctx)
         return username.strip(), email.strip(), password.strip()
 USER_EMAIL_PASS = UserEmailPass()
 
 class IpAddress(click.ParamType):
     name = 'ip_address'
     def convert(self, value, param, ctx):
-        try:
-            socket.inet_pton(socket.AF_INET, value)
-        except OSError:
-            msg = 'Ip address is not vaid'
+        msg = 'Ip address is not vaid'
+        if not is_ipaddress(value):
             self.fail(msg, param, ctx)
         return value
 IP_ADDRESS = IpAddress()
@@ -210,6 +227,7 @@ def boss():
 @click.option('--generate-script', is_flag=True,
               help='Output suitable for a bash script instead of running them')
 
+
 # unix user
 @click.option('-n', '--new-user-and-pass', type=USER_PASS, metavar='USERNAME,USERPASS',
               help="a new unix user's name and password (seperated by a comma), they will be added to the www-data group")
@@ -232,7 +250,7 @@ def boss():
 @click.option('-s', '--site-name-and-root', type=SITE_DOCROOT, metavar='SITENAME,DOCUMENTROOT[:...]',
               required=deps('virtualhost'),
               help='''SITENAME and DOCUMENTROOT seperated by a comma (doc root will be put in /var/www).
-Multiple sites can be specified by seperating them with a ":", eg: -s site1,root1:site2,root2''')
+                Multiple sites can be specified by seperating them with a ":", eg: -s site1,root1:site2,root2''')
 # craft 3
 @click.option('-c', '--craft-credentials', type=USER_EMAIL_PASS, metavar='USERNAME,EMAIL,PASSWORD',
               help='Craft admin credentials. If not set, only system requirements for Craft will be installed')
@@ -245,9 +263,9 @@ Multiple sites can be specified by seperating them with a ":", eg: -s site1,root
               help="a new user's name and password (seperated by a comma)")
 
 def install(**args):
-    """
-    used for the cert name and apache ServerName, eg: 'something.local'
-    """
+    """Install any modules available from `boss list`"""
+
+    # convert the args dict to a namedtuple
     Args = namedtuple('Args', sorted(args))
     args = Args(**args)
 
@@ -281,10 +299,16 @@ def install(**args):
                     app.__name__.lower(), ', '.join(app.requires)))
 
     if args.generate_script:
-        sys.stdout.write('#!/usr/bin/env bash\n\n')
-        sys.stdout.write('# {}\n\n'.format(' '.join(sys.argv)))
-        sys.stdout.write('PS4=\'+ ${LINENO}: \'\n')
-        sys.stdout.write('set -x\n')
+        script_header = (
+            '#!/usr/bin/env bash',
+            '',
+            '# Boss command used to generate this script',
+            '# {}'.format(' '.join(sys.argv)),
+            '',
+            'PS4="+ ${LINENO}: "',
+            'set -x',
+        )
+        click.echo('\n'.join(script_header))
 
     for App in wanted_apps:
         module_name = App.title
@@ -323,7 +347,7 @@ def list():
         state = ' ✓ ' if name in installed else '   '
         state = click.style(state, fg='green')
         description = module.__doc__ if module.__doc__ else ''
-        description = description.split('\n')[0]
+        description = description.splitlines()[0]
         click.echo(
             state +
             click.style(name.ljust(13), bold=True) +
@@ -337,32 +361,24 @@ def help():
 
     content = []
     w = textwrap.TextWrapper(initial_indent='', subsequent_indent='  ', break_on_hyphens=False)
-    for mod in mods:
-        try:
-            app = mod()
-        except PlatformError as e:
-            content.append('')
-            warn(e)
+    for app in mods:
         content.append('')
 
-        title = '{} ({})'.format(app.title, app.__class__.__name__.lower())
+        title = '{} ({})'.format(app.title, app.__name__.lower())
         under = '-' * len(title)
-        content.append(click.style(title, fg='blue', bold=True))
-        content.append(click.style(under, fg='blue'))
+        content.append(click.style(title, fg='yellow', bold=False, underline=True))
 
         if app.__doc__:
-            lines = app.__doc__.split('\n')
+            lines = app.__doc__.splitlines()
             lines = [i.strip() for i in lines]
-            content.append('\n'.join(lines))
+            content.append('\n'.join(lines).strip())
         else:
             content.append(click.style('(No documentation)', dim=True))
-        if app.apt_pkgs:
-            content.append('')
-            installed = w.wrap('Installed packages: {}'.format(', '.join(app.apt_pkgs)))
-            content.append('\n'.join(installed))
         if app.requires:
             content.append('')
-            content.append('Requires: {}'.format(', '.join(app.requires)))
+            cont_title = click.style('Required modules:', fg='blue')
+            content.append('{} {}'.format(cont_title, ', '.join(app.requires)))
+    content.append('\n')
     click.echo_via_pager('\n'.join(content))
 
 
