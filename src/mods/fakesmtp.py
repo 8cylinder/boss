@@ -2,6 +2,7 @@
 
 import urllib.request
 import json
+from pathlib import Path
 
 from bash import Bash
 from dist import Dist
@@ -46,6 +47,14 @@ class FakeSMTP(Bash):
             self.config_upstart()
         elif self.distro >= (Dist.UBUNTU, Dist.V16_04):
             self.config_systemd()
+
+        if self.distro >= (Dist.UBUNTU, Dist.V18_04):
+            postfix_config = Path('/etc/postfix/main.cf')
+            if postfix_config.exists():
+                self.sed('s/^myhostname = .*&/myhostname = localhost/', postfix_config)
+                self.sed('s/^relayhost = .*&/relayhostl = [127.0.0.1]:1025/', postfix_config)
+            else:
+                error(f'No postfix config file: {postfix_config}')
 
         self.info('FakeSMTP client', 'http://{}:8025'.format(self.args.servername))
         self.info(' └─ FakeSMTP api', 'curl http://{}:8025/api/v2/messages'.format(self.args.servername))
