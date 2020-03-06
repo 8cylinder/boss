@@ -4,6 +4,7 @@ import os
 from dist import Dist
 from enum import Enum
 import datetime
+import subprocess
 
 from errors import *
 from util import display_cmd
@@ -26,30 +27,33 @@ class Bash:
         self.dry_run = dry_run
         self.args = args
         self.scriptname = os.path.basename(__file__)
-        if args and not dry_run:
-            action = args.subparser_name
-            self.log(action, self.__class__.__name__)
+        # if args and not dry_run:
+        #     action = args.subparser_name
+        #     self.log(action, self.__class__.__name__)
 
     def log(self, action, name):
-        log_name = '~/boss-installed-modules'
-        mod = '{}\n'.format(name)
-        try:
-            with open(os.path.expanduser(log_name), 'r') as f:
-                installed_mods = f.readlines()
-        except FileNotFoundError:
-            installed_mods = []
+        pass
 
-        installed_mods = set(installed_mods)
-        if action == 'install':
-            installed_mods.add(mod)
-        elif action == 'uninstall':
-            try:
-                installed_mods.remove(mod)
-            except KeyError:
-                pass
+    # def log(self, action, name):
+    #     log_name = '~/boss-installed-modules'
+    #     mod = '{}\n'.format(name)
+    #     try:
+    #         with open(os.path.expanduser(log_name), 'r') as f:
+    #             installed_mods = f.readlines()
+    #     except FileNotFoundError:
+    #         installed_mods = []
 
-        with open(os.path.expanduser(log_name), 'w') as f:
-            f.writelines(installed_mods)
+    #     installed_mods = set(installed_mods)
+    #     if action == 'install':
+    #         installed_mods.add(mod)
+    #     elif action == 'uninstall':
+    #         try:
+    #             installed_mods.remove(mod)
+    #         except KeyError:
+    #             pass
+
+    #     with open(os.path.expanduser(log_name), 'w') as f:
+    #         f.writelines(installed_mods)
 
     def sed(self, sed_exp, config_file):
         now = datetime.datetime.now().strftime('%y-%m-%d-%X')

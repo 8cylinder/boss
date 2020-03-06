@@ -22,13 +22,15 @@ class First(Bash):
                 'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
                 'htop', 'source-highlight', 'whois', 'curl', 'figlet', 'ntp',
             ]
+            # self.apt_pkgs += ['joe']
+            self.apt_pkgs += ['emacs-nox'] # adds aprox 100mb
         elif self.distro == (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = [
                 'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
                 'htop', 'source-highlight', 'whois', 'curl', 'figlet'
             ]
-        # self.apt_pkgs += ['joe']
-        self.apt_pkgs += ['emacs-nox'] # adds aprox 100mb
+            # self.apt_pkgs += ['joe']
+            self.apt_pkgs += ['emacs24-nox'] # adds aprox 100mb
 
     def pre_install(self):
         pass
