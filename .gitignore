@@ -4,3 +4,4 @@ ubuntu*.log
 boss
 __pycache__
 boss/click
+.mypy_cache

@@ -33,6 +33,7 @@ class VirtualHost(Bash):
                 DocumentRoot {document_root}
                 <Directory "{document_root}">
                     AllowOverride All
+                    Header Set Access-Control-Allow-Origin "*"
                 </Directory>
 
                 # ErrorLog ${{APACHE_LOG_DIR}}/error.log
@@ -58,6 +59,7 @@ class VirtualHost(Bash):
                 DocumentRoot {document_root}
                 <Directory "{document_root}">
                     AllowOverride All
+                    Header Set Access-Control-Allow-Origin "*"
                 </Directory>
 
                 # ErrorLog ${{APACHE_LOG_DIR}}/error.log
@@ -93,14 +95,17 @@ class VirtualHost(Bash):
 
     def create_doc_root(self, document_root):
         # make www-root owner of the doc root
-        doc_root = '/var/www/{}'.format(document_root)
-        self.run('sudo mkdir {}'.format(doc_root))
+        doc_root = os.path.join('/var/www', document_root)
+        if not os.path.exists(doc_root):
+            self.run('sudo mkdir {}'.format(doc_root))
         self.run('sudo chown www-data:www-data {}'.format(doc_root))
 
     def post_install(self):
-        mods = ['ssl', 'rewrite']
+        mods = ['ssl', 'rewrite', 'headers']
         for m in mods:
             self.run('sudo a2enmod {}'.format(m))
+
+        self.run("find /etc/apache2/sites-available/ -type f -exec basename '{}' \; | xargs -n 1 sudo a2dissite")
 
         for site in self.args.site_name_and_root:
             site_name = site[0]
@@ -108,19 +113,15 @@ class VirtualHost(Bash):
             vhost_config = self._http(site_name, full_document_root)
 
             crt, key = self.existing_cert(self.args.servername)
-            # crt, key = self.new_cert(site_name)
             vhost_config += self._https(site_name, full_document_root, crt, key)
 
             conf_file = '/etc/apache2/sites-available/{}.conf'.format(site_name)
 
-            sites_available = '/etc/apache2/sites-available'
-            self.run('echo | sudo tee {conf} <<EOF\n{file}\nEOF'.format(
-                sites=sites_available,
-                conf=conf_file,
-                file=vhost_config
-            ), wrap=False)
+            self.append_to_file(conf_file, vhost_config, backup=False, append=False)
 
-            # self.create_doc_root(document_root)
+            if(site[2] == 'y'):
+                document_root = site[1]
+                self.create_doc_root(document_root)
 
             # enable this site
             self.run('sudo a2ensite {}'.format(site_name))

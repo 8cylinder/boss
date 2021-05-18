@@ -51,41 +51,43 @@ from mods.webservers import Nginx
 from mods.wordpress import Wordpress
 from mods.wordpress import WpCli
 
-
 # All the mods available in the order they should be run
 mods = (
     AptProxy,
-    First,      # required
+    First,  # required
     NewUser,
     Cert,
     Lamp,
     Apache2,
     Nginx,
     Php,
-    PhpInfo,
     Mysql,
     Composer,
     Xdebug,
     PhpMyAdmin,
+    VirtualHost,
+    PhpInfo,
     Craft2,
     Craft3,
     FakeSMTP,
-    VirtualHost,
     Netdata,
     Webmin,
     Bashrc,
-    Done,       # required
+    Done,  # required
 )
+
 
 def is_server(server):
     if '.' not in server:
         return False
     return True
 
+
 def is_email(email):
     if not re.match("[^@]+@[^@]+\.[^@]+", email):
         return False
     return True
+
 
 def is_ipaddress(ip):
     try:
@@ -94,18 +96,23 @@ def is_ipaddress(ip):
     except OSError:
         return False
 
+
 # ---------------------------- Custom types ----------------------------
 
 class Server(click.ParamType):
     """Check if a string sort of looks like a url by checking for a '.' in it"""
     name = 'server'
+
     def convert(self, value, param, ctx):
         if not is_server(value):
             msg = 'the servername must have a "." in it, eg. something.local'
             self.fail(msg, param, ctx)
         else:
             return value
+
+
 SERVER = Server()
+
 
 class UserPass(click.ParamType):
     """Check if a string is a username and password
@@ -113,6 +120,7 @@ class UserPass(click.ParamType):
     format: username,password"""
 
     name = 'user_pass'
+
     def convert(self, value, param, ctx):
         try:
             username, password = [i.strip() for i in value.split(',', 1) if i.strip()]
@@ -121,34 +129,44 @@ class UserPass(click.ParamType):
             (the password can have a comma in it, but not the username).'''
             self.fail(msg, param, ctx)
         return username.strip(), password.strip()
+
+
 USER_PASS = UserPass()
+
 
 class SiteDocroot(click.ParamType):
     """Check if a string is a sitename and document root
 
-    Format: sitename,docroot[:...]
-    Example: siteone.local,siteone/html:sitetwo.local,sitetwo/html"""
+    Format: SITENAME,DOCROOT,CREATEDIR[:...]
+    Example: siteone.local,siteone,y/html:sitetwo.local,sitetwo,n/html"""
 
     name = 'site_docroot'
+
     def convert(self, value, param, ctx):
         sites = value.split(':')
         cleaned_sites = []
-        msg = 'must be a sitename and document root seperated by a comma, and sitename must have a . in it'
+        msg = 'must be a sitename, document root and a "y" or "n" (create site dir) seperated by a comma, and sitename must have a . in it'
         msg = ' '.join(msg.split())
         for site in sites:
             try:
-                sitename, documentroot = [i.strip() for i in site.split(',', 1) if i.strip()]
+                sitename, documentroot, createdir = [i.strip() for i in site.split(',', 2) if i.strip()]
             except ValueError:
                 self.fail(msg, param, ctx)
             if not is_server(sitename):
                 self.fail(msg, param, ctx)
-            cleaned_sites.append((sitename, documentroot))
+            if createdir.lower() not in ['y', 'n']:
+                self.fail(msg, param, ctx)
+            cleaned_sites.append((sitename, documentroot, createdir))
         return cleaned_sites
+
+
 SITE_DOCROOT = SiteDocroot()
+
 
 class UserEmailPass(click.ParamType):
     """Check if a string is a username, email and password seperated by a comma."""
     name = 'user_email_pass'
+
     def convert(self, value, param, ctx):
         msg = '''must be a username, email and password seperated by a comma
                  (the password can have a comma in it, but not the username or email).'''
@@ -160,16 +178,23 @@ class UserEmailPass(click.ParamType):
         if not is_email(email):
             self.fail(msg, param, ctx)
         return username.strip(), email.strip(), password.strip()
+
+
 USER_EMAIL_PASS = UserEmailPass()
+
 
 class IpAddress(click.ParamType):
     name = 'ip_address'
+
     def convert(self, value, param, ctx):
         msg = 'Ip address is not vaid'
         if not is_ipaddress(value):
             self.fail(msg, param, ctx)
         return value
+
+
 IP_ADDRESS = IpAddress()
+
 
 def deps(*dependencies):
     # remove the first three arguments and any options so only
@@ -185,10 +210,11 @@ def deps(*dependencies):
 
 CONTEXT_SETTINGS = {
     # add -h in addition to --help
-    'help_option_names': ['-h', '--help'],
+    'help_option_names':    ['-h', '--help'],
     # allow case insensitive commands
     'token_normalize_func': lambda x: x.lower(),
 }
+
 
 @click.group(no_args_is_help=True, context_settings=CONTEXT_SETTINGS)
 def boss():
@@ -214,10 +240,9 @@ def boss():
     this server to make use of it."""
 
 
-@boss.command()     # no_args_is_help=True # Click 7.1
+@boss.command()  # no_args_is_help=True # Click 7.1
 @click.argument('servername', type=SERVER)
 @click.argument('modules', nargs=-1, required=True)
-
 @click.option('-d', '--dry-run', is_flag=True,
               help='Only print the commands that would be used')
 @click.option('-o', '--no-required', is_flag=True,
@@ -226,8 +251,6 @@ def boss():
               help="Don't install dependent modules")
 @click.option('--generate-script', is_flag=True,
               help='Output suitable for a bash script instead of running them')
-
-
 # unix user
 @click.option('-n', '--new-user-and-pass', type=USER_PASS, metavar='USERNAME,USERPASS',
               help="a new unix user's name and password (seperated by a comma), they will be added to the www-data group")
@@ -249,8 +272,9 @@ def boss():
 # virtualhost
 @click.option('-s', '--site-name-and-root', type=SITE_DOCROOT, metavar='SITENAME,DOCUMENTROOT[:...]',
               required=deps('virtualhost'),
-              help='''SITENAME and DOCUMENTROOT seperated by a comma (doc root will be put in /var/www).
-                Multiple sites can be specified by seperating them with a ":", eg: -s site1,root1:site2,root2''')
+              help='''SITENAME, DOCUMENTROOT and CREATEDIR seperated by a comma (doc root will be put in /var/www).
+                CREATEDIR is an optional y/n that indicates if to create the dir or not (default:n).
+                Multiple sites can be specified by seperating them with a ":", eg: -s site1,root1,y:site2,root2''')
 # craft 3
 @click.option('-c', '--craft-credentials', type=USER_EMAIL_PASS, metavar='USERNAME,EMAIL,PASSWORD',
               help='Craft admin credentials. If not set, only system requirements for Craft will be installed')
@@ -261,7 +285,6 @@ def boss():
 # netdata
 @click.option('--netdata-user-pass', type=USER_PASS, metavar='USERNAME,USERPASS',
               help="a new user's name and password (seperated by a comma)")
-
 def install(**args):
     """Install any modules available from `boss list`"""
 
@@ -276,7 +299,8 @@ def install(**args):
     if args.no_required:
         wanted_apps = [i for i in available_mods if i.__name__.lower() in wanted_mods]
     else:
-        wanted_apps = [i for i in available_mods if i.__name__.lower() in wanted_mods or i.__name__.lower() in required_mods]
+        wanted_apps = [i for i in available_mods if
+                       i.__name__.lower() in wanted_mods or i.__name__.lower() in required_mods]
 
     # check if the user is asking for non-existent modules
     mapping_keys = [i.__name__.lower() for i in available_mods]
@@ -305,7 +329,6 @@ def install(**args):
             '# Boss command used to generate this script',
             '# {}'.format(' '.join(sys.argv)),
             '',
-            'PS4="+ ${LINENO}: "',
             'set -x',
         )
         click.echo('\n'.join(script_header))
@@ -318,7 +341,7 @@ def install(**args):
             app.pre_install()
             app.install()
             app.post_install()
-            app.log('install', module_name)
+            app.log(module_name)
         except subprocess.CalledProcessError as e:
             error(e)
         except DependencyError as e:
@@ -329,6 +352,7 @@ def install(**args):
             error(e)
         except FileNotFoundError as e:
             error(e.args[0])
+
 
 @boss.command()
 def list():
@@ -347,13 +371,15 @@ def list():
         state = ' ✓ ' if name in installed else '   '
         state = click.style(state, fg='green')
         description = module.__doc__ if module.__doc__ else ''
-        description = description.splitlines()[0]
+        if description:
+            description = description.splitlines()[0]
         click.echo(
             state +
             click.style(name.ljust(13), bold=True) +
             description
         )
         sys.stdout.flush()
+
 
 @boss.command()
 def help():

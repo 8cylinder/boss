@@ -4,17 +4,18 @@ from bash import Bash
 from dist import Dist
 from errors import *
 from util import error
+from util import warn
 
 import os
 import datetime
 
 
 class Php(Bash):
+    """Base PHP, nothing else."""
     provides = ['php']
     requires = ['apache2']
     title = 'PHP'
 
-    """Base PHP, nothing else."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.provides = ['php']
@@ -32,7 +33,36 @@ class Xdebug(Bash):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.apt_pkgs = ['php-xdebug']    # good enough?
+        self.apt_pkgs = ['php-xdebug']
+
+    def post_install(self):
+        settings = '''
+          ### added by Boss ###
+          xdebug.remote_autostart = 1
+          xdebug.remote_enable = 1
+          xdebug.remote_connect_back = 1
+          xdebug.remote_port = 9000
+          xdebug.max_nesting_level = 512
+
+          # https://www.jetbrains.com/help/phpstorm/configuring-xdebug.html#configuring-xdebug-vagrant
+          # https://nystudio107.com/blog/using-phpstorm-with-vagrant-homestead#are-we-there-yet
+          # This is usually 10.0.2.2 for vagrant
+          # use this command to get the host's ip:
+          # `netstat -rn | grep "^0.0.0.0" | tr -s " " | cut -d " " -f2`
+          xdebug.remote_host = '10.0.2.2'
+        '''
+        settings = '\n'.join([i[10:] for i in settings.split('\n')])
+
+        if self.distro == (Dist.UBUNTU, Dist.V18_04):
+            xdebug_ini = '/etc/php/7.2/mods-available/xdebug.ini'
+            self.append_to_file(xdebug_ini, settings)
+            # self.run('echo | sudo tee {xdebug_ini} <<EOF\n{settings}\nEOF'.format(
+            #     xdebug_ini=xdebug_ini,
+            #     settings=settings,
+            # ), wrap=False)
+        else:
+            warn('Xdebug ini edit not implemented yet for this version of Ubuntu.')
+        self.info('Xdebug ini edited', xdebug_ini)
 
 
 class PhpInfo(Bash):
@@ -47,20 +77,26 @@ class PhpInfo(Bash):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.loc = '/var/www/html'
+        # if self.document_root:
+            # self.loc = self.document_root
         self.info_file = '{}/phpinfo.php'.format(self.loc)
 
     def post_install(self):
         info = '<h1>{}</h1>\n<?php phpinfo();'.format(datetime.datetime.now().isoformat())
 
         if self.args.dry_run or self.args.generate_script or os.path.exists(self.loc):
-            cmd = 'echo \'{info}\' | sudo -u www-data tee {loc}'.format(
-                info=info,
-                loc=self.info_file
-            )
-            self.run(cmd)
+            self.append_to_file(self.info_file, info, backup=False)
+            # cmd = 'echo \'{info}\' | sudo -u www-data tee {loc}'.format(
+            #     info=info,
+            #     loc=self.info_file
+            # )
+            # self.run(cmd)
         else:
             if not self.args.dry_run:
                 raise FileNotFoundError('[PhpInfo] Dir does not exist: {}'.format(self.loc))
+
+        site_name = self.args.site_name_and_root[0][0]
+        self.info('PHP Info', 'http://{}/phpinfo.php -- {}'.format(site_name, self.info_file))
 
 
 class Composer(Bash):

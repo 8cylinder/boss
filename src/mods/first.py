@@ -20,7 +20,7 @@ class First(Bash):
         if self.distro > (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = [
                 'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
-                'htop', 'source-highlight', 'whois', 'curl', 'figlet', 'ntp',
+                'zip', 'htop', 'source-highlight', 'whois', 'curl', 'figlet', 'ntp',
             ]
         elif self.distro == (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = [
@@ -38,15 +38,21 @@ class First(Bash):
         tz = 'America/Los_Angeles'
         self.run('sudo timedatectl set-timezone {}'.format(tz))
 
-        # configure the editor
-        # editor = 'jmacs'
+        self.bash_settings()
+
+    def bash_settings(self):
+        bashrc = "$HOME/.bashrc"
         editor = 'emacs'
-        cmds = [
-            "echo export EDITOR='{}' >> $HOME/.bashrc".format(editor),
-            "echo export VISUAL='{}' >> $HOME/.bashrc".format(editor),
-            "echo export SUDO_EDITOR='{}' >> $HOME/.bashrc".format(editor),
-        ]
-        if editor == 'jmacs':
-            cmds += ["echo alias emacs='jmacs' >> $HOME/.bashrc"]
-        for cmd in cmds:
-            self.run(cmd)
+        settings = '''
+          export HISTSIZE=-1
+          export HISTFILESIZE=-1
+          export HISTTIMEFORMAT="%F %T "
+          shopt -s histappend
+
+          export EDITOR='{editor}'
+          export VISUAL='{editor}'
+          export SUDO_EDITOR='{editor}'
+        '''.format(editor=editor)
+
+        settings = '\n'.join([i[10:] for i in settings.split('\n')])
+        self.append_to_file(bashrc, settings, backup=True)

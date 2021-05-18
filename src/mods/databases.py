@@ -103,3 +103,7 @@ class PhpMyAdmin(Bash):
         self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-user string root"')
         self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-pass password {}"'.format(root_pass))
         self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/app-pass password {}"'.format(root_pass))
+
+        site_name = self.args.site_name_and_root[0][0]
+        self.info('phpmyadmin', 'http://{}/phpmyadmin'.format(
+            site_name))

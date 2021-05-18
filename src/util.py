@@ -13,7 +13,7 @@ except OSError:
     CONSOLE_WIDTH = 80
 
 
-def display_cmd(cmd, indent=0, wrap=True, script=False):
+def display_cmd(cmd, indent=0, wrap=True, script=False, comment=False):
     indent = ' ' * indent
     leader = '+ '
     initial_indent = indent + leader
@@ -44,8 +44,10 @@ def display_cmd(cmd, indent=0, wrap=True, script=False):
         fancy = '\n'.join(first + rest)
 
     if not script:
+        if comment: click.secho(comment, fg='yellow')
         click.secho(fancy, fg='yellow')
     else:
+        if comment: sys.stdout.write(comment + '\n')
         sys.stdout.write(fancy + '\n')
     sys.stdout.flush()
 

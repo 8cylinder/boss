@@ -18,6 +18,7 @@ class Dist:
     V14_04 = 14.04
     V16_04 = 16.04
     V18_04 = 18.04
+    V20_04 = 20.04
 
     REDHAT = 'Redhat'
     CENTOS = 'CentOS'
