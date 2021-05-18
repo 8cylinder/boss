@@ -3,6 +3,7 @@
 import os
 import sys
 from dist import Dist
+from enum import Enum
 import datetime
 import subprocess
 
@@ -11,6 +12,7 @@ from util import display_cmd
 from util import title
 from util import warn
 from util import notify
+
 from util import error
 
 
@@ -28,7 +30,6 @@ class Bash:
         self.dry_run = dry_run
         self.args = args
         self.scriptname = os.path.basename(__file__)
-
         if args and not dry_run:
             # action = args.subparser_name
             self.log(self.__class__.__name__)
@@ -53,7 +54,6 @@ class Bash:
         new_ext = '.original-{}'.format(self.now)
         sed_cmd = 'sudo sed --in-place="{}" "{}" "{}"'.format(new_ext, sed_exp, config_file)
         self.run(sed_cmd)
-
     def append_to_file(self, filename, text, user=None, backup=True, append=True):
         if backup:
             new_ext = '.original-{}'.format(self.now)
@@ -109,7 +109,6 @@ class Bash:
             url=url, output=output)
         result = self.run(cmd, capture=capture)
         return result
-
     def restart_apache(self):
         """Restart Apache using the apropriate command
 
