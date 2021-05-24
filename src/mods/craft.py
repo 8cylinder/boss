@@ -16,19 +16,6 @@ class Craft2(Bash):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.distro == (Dist.UBUNTU, Dist.V14_04):
-            self.apt_pkgs = ['php5', 'php5-imagick', 'php5-mcrypt', 'php5-curl',
-                             'php5-gd', 'php5-mysql', 'libapache2-mod-php5']
-        elif self.distro == (Dist.UBUNTU, Dist.V16_04):
-            self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt', 'php-curl',
-                             'php-xml', 'php-zip', 'php-gd', 'php-mysql']
-        elif self.distro == (Dist.UBUNTU, Dist.V18_04):
-            self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-curl',  # no php-mcrypt on 18.04
-                             'php-xml', 'php-zip', 'php-gd', 'php-mysql', 'php-gmp']
-        else:
-            raise PlatformError(
-                'Craft2 dependencies have not been determined for this platform: {}'.format(
-                    self.distro))
 
     def post_install(self):
         if self.distro >= (Dist.UBUNTU, Dist.V18_04):
@@ -87,12 +74,13 @@ class Craft3(Bash):
                              'php-curl', 'php-xml', 'php-zip', 'php-soap']
         elif self.distro == (Dist.UBUNTU, Dist.V18_04):
             self.apt_pkgs = ['php7.2-mbstring', 'php-imagick', 'php7.2-curl',
-                             'php-xml', 'php7.2-zip', 'php-soap', 'php7.2-gmp', 'php-gmp'] # php7.2-gmp or php7.2-bcmath
-        elif self.distro >= (Dist.UBUNTU, Dist.V20_04):
+                             'php-xml', 'php7.2-zip', 'php-soap', 'php7.2-gmp',
+                             'php-gmp']  # php7.2-gmp or php7.2-bcmath
+        elif self.distro == (Dist.UBUNTU, Dist.V20_04):
             self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-curl',
                              'php-xml', 'php-zip', 'php-soap', 'php-gmp']
         else:
-            raise PlatformError("Craft3 requires PHP7, it is not available on this platform: {}".format(self.distro))
+            raise PlatformError("Craft3 dependencies have not been determined yet for this platform: {}".format(self.distro))
 
     def post_install(self):
         if not self.args.craft_credentials:

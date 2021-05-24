@@ -11,7 +11,7 @@ import datetime
 
 
 class Php(Bash):
-    """Base PHP, nothing else."""
+    """PHP with additional packages that CMS's need"""
     provides = ['php']
     requires = ['apache2']
     title = 'PHP'
@@ -20,11 +20,20 @@ class Php(Bash):
         super().__init__(*args, **kwargs)
         self.provides = ['php']
         self.requires = ['apache2']
-        if self.distro > (Dist.UBUNTU, Dist.V14_04):
-            self.apt_pkgs = ['php']
-        elif self.distro == (Dist.UBUNTU, Dist.V14_04):
-            self.apt_pkgs = ['php5']
 
+        if self.distro == (Dist.UBUNTU, Dist.V14_04):
+            self.apt_pkgs = ['php5', 'php5-imagick', 'php5-mcrypt', 'php5-curl',
+                             'php5-gd', 'php5-mysql', 'libapache2-mod-php5']
+        elif self.distro == (Dist.UBUNTU, Dist.V16_04):
+            self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-mcrypt', 'php-curl',
+                             'php-xml', 'php-zip', 'php-gd', 'php-mysql']
+        elif self.distro == (Dist.UBUNTU, Dist.V18_04):
+            self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-curl',  # no php-mcrypt on 18.04
+                             'php-xml', 'php-zip', 'php-gd', 'php-mysql', 'php-gmp']
+        else:
+            raise PlatformError(
+                'PHP dependencies have not been determined for this platform yet: {}'.format(
+                    self.distro))
 
 class Xdebug(Bash):
     provides = ['xdebug']

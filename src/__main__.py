@@ -51,6 +51,8 @@ from mods.webservers import Nginx
 from mods.wordpress import Wordpress
 from mods.wordpress import WpCli
 
+__version__ = '0.5'
+
 # All the mods available in the order they should be run
 mods = (
     AptProxy,

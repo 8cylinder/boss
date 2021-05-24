@@ -17,7 +17,7 @@ class Example(Bash):
       title
     """
 
-    # sel.provides is used for depencency management, each module can
+    # sel.provides is used for dependency management, each module can
     # provide more than one.  See lamp.py for an example.
     provides = ['example']
 
