@@ -23,3 +23,5 @@ fi
 if python3 -m zipapp --compress --python "/usr/bin/env python3" --output=$BOSS_APP $BOSS_DIR; then
     echo "$BOSS_APP built, $(du -h $PROJECT_ROOT/$BOSS_APP | cut -f1)"
 fi
+
+# 1
