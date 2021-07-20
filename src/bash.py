@@ -3,17 +3,18 @@
 import os
 import sys
 from dist import Dist
-from enum import Enum
 import datetime
 import subprocess
+# noinspection PyUnresolvedReferences
+import plumbum
+from deps.plumbum import local
+import shlex
 
+# noinspection PyUnresolvedReferences
 from errors import *
 from util import display_cmd
-from util import title
-from util import warn
-from util import notify
-
-from util import error
+# noinspection PyUnresolvedReferences
+import util
 
 
 class Bash:
@@ -35,7 +36,8 @@ class Bash:
             self.log(self.__class__.__name__)
         self.now = datetime.datetime.now().strftime('%y-%m-%d-%X')
 
-    def log(self, name):
+    @staticmethod
+    def log(name):
         log_name = '~/boss-installed-modules'
         mod = '{}\n'.format(name)
         try:
@@ -54,6 +56,7 @@ class Bash:
         new_ext = '.original-{}'.format(self.now)
         sed_cmd = 'sudo sed --in-place="{}" "{}" "{}"'.format(new_ext, sed_exp, config_file)
         self.run(sed_cmd)
+
     def append_to_file(self, filename, text, user=None, backup=True, append=True):
         if backup:
             new_ext = '.original-{}'.format(self.now)
@@ -86,29 +89,54 @@ class Bash:
     def post_install(self):
         return True
 
-    def run(self, cmd, wrap=True, capture=False, comment=False):
+    def run(self, raw_cmd, wrap=True, capture=False, comment=False):
+        cmd = shlex.split(raw_cmd)
         if wrap:
-            pretty_cmd = ' '.join(cmd.split())
+            pretty_cmd = ' '.join(cmd)
             display_cmd(pretty_cmd, wrap=True, script=self.args.generate_script, comment=comment)
         else:
-            display_cmd(cmd, wrap=False, script=self.args.generate_script, comment=comment)
+            display_cmd(raw_cmd, wrap=False, script=self.args.generate_script, comment=comment)
 
         if self.args.dry_run or self.args.generate_script:
             return
+
+        result = False
+        cmd = local[cmd[0]][cmd[1:]]
+        try:
+            result = cmd.run()
+        except plumbum.ProcessExecutionError as e:
+            util.error(e)
+
         if capture:
-            # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
-            result = subprocess.check_output(cmd, shell=True, executable='/bin/bash')
             sys.stdout.flush()
+            return result[1]
         else:
-            # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash')
-            result = subprocess.check_call(cmd, shell=True, executable='/bin/bash')
-        return result
+            return result[0]
+
+    # def xrun(self, cmd, wrap=True, capture=False, comment=False):
+    #     if wrap:
+    #         pretty_cmd = ' '.join(cmd.split())
+    #         display_cmd(pretty_cmd, wrap=True, script=self.args.generate_script, comment=comment)
+    #     else:
+    #         display_cmd(cmd, wrap=False, script=self.args.generate_script, comment=comment)
+    #
+    #     if self.args.dry_run or self.args.generate_script:
+    #         return
+    #     if capture:
+    #         # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
+    #         result = subprocess.check_output(cmd, shell=True, executable='/bin/bash')
+    #         sys.stdout.flush()
+    #     else:
+    #         # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash')
+    #         result = subprocess.check_call(cmd, shell=True, executable='/bin/bash')
+    #     return result
 
     def curl(self, url, output, capture=False):
         cmd = 'curl -sSL {url} --output {output}'.format(
             url=url, output=output)
         result = self.run(cmd, capture=capture)
         return result
+
     def restart_apache(self):
         """Restart Apache using the apropriate command
 
@@ -118,7 +146,7 @@ class Bash:
         if self.distro == Dist.UBUNTU:
             self.run('sudo service apache2 restart')
         else:
-            error('restart_apache has unknown platform')
+            util.error('restart_apache has unknown platform')
 
     def _apt(self, packages):
         dry = '--dry-run' if self.dry_run else ''
@@ -127,7 +155,7 @@ class Bash:
             return False
         if not Bash.APTUPDATED:
             self.run('sudo apt-get --quiet update')
-            #self.run('sudo apt-get --quiet --yes upgrade')   # not really necessary
+            # self.run('sudo apt-get --quiet --yes upgrade')   # not really necessary
             Bash.APTUPDATED = True
         self.run('export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet install {packages}'.format(
             dry=dry, packages=packages))

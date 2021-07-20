@@ -3,38 +3,30 @@
 import sys
 import os
 import re
-import argparse
 import textwrap
 import subprocess
 import socket
+# noinspection PyUnresolvedReferences
 from pprint import pprint as pp
 import deps.click as click
+from deps.plumbum import local
+# import deps.plumbum as plumbum
 from collections import namedtuple
 
 from errors import DependencyError
 from errors import PlatformError
 from errors import SecurityError
-from util import display_cmd
-from util import title
-from util import warn
-from util import error
-from util import notify
-from util import password_gen
 
-from dist import Dist
-from bash import Bash
+import util
 
 from mods.aptproxy import AptProxy
 from mods.bashrc import Bashrc
 from mods.cert import Cert
 from mods.craft import Craft2
 from mods.craft import Craft3
-# from mods.django import Django
-# from mods.django import Wagtail
 from mods.databases import Mysql
 from mods.databases import PhpMyAdmin
 from mods.done import Done
-# from mods.example import Example
 from mods.fakesmtp import FakeSMTP
 from mods.first import First
 from mods.lamp import Lamp
@@ -48,8 +40,8 @@ from mods.virtualhost import VirtualHost
 from mods.webmin import Webmin
 from mods.webservers import Apache2
 from mods.webservers import Nginx
-from mods.wordpress import Wordpress
-from mods.wordpress import WpCli
+# from mods.wordpress import Wordpress
+# from mods.wordpress import WpCli
 
 __version__ = '0.5'
 
@@ -86,7 +78,7 @@ def is_server(server):
 
 
 def is_email(email):
-    if not re.match("[^@]+@[^@]+\.[^@]+", email):
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         return False
     return True
 
@@ -308,7 +300,7 @@ def install(**args):
     mapping_keys = [i.__name__.lower() for i in available_mods]
     invalid_modules = [i for i in wanted_mods if i not in mapping_keys]
     if invalid_modules:
-        error('module(s) "{invalid}" does not exist.\nValid modules are:\n{valid}'.format(
+        util.error('module(s) "{invalid}" does not exist.\nValid modules are:\n{valid}'.format(
             valid=', '.join(mapping_keys),
             invalid=', '.join(invalid_modules)
         ))
@@ -321,7 +313,7 @@ def install(**args):
             provided = set(install_reqs)
             required = set(app.requires)
             if len(required - provided):
-                error('Requirements not met for {}: {}.'.format(
+                util.error('Requirements not met for {}: {}.'.format(
                     app.__name__.lower(), ', '.join(app.requires)))
 
     if args.generate_script:
@@ -337,7 +329,7 @@ def install(**args):
 
     for App in wanted_apps:
         module_name = App.title
-        title(module_name, script=args.generate_script)
+        util.title(module_name, script=args.generate_script)
         try:
             app = App(dry_run=args.dry_run, args=args)
             app.pre_install()
@@ -345,15 +337,15 @@ def install(**args):
             app.post_install()
             app.log(module_name)
         except subprocess.CalledProcessError as e:
-            error(e)
+            util.error(e)
         except DependencyError as e:
-            error(e)
+            util.error(e)
         except PlatformError as e:
-            error(e)
+            util.error(e)
         except SecurityError as e:
-            error(e)
+            util.error(e)
         except FileNotFoundError as e:
-            error(e.args[0])
+            util.error(e.args[0])
 
 
 @boss.command()
