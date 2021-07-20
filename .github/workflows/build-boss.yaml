@@ -1,0 +1,22 @@
+# https://github.com/marketplace/actions/gh-release
+
+name: build-boss
+on:
+  push:
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - run: "python3 -m zipapp --compress --python '/usr/bin/env python3' --output=boss src"
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: boss
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
