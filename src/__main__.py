@@ -49,10 +49,13 @@ def read_version():
     """Read the version number from the VERSION file"""
     version_file = 'VERSION'
     with zipfile.ZipFile(sys.argv[0]) as zf:
-        with zf.open(version_file) as f:
-            version = f.read()
-    version = version.decode('ascii')
-    version = version.strip()
+        try:
+            with zf.open(version_file) as f:
+                version = f.read()
+                version = version.decode('ascii')
+                version = version.strip()
+        except KeyError:
+            version = 'UNKNOWN (this is a non github build)'
     return version
 
 

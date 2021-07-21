@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
+      - run: "git describe > src/VERSION"
       - run: "python3 -m zipapp --compress --python '/usr/bin/env python3' --output=boss src"
 
       - name: Release
