@@ -5,6 +5,8 @@ import os
 import datetime
 import textwrap
 import deps.click as click
+import string
+import random
 
 
 try:
@@ -44,12 +46,15 @@ def display_cmd(cmd, indent=0, wrap=True, script=False, comment=False):
         fancy = '\n'.join(first + rest)
 
     if not script:
-        if comment: click.secho(comment, fg='yellow')
+        if comment:
+            click.secho(comment, fg='yellow')
         click.secho(fancy, fg='yellow')
     else:
-        if comment: sys.stdout.write(comment + '\n')
+        if comment:
+            sys.stdout.write(comment + '\n')
         sys.stdout.write(fancy + '\n')
     sys.stdout.flush()
+
 
 def title(msg, script=False, show_date=True):
     timestamp = ''

@@ -6,10 +6,11 @@ PROJECT_ROOT="$HOME/projects/boss/boss"
 BOSS_DIR='src'
 BOSS_APP='boss'
 
-cd $PROJECT_ROOT
+cd "$PROJECT_ROOT" || exit
 
 # remove any pycache dirs created while testing
-for d in $(find -iname '__pycache__' -type d); do
+# shellcheck disable=SC2044
+for d in $(find "$PROJECT_ROOT" -iname '__pycache__' -type d); do
     rm -rf "$d"
 done
 
@@ -21,7 +22,5 @@ if [[ -e $BOSS_APP ]]; then
 fi
 
 if python3 -m zipapp --compress --python "/usr/bin/env python3" --output=$BOSS_APP $BOSS_DIR; then
-    echo "$BOSS_APP built, $(du -h $PROJECT_ROOT/$BOSS_APP | cut -f1)"
+    echo "$BOSS_APP built, $(du -h "$PROJECT_ROOT"/$BOSS_APP | cut -f1)"
 fi
-
-# 1

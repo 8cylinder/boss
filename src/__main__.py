@@ -6,6 +6,7 @@ import re
 import textwrap
 import subprocess
 import socket
+import zipfile
 # noinspection PyUnresolvedReferences
 from pprint import pprint as pp
 import deps.click as click
@@ -43,7 +44,20 @@ from mods.webservers import Nginx
 # from mods.wordpress import Wordpress
 # from mods.wordpress import WpCli
 
-__version__ = '0.5'
+
+def read_version():
+    """Read the version number from the VERSION file"""
+    version_file = 'VERSION'
+    with zipfile.ZipFile(sys.argv[0]) as zf:
+        with zf.open(version_file) as f:
+            version = f.read()
+    version = version.decode('ascii')
+    version = version.strip()
+    return version
+
+
+__version__ = read_version()
+
 
 # All the mods available in the order they should be run
 mods = (
@@ -204,13 +218,14 @@ def deps(*dependencies):
 
 CONTEXT_SETTINGS = {
     # add -h in addition to --help
-    'help_option_names':    ['-h', '--help'],
+    'help_option_names': ['-h', '--help'],
     # allow case insensitive commands
     'token_normalize_func': lambda x: x.lower(),
 }
 
 
 @click.group(no_args_is_help=True, context_settings=CONTEXT_SETTINGS)
+@click.version_option(version=__version__)
 def boss():
     """👔 Install various applications and miscellany to set up a dev server.
 
@@ -232,6 +247,7 @@ def boss():
     Its recommended to set up Apt-Cacher NG on the host machine.  Once
     that's done adding `aptproxy` to the list of modules will configure
     this server to make use of it."""
+
 
 
 @boss.command()  # no_args_is_help=True # Click 7.1
