@@ -13,6 +13,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: "git describe --tags > src/VERSION"
       - run: "python3 -m zipapp --compress --python '/usr/bin/env python3' --output=boss src"
+      - run: "chmod +x boss"
 
       - name: Release
         uses: softprops/action-gh-release@v1
