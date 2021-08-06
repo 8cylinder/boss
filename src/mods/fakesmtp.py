@@ -8,6 +8,9 @@ from bash import Bash
 from dist import Dist
 from errors import *
 
+from util import error
+from util import warn
+
 
 class FakeSMTP(Bash):
     """A fake SMTP server for mail testing
