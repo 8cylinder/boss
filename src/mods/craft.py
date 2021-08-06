@@ -6,6 +6,7 @@ from bash import Bash
 from dist import Dist
 from errors import PlatformError
 from util import error
+# noinspection PyUnresolvedReferences
 from util import warn
 
 
@@ -117,18 +118,13 @@ class Craft3(Bash):
         self.run('sudo -u www-data composer create-project --no-ansi --remove-vcs --no-interaction craftcms/craft {}'.format(craft_dir))
 
         # setup the db
-        self.run('''sudo -u www-data php {craft_dir}/craft setup/db --interactive 0 \
+        self.run(f'''sudo -u www-data php {craft_dir}/craft setup/db --interactive 0 \
             --driver mysql \
-            --database {db_name} \
-            --user {db_user} \
-            --password {db_pass} \
+            --database {craft_db_name} \
+            --user {craft_db_user} \
+            --password {craft_db_pass} \
             --port 3306 \
-            --server localhost'''.format(
-                craft_dir=craft_dir,
-                db_name=craft_db_name,
-                db_user=craft_db_user,
-                db_pass=craft_db_pass
-            ))
+            --server localhost''')
         # run the install
         username, email, password = self.args.craft_credentials
         self.run('''sudo -u www-data php {craft_dir}/craft install/craft --interactive=0 \

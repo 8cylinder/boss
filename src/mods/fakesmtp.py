@@ -6,6 +6,10 @@ from pathlib import Path
 
 from bash import Bash
 from dist import Dist
+from util import error
+# noinspection PyUnresolvedReferences
+from util import warn
+# noinspection PyUnresolvedReferences
 from errors import *
 
 from util import error
@@ -60,9 +64,9 @@ class FakeSMTP(Bash):
 
         # test if it works
         cmd = 'php -r "mail(\'boss@example.com\', \'Test from Boss\', \'Test from Boss.\');"'
-        result = self.run(cmd, capture=True)
+        self.run(cmd, capture=True)
         # if('error' in result):
-            # error(result)
+        #     error(result)
         self.info('FakeSMTP client', 'http://{}:8025'.format(self.args.servername))
         self.info(' └─ FakeSMTP api', 'curl http://{}:8025/api/v2/messages'.format(self.args.servername))
 
@@ -103,7 +107,7 @@ class FakeSMTP(Bash):
         '''
         service_file = '/etc/init/mailhog.conf'
         service = '\n'.join([i[12:] for i in service.split('\n')])
-        self.append_to_file(service_file, contents, append=False)
+        self.append_to_file(service_file, service, append=False)
         # self.run('echo | sudo tee {service_file} <<EOF{contents}EOF'.format(
         #     service_file=service_file,
         #     contents=service

@@ -3,17 +3,15 @@
 import os
 import sys
 from dist import Dist
-from enum import Enum
 import datetime
 import subprocess
+import shlex
 
+# noinspection PyUnresolvedReferences
 from errors import *
 from util import display_cmd
-from util import title
-from util import warn
-from util import notify
-
-from util import error
+# noinspection PyUnresolvedReferences
+import util
 
 
 class Bash:
@@ -35,7 +33,8 @@ class Bash:
             self.log(self.__class__.__name__)
         self.now = datetime.datetime.now().strftime('%y-%m-%d-%X')
 
-    def log(self, name):
+    @staticmethod
+    def log(name):
         log_name = '~/boss-installed-modules'
         mod = '{}\n'.format(name)
         try:
@@ -54,6 +53,7 @@ class Bash:
         new_ext = '.original-{}'.format(self.now)
         sed_cmd = 'sudo sed --in-place="{}" "{}" "{}"'.format(new_ext, sed_exp, config_file)
         self.run(sed_cmd)
+
     def append_to_file(self, filename, text, user=None, backup=True, append=True):
         if backup:
             new_ext = '.original-{}'.format(self.now)
@@ -91,7 +91,8 @@ class Bash:
             pretty_cmd = ' '.join(cmd.split())
             display_cmd(pretty_cmd, wrap=True, script=self.args.generate_script, comment=comment)
         else:
-            display_cmd(cmd, wrap=False, script=self.args.generate_script, comment=comment)
+            display_cmd(cmd, wrap=False, script=self.args.generate_script,
+                        comment=comment)
 
         if self.args.dry_run or self.args.generate_script:
             return
@@ -109,6 +110,7 @@ class Bash:
             url=url, output=output)
         result = self.run(cmd, capture=capture)
         return result
+
     def restart_apache(self):
         """Restart Apache using the apropriate command
 
@@ -118,7 +120,7 @@ class Bash:
         if self.distro == Dist.UBUNTU:
             self.run('sudo service apache2 restart')
         else:
-            error('restart_apache has unknown platform')
+            util.error('restart_apache has unknown platform')
 
     def _apt(self, packages):
         dry = '--dry-run' if self.dry_run else ''
@@ -127,7 +129,7 @@ class Bash:
             return False
         if not Bash.APTUPDATED:
             self.run('sudo apt-get --quiet update')
-            #self.run('sudo apt-get --quiet --yes upgrade')   # not really necessary
+            # self.run('sudo apt-get --quiet --yes upgrade')   # not really necessary
             Bash.APTUPDATED = True
         self.run('export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet install {packages}'.format(
             dry=dry, packages=packages))
