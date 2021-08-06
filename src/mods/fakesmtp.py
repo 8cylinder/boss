@@ -33,11 +33,14 @@ class FakeSMTP(Bash):
         elif self.distro == (Dist.UBUNTU, Dist.V16_04):
             self.phpini = '/etc/php/7.0/apache2/php.ini'
             self.cliini = '/etc/php/7.0/cli/php.ini'
-        elif self.distro >= (Dist.UBUNTU, Dist.V18_04):
+        elif self.distro == (Dist.UBUNTU, Dist.V18_04):
             self.phpini = '/etc/php/7.2/apache2/php.ini'
             self.cliini = '/etc/php/7.2/cli/php.ini'
+        elif self.distro == (Dist.UBUNTU, Dist.V20_04):
+            self.phpini = '/etc/php/7.4/apache2/php.ini'
+            self.cliini = '/etc/php/7.4/cli/php.ini'
         else:
-            error('FakeSMTP: no php.ini defined')
+            error('FakeSMTP: no php.ini defined for this version of Ubuntu')
 
     def post_install(self):
         self.install_via_github()
