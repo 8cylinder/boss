@@ -30,9 +30,12 @@ class FakeSMTP(Bash):
         elif self.distro == (Dist.UBUNTU, Dist.V16_04):
             self.phpini = '/etc/php/7.0/apache2/php.ini'
             self.cliini = '/etc/php/7.0/cli/php.ini'
-        elif self.distro >= (Dist.UBUNTU, Dist.V18_04):
+        elif self.distro == (Dist.UBUNTU, Dist.V18_04):
             self.phpini = '/etc/php/7.2/apache2/php.ini'
             self.cliini = '/etc/php/7.2/cli/php.ini'
+        elif self.distro == (Dist.UBUNTU, Dist.V20_04):
+            self.phpini = '/etc/php/7.4/apache2/php.ini'
+            self.cliini = '/etc/php/7.4/cli/php.ini'
         else:
             error('FakeSMTP: no php.ini defined')
 
@@ -51,7 +54,8 @@ class FakeSMTP(Bash):
             self.config_upstart()
         elif self.distro >= (Dist.UBUNTU, Dist.V16_04):
             self.config_systemd()
-        if self.distro >= (Dist.UBUNTU, Dist.V18_04):
+
+        if self.distro == (Dist.UBUNTU, Dist.V18_04):
             postfix_config = Path('/etc/postfix/main.cf')
             if postfix_config.exists():
                 self.sed('s/^myhostname = .*&/myhostname = localhost/', postfix_config)
