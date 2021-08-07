@@ -5,9 +5,6 @@ import sys
 from dist import Dist
 import datetime
 import subprocess
-# noinspection PyUnresolvedReferences
-import plumbum
-from deps.plumbum import local
 import shlex
 
 # noinspection PyUnresolvedReferences
@@ -89,47 +86,24 @@ class Bash:
     def post_install(self):
         return True
 
-    def run(self, raw_cmd, wrap=True, capture=False, comment=False):
-        cmd = shlex.split(raw_cmd)
+    def run(self, cmd, wrap=True, capture=False, comment=False):
         if wrap:
-            pretty_cmd = ' '.join(cmd)
+            pretty_cmd = ' '.join(cmd.split())
             display_cmd(pretty_cmd, wrap=True, script=self.args.generate_script, comment=comment)
         else:
-            display_cmd(raw_cmd, wrap=False, script=self.args.generate_script, comment=comment)
+            display_cmd(cmd, wrap=False, script=self.args.generate_script,
+                        comment=comment)
 
         if self.args.dry_run or self.args.generate_script:
             return
-
-        result = False
-        cmd = local[cmd[0]][cmd[1:]]
-        try:
-            result = cmd.run()
-        except plumbum.ProcessExecutionError as e:
-            util.error(e)
-
         if capture:
+            # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
+            result = subprocess.check_output(cmd, shell=True, executable='/bin/bash')
             sys.stdout.flush()
-            return result[1]
         else:
-            return result[0]
-
-    # def xrun(self, cmd, wrap=True, capture=False, comment=False):
-    #     if wrap:
-    #         pretty_cmd = ' '.join(cmd.split())
-    #         display_cmd(pretty_cmd, wrap=True, script=self.args.generate_script, comment=comment)
-    #     else:
-    #         display_cmd(cmd, wrap=False, script=self.args.generate_script, comment=comment)
-    #
-    #     if self.args.dry_run or self.args.generate_script:
-    #         return
-    #     if capture:
-    #         # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
-    #         result = subprocess.check_output(cmd, shell=True, executable='/bin/bash')
-    #         sys.stdout.flush()
-    #     else:
-    #         # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash')
-    #         result = subprocess.check_call(cmd, shell=True, executable='/bin/bash')
-    #     return result
+            # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash')
+            result = subprocess.check_call(cmd, shell=True, executable='/bin/bash')
+        return result
 
     def curl(self, url, output, capture=False):
         cmd = 'curl -sSL {url} --output {output}'.format(

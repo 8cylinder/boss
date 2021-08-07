@@ -10,8 +10,6 @@ import zipfile
 # noinspection PyUnresolvedReferences
 from pprint import pprint as pp
 import deps.click as click
-from deps.plumbum import local
-# import deps.plumbum as plumbum
 from collections import namedtuple
 
 from errors import DependencyError
