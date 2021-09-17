@@ -1,15 +1,7 @@
 
 #+title: Boss
 
-SANE
-SAKE
-Swiss Army Knive EXTREME
 
-Saikt
-Swiss Army I
-
-sack
-sakw
 
 Provision a Vagrant server
 
