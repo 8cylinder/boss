@@ -30,6 +30,9 @@ class Php(Bash):
         elif self.distro == (Dist.UBUNTU, Dist.V18_04):
             self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-curl',  # no php-mcrypt on 18.04
                              'php-xml', 'php-zip', 'php-gd', 'php-mysql', 'php-gmp']
+        elif self.distro == (Dist.UBUNTU, Dist.V20_04):
+            self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-curl',  # no php-mcrypt on 20.04
+                             'php-xml', 'php-zip', 'php-gd', 'php-mysql', 'php-gmp']
         else:
             raise PlatformError(
                 'PHP dependencies have not been determined for this platform yet: {}'.format(
@@ -65,10 +68,9 @@ class Xdebug(Bash):
         if self.distro == (Dist.UBUNTU, Dist.V18_04):
             xdebug_ini = '/etc/php/7.2/mods-available/xdebug.ini'
             self.append_to_file(xdebug_ini, settings)
-            # self.run('echo | sudo tee {xdebug_ini} <<EOF\n{settings}\nEOF'.format(
-            #     xdebug_ini=xdebug_ini,
-            #     settings=settings,
-            # ), wrap=False)
+        elif self.distro == (Dist.UBUNTU, Dist.V20_04):
+            xdebug_ini = '/etc/php/7.4/mods-available/xdebug.ini'
+            self.append_to_file(xdebug_ini, settings)
         else:
             warn('Xdebug ini edit not implemented yet for this version of Ubuntu.')
         self.info('Xdebug ini edited', xdebug_ini)

@@ -20,7 +20,7 @@ class Done(Bash):
         # https://github.com/pwaller/pyfiglet/blob/master/doc/figfont.txt
         if self.args.generate_script:
             sys.stdout.write('set +x\n')
-        self.run('figlet -k -w89 {}'.format(self.args.servername))
+        self.run('figlet -w89 {}'.format(self.args.servername))
 
         for title, msg in self.info_messages:
             if self.args.generate_script:

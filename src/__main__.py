@@ -25,6 +25,7 @@ from mods.craft import Craft2
 from mods.craft import Craft3
 from mods.databases import Mysql
 from mods.databases import PhpMyAdmin
+from mods.databases import Adminer
 from mods.done import Done
 from mods.fakesmtp import FakeSMTP
 from mods.first import First
@@ -74,6 +75,7 @@ mods = (
     Composer,
     Xdebug,
     PhpMyAdmin,
+    Adminer,
     VirtualHost,
     PhpInfo,
     Craft2,

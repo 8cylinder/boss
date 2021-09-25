@@ -12,6 +12,9 @@ from util import warn
 # noinspection PyUnresolvedReferences
 from errors import *
 
+from util import error
+from util import warn
+
 
 class FakeSMTP(Bash):
     """A fake SMTP server for mail testing
@@ -37,7 +40,7 @@ class FakeSMTP(Bash):
             self.phpini = '/etc/php/7.4/apache2/php.ini'
             self.cliini = '/etc/php/7.4/cli/php.ini'
         else:
-            error('FakeSMTP: no php.ini defined')
+            error('FakeSMTP: no php.ini defined for this version of Ubuntu')
 
     def post_install(self):
         self.install_via_github()

@@ -1,6 +1,8 @@
 
 #+title: Boss
 
+
+
 Provision a Vagrant server
 
 ** Todo

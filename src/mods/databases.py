@@ -2,6 +2,8 @@
 
 from bash import Bash
 from dist import Dist
+from util import error
+from util import warn
 from errors import *
 
 
@@ -84,12 +86,12 @@ class PhpMyAdmin(Bash):
     Access at http://<servername>/phpmyadmin
     Use the root username and the password specified via --db_root_pass
     """
-
     provides = ['phpmyadmin']
     requires = ['apache2', 'php', 'mysql']
     title = 'PhpMyAdmin'
 
     def __init__(self, *args, **kwargs):
+        self.dist = Dist()
         super().__init__(*args, **kwargs)
         self.apt_pkgs = ['phpmyadmin']
 
@@ -105,5 +107,39 @@ class PhpMyAdmin(Bash):
         self.run('sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/app-pass password {}"'.format(root_pass))
 
         site_name = self.args.site_name_and_root[0][0]
-        self.info('phpmyadmin', 'http://{}/phpmyadmin'.format(
+        self.info(self.title, 'http://{}/phpmyadmin'.format(
             site_name))
+
+
+class Adminer(Bash):
+    """Web database client, an alternative to PhpMyAdmin"""
+    provides = ['adminer']
+    requires = ['apache2', 'php', 'mysql']
+    title = 'Adminer'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.distro >= (Dist.UBUNTU, Dist.V18_04):
+            self.apt_pkgs = ['adminer']
+        else:
+            error('{} not tested on this platform'.format(self.title))
+
+        site_name = self.args.servername
+        self.info(self.title, 'http://{}/adminer.php'.format(site_name))
+
+    def post_install(self):
+        # for 18.04, an extra compile step needs to be
+        # done.  20.04 and later doesn't need this.
+        if self.distro == (Dist.UBUNTU, Dist.V18_04):
+            self.run('cd /usr/share/adminer/ && sudo php compile.php')
+            filename = self.run('cd /usr/share/adminer/ && ls adminer-*.*.*.php', capture=True)
+            filename = filename.decode('ascii')
+            self.append_to_file(
+                '/etc/apache2/conf-available/adminer.conf',
+                'Alias /adminer.php /usr/share/adminer/{}'.format(filename),
+                append=False,
+                backup=False,
+            )
+            self.run('sudo a2enconf adminer')
+            self.restart_apache()

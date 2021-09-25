@@ -20,7 +20,7 @@ class First(Bash):
         if self.distro > (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = [
                 'tree', 'elinks', 'virt-what', 'silversearcher-ag', 'unzip',
-                'zip', 'htop', 'source-highlight', 'whois', 'curl', 'figlet', 'ntp',
+                'zip', 'htop', 'source-highlight', 'whois', 'curl', 'figlet', 'ntp', 'locate'
             ]
             # self.apt_pkgs += ['joe']
             self.apt_pkgs += ['emacs-nox'] # adds aprox 100mb
