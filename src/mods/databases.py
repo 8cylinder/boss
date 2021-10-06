@@ -123,7 +123,8 @@ class Adminer(Bash):
         if self.distro >= (Dist.UBUNTU, Dist.V18_04):
             self.apt_pkgs = ['adminer']
         else:
-            error('{} not tested on this platform'.format(self.title))
+            error('{} not tested and/or available on this platform.'
+                  .format(self.title))
 
         site_name = self.args.servername
         self.info(self.title, 'http://{}/adminer.php'.format(site_name))
@@ -141,5 +142,6 @@ class Adminer(Bash):
                 append=False,
                 backup=False,
             )
-            self.run('sudo a2enconf adminer')
-            self.restart_apache()
+
+        self.run('sudo a2enconf adminer')
+        self.restart_apache()
