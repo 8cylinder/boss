@@ -15,10 +15,10 @@ class Dist:
     d > (Dist.UBUNTU, Dist.V16_10)
     """
     UBUNTU = 'Ubuntu'
-    V14_04 = 14.04
-    V16_04 = 16.04
-    V18_04 = 18.04
-    V20_04 = 20.04
+    V14_04 = 14.04  # Trusty Tahr
+    V16_04 = 16.04  # Xenial Xerus
+    V18_04 = 18.04  # Bionic Beaver
+    V20_04 = 20.04  # Focal Fossa
 
     REDHAT = 'Redhat'
     CENTOS = 'CentOS'
