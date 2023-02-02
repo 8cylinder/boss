@@ -57,13 +57,14 @@ class FakeSMTP(Bash):
             self.config_upstart()
         elif self.distro >= (Dist.UBUNTU, Dist.V16_04):
             self.config_systemd()
-        if self.distro >= (Dist.UBUNTU, Dist.V18_04):
-            postfix_config = Path('/etc/postfix/main.cf')
-            if postfix_config.exists():
-                self.sed('s/^myhostname = .*&/myhostname = localhost/', postfix_config)
-                self.sed('s/^relayhost = .*&/relayhostl = [127.0.0.1]:1025/', postfix_config)
-            else:
-                error(f'No postfix config file: {postfix_config}')
+
+        #if self.distro >= (Dist.UBUNTU, Dist.V18_04):
+        #    postfix_config = Path('/etc/postfix/main.cf')
+        #    if postfix_config.exists():
+        #        self.sed('s/^myhostname = .*&/myhostname = localhost/', postfix_config)
+        #        self.sed('s/^relayhost = .*&/relayhostl = [127.0.0.1]:1025/', postfix_config)
+        #    else:
+        #        error(f'No postfix config file: {postfix_config}')
 
         # test if it works
         cmd = 'php -r "mail(\'boss@example.com\', \'Test from Boss\', \'Test from Boss.\');"'
