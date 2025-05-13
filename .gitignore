@@ -1,9 +1,7 @@
-.idea
+
 ubuntu*.log
 .vagrant
-boss
 __pycache__
-boss/click
 .mypy_cache
 sink.yaml*
 sink.yam*
