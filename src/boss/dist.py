@@ -2,7 +2,6 @@
 
 import distro
 
-
 class Dist:
     """Test whether the current distro meets certain version requirments.
 
@@ -19,18 +18,16 @@ class Dist:
     V22_04 = 22.04  # Jammy Jellyfish
     V24_04 = 24.04  # Oracular Oriole
 
-    REDHAT = 'Redhat'
-    CENTOS = 'CentOS'
-    V4 = 4
-    V5 = 5
-    V6 = 6
-    V7 = 7
-
-    def __init__(self):
+    def __init__(self, version:float|None=None) -> None:
         self.name = distro.name()
-        self.version = distro.version()
+        version = 24.04
+        if version:
+            self.version = str(version)
+        else:
+            self.version = distro.version()
+        print(distro.version())
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '{name} {version}'.format(**self.__dict__)
 
     def __eq__(self, other):

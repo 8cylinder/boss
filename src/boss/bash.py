@@ -5,7 +5,6 @@ import sys
 from .dist import Dist
 import datetime
 import subprocess
-import shlex
 
 # noinspection PyUnresolvedReferences
 from .errors import *
@@ -19,7 +18,7 @@ class Bash:
     info_messages = []
     WWW_USER = 'www-data'
 
-    def __init__(self, dry_run=False, args=None):
+    def __init__(self, dry_run=False, args=None, dist_version=None):
         self.ok_code = 0
         self.requires = []
         self.apt_pkgs = []

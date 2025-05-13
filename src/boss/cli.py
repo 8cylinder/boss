@@ -20,7 +20,6 @@ from . import util
 from .mods.aptproxy import AptProxy
 from .mods.bashrc import Bashrc
 from .mods.cert import Cert
-from .mods.craft import Craft2
 from .mods.craft import Craft3
 from .mods.databases import Mysql
 from .mods.databases import PhpMyAdmin
@@ -45,7 +44,7 @@ import importlib.metadata
 
 __version__ = importlib.metadata.version("boss")
 
-
+DIST_VERSION: float|None = None
 
 # All the mods available in the order they should be run
 mods = (
@@ -64,7 +63,6 @@ mods = (
     Adminer,
     VirtualHost,
     PhpInfo,
-    Craft2,
     Craft3,
     FakeSMTP,
     Netdata,
@@ -250,6 +248,8 @@ def boss():
               help="Don't install dependent modules")
 @click.option('--generate-script', is_flag=True,
               help='Output suitable for a bash script instead of running them')
+@click.option('--dist-version', type=float,
+              help='The version of Ubuntu to assume instead of autodetect.')
 # unix user
 @click.option('-n', '--new-user-and-pass', type=USER_PASS, metavar='USERNAME,USERPASS',
               help="a new unix user's name and password (seperated by a comma), they will be added to the www-data group")

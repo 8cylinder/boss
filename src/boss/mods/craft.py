@@ -10,55 +10,6 @@ from ..util import error
 from ..util import warn
 
 
-class Craft2(Bash):
-    provides = ['craft2']
-    requires = ['apache2', 'php', 'mysql']
-    title = 'Craft 2'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def post_install(self):
-        if self.distro >= (Dist.UBUNTU, Dist.V18_04):
-            self.install_mcrypt()
-            self.disable_groupby()
-
-    def install_mcrypt(self):
-        """Manualy compile and install mcrypt since it has be depreciated and not available on 18.04
-
-        https://askubuntu.com/a/1037418"""
-
-        # Install prerequisites
-        self.apt(['php-dev', 'libmcrypt-dev', 'gcc', 'make autoconf', 'libc-dev', 'pkg-config'])
-
-        # Compile mcrypt extension
-        self.run('yes '' | sudo pecl install mcrypt-1.0.1')
-        # Just press enter when it asks about libmcrypt prefix
-        # `yes ''` causes pecl to accept the default
-
-        # Enable extension for apache
-        self.run('echo "extension=mcrypt.so" | sudo tee -a /etc/php/7.2/apache2/conf.d/mcrypt.ini')
-
-        # Restart apache
-        self.restart_apache()
-
-    def disable_groupby(self):
-        mycnf_dir = '/etc/mysql/conf.d/'
-        mycnf_file = 'disable_only_full_group_by.cnf'
-        if self.args.dry_run or self.args.generate_script or os.path.exists(mycnf_dir):
-            setting = '''
-              [mysqld]
-              sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
-            '''
-            setting = '\n'.join(i[14:] for i in setting.split('\n'))
-            self.run('echo | sudo tee {file} <<EOF\n{contents}\nEOF'.format(
-                file=mycnf_file,
-                contents=setting,
-            ))
-        else:
-            raise FileNotFoundError('In disable_groupby(), {} not found'.format(mycnf_dir))
-
-
 class Craft3(Bash):
     """https://craftcms.com"""
 
@@ -78,6 +29,9 @@ class Craft3(Bash):
                              'php-xml', 'php7.2-zip', 'php-soap', 'php7.2-gmp',
                              'php-gmp']  # php7.2-gmp or php7.2-bcmath
         elif self.distro == (Dist.UBUNTU, Dist.V20_04):
+            self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-curl',
+                             'php-xml', 'php-zip', 'php-soap', 'php-gmp']
+        elif self.distro == (Dist.UBUNTU, Dist.V24_04):
             self.apt_pkgs = ['php-mbstring', 'php-imagick', 'php-curl',
                              'php-xml', 'php-zip', 'php-soap', 'php-gmp']
         else:

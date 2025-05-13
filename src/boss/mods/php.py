@@ -74,8 +74,11 @@ class Xdebug(Bash):
         elif self.distro == (Dist.UBUNTU, Dist.V20_04):
             xdebug_ini = '/etc/php/7.4/mods-available/xdebug.ini'
             self.append_to_file(xdebug_ini, settings)
+        elif self.distro == (Dist.UBUNTU, Dist.V24_04):
+            xdebug_ini = '/etc/php/8.3/mods-available/xdebug.ini'
+            self.append_to_file(xdebug_ini, settings)
         else:
-            warn('Xdebug ini edit not implemented yet for this version of Ubuntu.')
+            error('Xdebug ini edit not implemented yet for this version of Ubuntu.')
         self.info('Xdebug ini edited', xdebug_ini)
 
 
