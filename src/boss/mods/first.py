@@ -65,7 +65,7 @@ class First(Bash):
     def bash_settings(self):
         bashrc = "$HOME/.bashrc"
         editor = "emacs"
-        settings = """
+        settings = r"""
           PS1='\n${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\n\$ '
 
           alias ls='LC_ALL=C ls --almost-all --classify --human-readable --color=auto --group-directories-first'

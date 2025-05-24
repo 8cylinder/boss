@@ -8,13 +8,12 @@ import subprocess
 import socket
 from pprint import pprint as pp  # noqa
 import click
-from collections import namedtuple
 
 from .errors import DependencyError
 from .errors import PlatformError
 from .errors import SecurityError
 
-from . import util
+from . import util  # type: ignore
 
 from .mods.aptproxy import AptProxy
 from .mods.bashrc import Bashrc
@@ -39,6 +38,28 @@ from .mods.webservers import Apache2
 from .mods.webservers import Nginx
 
 import importlib.metadata
+from typing import NamedTuple
+
+
+class Args(NamedTuple):
+    servername: str
+    modules: tuple[str, ...]
+    dry_run: bool
+    no_required: bool
+    no_dependencies: bool
+    generate_script: bool
+    dist_version: float | None
+    new_user_and_pass: tuple[str, str] | None
+    sql_file: str | None
+    db_name: str | None
+    db_root_pass: str
+    new_db_user_and_pass: tuple[str, str] | None
+    new_system_user_and_pass: tuple[str, str] | None
+    site_name_and_root: list[tuple[str, str, str]] | None
+    craft_credentials: tuple[str, str, str] | None
+    host_ip: str | None
+    netdata_user_pass: tuple[str, str] | None
+
 
 # DIST_VERSION = None
 __version__ = importlib.metadata.version("boss")
@@ -71,19 +92,19 @@ mods = (
 )
 
 
-def is_server(server):
+def is_server(server: str) -> bool:
     if "." not in server:
         return False
     return True
 
 
-def is_email(email):
+def is_email(email: str) -> bool:
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         return False
     return True
 
 
-def is_ipaddress(ip):
+def is_ipaddress(ip: str) -> bool:
     try:
         socket.inet_pton(socket.AF_INET, ip)
         return True
@@ -99,7 +120,7 @@ class Server(click.ParamType):
 
     name = "server"
 
-    def convert(self, value, param, ctx):
+    def convert(self, value: str, param: click.Parameter, ctx: click.Context) -> str:  # type: ignore[override]
         if not is_server(value):
             msg = 'the servername must have a "." in it, eg. something.local'
             self.fail(msg, param, ctx)
@@ -117,7 +138,9 @@ class UserPass(click.ParamType):
 
     name = "user_pass"
 
-    def convert(self, value, param, ctx):
+    def convert(
+        self, value: str, param: click.Parameter, ctx: click.Context
+    ) -> tuple[str, str]:  # type: ignore[override]
         try:
             username, password = [i.strip() for i in value.split(",", 1) if i.strip()]
         except ValueError:
@@ -138,7 +161,9 @@ class SiteDocroot(click.ParamType):
 
     name = "site_docroot"
 
-    def convert(self, value, param, ctx):
+    def convert(
+        self, value: str, param: click.Parameter, ctx: click.Context
+    ) -> list[tuple[str, str, str]]:  # xtype: ignore[override]
         sites = value.split(":")
         cleaned_sites = []
         msg = 'must be a sitename, document root and a "y" or "n" (create site dir) seperated by a comma, and sitename must have a . in it'
@@ -345,12 +370,12 @@ def boss():
     metavar="USERNAME,USERPASS",
     help="a new user's name and password (seperated by a comma)",
 )
-def install(**args):
+def install(**all_args):
     """Install any modules available from `boss list`"""
 
     # convert the args dict to a namedtuple
-    Args = namedtuple("Args", sorted(args))
-    args = Args(**args)
+    # Args = namedtuple("Args", sorted(all_args))
+    args = Args(**all_args)
 
     if args.dist_version:
         global DIST_VERSION

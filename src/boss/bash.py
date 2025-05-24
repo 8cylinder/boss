@@ -1,28 +1,26 @@
-# run-shell-command :: ../build.bash
-
 import os
 import sys
 from .dist import Dist
 import datetime
 import subprocess
-
-# noinspection PyUnresolvedReferences
+from typing import NamedTuple
 from .errors import *
-from .util import display_cmd
-# noinspection PyUnresolvedReferences
-from . import util
+from .util import display_cmd, error
+
+
+# from . import util
 
 
 class Bash:
     APTUPDATED = False
-    info_messages = []
-    WWW_USER = 'www-data'
+    info_messages: list[list[str]] = []
+    WWW_USER = "www-data"
 
-    def __init__(self, dry_run=False, args=None, dist_version=None):
+    def __init__(self, args: NamedTuple, dry_run: bool = False) -> None:
         self.ok_code = 0
-        self.requires = []
-        self.apt_pkgs = []
-        self.provides = []
+        self.requires: list[str] = []
+        self.apt_pkgs: list[str] = []
+        self.provides: list[str] = []
         self.distro = Dist()
         self.dry_run = dry_run
         self.args = args
@@ -30,109 +28,133 @@ class Bash:
         if args and not dry_run:
             # action = args.subparser_name
             self.log(self.__class__.__name__)
-        self.now = datetime.datetime.now().strftime('%y-%m-%d-%X')
+        self.now = datetime.datetime.now().strftime("%y-%m-%d-%X")
 
     @staticmethod
-    def log(name):
-        log_name = '~/boss-installed-modules'
-        mod = '{}\n'.format(name)
+    def log(name: str) -> None:
+        """Logs a module name.
+
+        The method ensures that the file contains a record of unique module names.
+        If the log file does not exist, it creates one and records the provided
+        module name.
+        """
+        log_name = "~/boss-installed-modules"
+        mod = "{}\n".format(name)
         try:
-            with open(os.path.expanduser(log_name), 'r') as f:
+            with open(os.path.expanduser(log_name), "r") as f:
                 installed_mods = f.readlines()
         except FileNotFoundError:
             installed_mods = []
 
-        installed_mods = set(installed_mods)
-        installed_mods.add(mod)
+        normalized_mods: set[str] = set(installed_mods)
+        normalized_mods.add(mod)
 
-        with open(os.path.expanduser(log_name), 'w') as f:
+        with open(os.path.expanduser(log_name), "w") as f:
             f.writelines(installed_mods)
 
-    def sed(self, sed_exp, config_file):
-        new_ext = '.original-{}'.format(self.now)
-        sed_cmd = 'sudo sed --in-place="{}" "{}" "{}"'.format(new_ext, sed_exp, config_file)
+    def sed(self, sed_exp: str, config_file: str) -> None:
+        new_ext = ".original-{}".format(self.now)
+        sed_cmd = f'sudo sed --in-place="{new_ext}" "{sed_exp}" "{config_file}"'
         self.run(sed_cmd)
 
-    def append_to_file(self, filename, text, user=None, backup=True, append=True):
+    def append_to_file(
+        self,
+        filename: str,
+        text: str,
+        user: str | None = None,
+        backup: bool = True,
+        append: bool = True,
+    ) -> None:
         if backup:
-            new_ext = '.original-{}'.format(self.now)
+            new_ext = ".original-{}".format(self.now)
             copy_cmd = 'sudo cp "{file}" "{file}{now}"'.format(
-                file=filename, now=new_ext)
+                file=filename, now=new_ext
+            )
             self.run(copy_cmd)
 
-        www_user = ''
+        www_user = ""
         if user == self.WWW_USER:
-            www_user = '-u {}'.format(self.WWW_USER)
+            www_user = "-u {}".format(self.WWW_USER)
 
-        append_flag = ''
+        append_flag = ""
         if append is True:
-            append_flag = '-a'
+            append_flag = "-a"
 
         add_cmd = 'echo | sudo {user} tee {append} "{file}" <<EOF\n{text}\nEOF'.format(
-            text=text, file=filename, user=www_user, append=append_flag)
+            text=text, file=filename, user=www_user, append=append_flag
+        )
         self.run(add_cmd, wrap=False)
 
-    def apt(self, progs):
+    def apt(self, progs: list[str]) -> None:
         self._apt(progs)
 
-    def install(self):
+    def install(self) -> bool:
         self._apt(self.apt_pkgs)
         return True
 
-    def pre_install(self):
+    def pre_install(self) -> bool:
         return True
 
-    def post_install(self):
+    def post_install(self) -> bool:
         return True
 
-    def run(self, cmd, wrap=True, capture=False, comment=False):
+    def run(
+        self, cmd: str, wrap: bool = True, capture: bool = False, comment: str = ""
+    ) -> str | int | bytes | None:
         if wrap:
-            pretty_cmd = ' '.join(cmd.split())
-            display_cmd(pretty_cmd, wrap=True, script=self.args.generate_script, comment=comment)
+            pretty_cmd = " ".join(cmd.split())
+            display_cmd(
+                pretty_cmd, wrap=True, script=self.args.generate_script, comment=comment
+            )
         else:
-            display_cmd(cmd, wrap=False, script=self.args.generate_script,
-                        comment=comment)
+            display_cmd(
+                cmd, wrap=False, script=self.args.generate_script, comment=comment
+            )
 
         if self.args.dry_run or self.args.generate_script:
-            return
+            return None
         if capture:
             # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
-            result = subprocess.check_output(cmd, shell=True, executable='/bin/bash')
+            result = subprocess.check_output(cmd, shell=True, executable="/bin/bash")
             sys.stdout.flush()
         else:
             # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash')
-            result = subprocess.check_call(cmd, shell=True, executable='/bin/bash')
+            result = subprocess.check_call(cmd, shell=True, executable="/bin/bash")
         return result
 
-    def curl(self, url, output, capture=False):
-        cmd = 'curl -sSL {url} --output {output}'.format(
-            url=url, output=output)
+    def curl(
+        self, url: str, output: str, capture: bool = False
+    ) -> str | int | bytes | None:
+        cmd = "curl -sSL {url} --output {output}".format(url=url, output=output)
         result = self.run(cmd, capture=capture)
         return result
 
-    def restart_apache(self):
+    def restart_apache(self) -> None:
         """Restart Apache using the apropriate command
 
         Details about wether to use service or systemctl
         https://askubuntu.com/a/903405"""
 
         if self.distro == Dist.UBUNTU:
-            self.run('sudo service apache2 restart')
+            self.run("sudo service apache2 restart")
         else:
-            util.error('restart_apache has unknown platform')
+            error("restart_apache has unknown platform")
 
-    def _apt(self, packages):
-        dry = '--dry-run' if self.dry_run else ''
-        packages = ' '.join(packages)
+    def _apt(self, packages_list: list[str]) -> bool:
+        dry = "--dry-run" if self.dry_run else ""
+        packages = " ".join(packages_list)
         if not packages:
             return False
         if not Bash.APTUPDATED:
-            self.run('sudo apt-get --quiet update')
+            self.run("sudo apt-get --quiet update")
             # self.run('sudo apt-get --quiet --yes upgrade')   # not really necessary
             Bash.APTUPDATED = True
-        self.run('export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet install {packages}'.format(
-            dry=dry, packages=packages))
+        self.run(
+            "export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet install {packages}".format(
+                dry=dry, packages=packages
+            )
+        )
         return True
 
-    def info(self, title, msg):
+    def info(self, title: str, msg: str) -> None:
         self.info_messages.append([title, msg])
