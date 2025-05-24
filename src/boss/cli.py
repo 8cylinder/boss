@@ -13,7 +13,8 @@ from .errors import DependencyError
 from .errors import PlatformError
 from .errors import SecurityError
 
-from . import util  # type: ignore
+# from . import util  # type: ignore
+from .util import error, title
 
 from .mods.aptproxy import AptProxy
 from .mods.bashrc import Bashrc
@@ -38,7 +39,7 @@ from .mods.webservers import Apache2
 from .mods.webservers import Nginx
 
 import importlib.metadata
-from typing import NamedTuple
+from typing import NamedTuple, Any
 
 
 class Args(NamedTuple):
@@ -163,7 +164,7 @@ class SiteDocroot(click.ParamType):
 
     def convert(
         self, value: str, param: click.Parameter, ctx: click.Context
-    ) -> list[tuple[str, str, str]]:  # xtype: ignore[override]
+    ) -> list[tuple[str, str, str]]:  # type: ignore[override]
         sites = value.split(":")
         cleaned_sites = []
         msg = 'must be a sitename, document root and a "y" or "n" (create site dir) seperated by a comma, and sitename must have a . in it'
@@ -212,7 +213,7 @@ USER_EMAIL_PASS = UserEmailPass()
 class IpAddress(click.ParamType):
     name = "ip_address"
 
-    def convert(self, value, param, ctx):
+    def convert(self, value: str, param: click.Parameter, ctx: click.Context) -> str:
         msg = "Ip address is not vaid"
         if not is_ipaddress(value):
             self.fail(msg, param, ctx)
@@ -222,7 +223,7 @@ class IpAddress(click.ParamType):
 IP_ADDRESS = IpAddress()
 
 
-def deps(*dependencies):
+def deps(*dependencies: str) -> bool:
     # remove the first three arguments and any options so only
     # the wanted modules are left
     cmd_mods = [i for i in sys.argv if not i.startswith("-")][3:]
@@ -244,7 +245,7 @@ CONTEXT_SETTINGS = {
 
 @click.group(no_args_is_help=True, context_settings=CONTEXT_SETTINGS)
 @click.version_option(version=__version__)
-def boss():
+def boss() -> None:
     """👔 Install various applications and miscellany to set up a dev server.
 
     This can be run standalone or as a Vagrant provider.  When run as
@@ -370,7 +371,7 @@ def boss():
     metavar="USERNAME,USERPASS",
     help="a new user's name and password (seperated by a comma)",
 )
-def install(**all_args):
+def install(**all_args: Any) -> None:
     """Install any modules available from `boss list`"""
 
     # convert the args dict to a namedtuple
@@ -398,7 +399,7 @@ def install(**all_args):
     mapping_keys = [i.__name__.lower() for i in available_mods]
     invalid_modules = [i for i in wanted_mods if i not in mapping_keys]
     if invalid_modules:
-        util.error(
+        error(
             'module(s) "{invalid}" does not exist.\nValid modules are:\n{valid}'.format(
                 valid=", ".join(mapping_keys), invalid=", ".join(invalid_modules)
             )
@@ -412,7 +413,7 @@ def install(**all_args):
             provided = set(install_reqs)
             required = set(app.requires)
             if len(required - provided):
-                util.error(
+                error(
                     "Requirements not met for {}: {}.".format(
                         app.__name__.lower(), ", ".join(app.requires)
                     )
@@ -431,7 +432,7 @@ def install(**all_args):
 
     for App in wanted_apps:
         module_name = App.title
-        util.title(module_name, script=args.generate_script)
+        title(module_name, script=args.generate_script)
         try:
             app = App(dry_run=args.dry_run, args=args)
             app.pre_install()
@@ -439,15 +440,15 @@ def install(**all_args):
             app.post_install()
             app.log(module_name)
         except subprocess.CalledProcessError as e:
-            util.error(e)
+            error(e)
         except DependencyError as e:
-            util.error(e)
+            error(e)
         except PlatformError as e:
-            util.error(e)
+            error(e)
         except SecurityError as e:
-            util.error(e)
+            error(e)
         except FileNotFoundError as e:
-            util.error(e.args[0])
+            error(e.args[0])
 
 
 @boss.command()
