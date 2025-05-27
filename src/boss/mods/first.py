@@ -60,7 +60,7 @@ class First(Bash):
                 "source-highlight",
                 "figlet",
                 "fail2ban",
-                # "tasksel",
+                "ssh",
             ]
             self.snap_pkgs = [
                 ("emacs", Snap.classic),
@@ -78,4 +78,5 @@ class First(Bash):
         self.run("sudo timedatectl set-timezone {}".format(tz))
 
     def install_web_server(self):
+        # Add 'tasksel' to apt_pkgs
         self.run("sudo tasksel install web-server")

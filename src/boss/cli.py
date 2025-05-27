@@ -8,6 +8,7 @@ import subprocess
 import socket
 from pprint import pprint as pp  # noqa
 import click
+# from mypyc.ir.class_ir import NamedTuple
 
 from .errors import DependencyError
 from .errors import PlatformError
@@ -28,7 +29,8 @@ from .mods.fakesmtp import FakeSMTP
 from .mods.first import First
 from .mods.lamp import Lamp
 from .mods.netdata import Netdata
-from .mods.newuser import NewUser
+from .mods.newuser import NewUserAsRoot
+from .mods.newuser import Personalize
 from .mods.php import Php
 from .mods.php import Xdebug
 from .mods.php import PhpInfo
@@ -51,7 +53,8 @@ DIST_VERSION: float | None = None
 mods = (
     AptProxy,
     First,  # required
-    NewUser,
+    NewUserAsRoot,
+    Personalize,
     Cert,
     Lamp,
     Apache2,
@@ -120,7 +123,7 @@ class UserPass(click.ParamType):
     name = "user_pass"
 
     def convert(
-        self, value: str, param: click.Parameter|None, ctx: click.Context|None
+        self, value: str, param: click.Parameter | None, ctx: click.Context | None
     ) -> tuple[str, str]:  # type: ignore[override]
         try:
             username, password = [i.strip() for i in value.split(",", 1) if i.strip()]
@@ -246,19 +249,6 @@ def boss() -> None:
     Its recommended to set up Apt-Cacher NG on the host machine.  Once
     that's done adding `aptproxy` to the list of modules will configure
     this server to make use of it."""
-
-
-@boss.command()
-@click.option(
-    "-n",
-    "--new-system-user-and-pass",
-    type=USER_PASS,
-    metavar="USERNAME,USERPASS",
-    help="a new unix user's name and password (seperated by a comma), they will be added to the www-data group",
-)
-
-def create_user(new_system_user_and_pass:tuple[str,str]) -> None:
-    print(new_system_user_and_pass)
 
 
 @boss.command()  # no_args_is_help=True # Click 7.1
@@ -400,7 +390,7 @@ def install(**all_args: Any) -> None:
 
     # check if the requested modules have their dependencies met
     if not args.no_dependencies:
-        install_reqs = []
+        install_reqs: list[str] = []
         for app in wanted_apps:
             install_reqs += app.provides
             provided = set(install_reqs)

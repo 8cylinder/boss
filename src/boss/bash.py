@@ -17,7 +17,7 @@ class Args(NamedTuple):
     no_dependencies: bool
     generate_script: bool
     dist_version: float | None
-    #new_user_and_pass: tuple[str, str]
+    new_user_and_pass: tuple[str, str]  # ...?
     sql_file: str | None
     db_name: str | None
     db_root_pass: str

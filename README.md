@@ -23,8 +23,9 @@ multipass mount -t native . primary
 multipass shell
 
 # Install pipx so UV can be installed
-sudo install pipx
+sudo apt install pipx
 pipx install uv
+# logout and login again.
 uv --version
 ```
 

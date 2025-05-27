@@ -4,15 +4,12 @@ from ..errors import *
 from typing import Any
 
 
-class NewUser(Bash):
-    """Create a new user
+class NewUserAsRoot(Bash):
+    """Create a new user assuming the current user is root."""
 
-    Create a new user and add them to the sudo and www-data groups.
-    Also make the new user's sudo session not expire until logout."""
-
-    provides = ["newuser"]
-    requires = ["first"]
-    title = "New user"
+    provides = ["newuserasroot"]
+    requires = []
+    title = "New user (as root)"
 
     def __init__(self, *args: tuple[Any, ...], **kwargs: dict[str, Any]) -> None:
         super().__init__(*args, **kwargs)
@@ -22,7 +19,7 @@ class NewUser(Bash):
 
         self.run(
             f"""if ! id -u {username} &>/dev/null; then 
-            sudo useradd --shell=/bin/bash --create-home --password $(mkpasswd -m sha-512 {password}) {username}; 
+            useradd --shell=/bin/bash --create-home --password $(mkpasswd -m sha-512 {password}) {username}; 
             fi"""
         )
         self.run("### or if using these commands interactively, use:")
@@ -31,30 +28,45 @@ class NewUser(Bash):
         # add user to some groups
         for group in ("sudo", "www-data"):
             self.run(
-                "sudo usermod -aG {group} {username}".format(
+                "usermod -aG {group} {username}".format(
                     group=group, username=username
                 )
             )
+            
+        # modify ssh.conf to allow passwords
 
         # Option A is only for local dev machines, option B should be used instead.
-
+        #
         # A)
-        #   make user not need a password for sudo
-        #   filename cannot have a . or ~
+        # Make user not need a password for sudo.
+        # filename cannot have a . or ~
         # sudo_file = "/etc/sudoers.d/{}-{}".format(self.scriptname, username)
         # self.run(
         #    "echo '{} ALL=(ALL) NOPASSWD:ALL' | sudo tee {}".format(username, sudo_file)
         # )
-
+        #
         # B)
-        #   Make sudo last for the user's session length
-        self.run("echo 'Defaults timestamp_timeout=-1' | sudo EDITOR='tee -a' visudo")
+        # Make sudo last for the user's session length.
+        self.run("echo 'Defaults timestamp_timeout=-1' | EDITOR='tee -a' visudo")
 
+        self.info('New user created', 'Try logging in in another terminal to test user.')
+
+
+class Personalize(Bash):
+    """Personalize the user's environment."""
+
+    provides = ["personalize"]
+    requires = ["first"]
+    title = "Personalize"
+
+    def __init__(self, *args: tuple[Any, ...], **kwargs: dict[str, Any]) -> None:
+        super().__init__(*args, **kwargs)
+
+    def pre_install(self) -> None:
         self.bash_settings()
-
         self.emacs_settings()
 
-    def bash_settings(self):
+    def bash_settings(self)->None:
         bashrc = "$HOME/.bashrc"
         editor = "emacs"
         bash_settings = rf"""
@@ -84,7 +96,7 @@ class NewUser(Bash):
         )
         self.append_to_file(bashrc, settings, backup=True)
 
-    def emacs_settings(self):
+    def emacs_settings(self)->None:
         dot_emacs = "~/.emacs"
         emacs_settings = """
           ;;; -*- lexical-binding: t -*-
