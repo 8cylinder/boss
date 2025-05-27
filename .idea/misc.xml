@@ -4,5 +4,5 @@
     <option name="pathToExecutable" value="/usr/bin/black" />
     <option name="sdkName" value="Python 3.13 (boss)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.13 (boss)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 (boss)" project-jdk-type="Python SDK" />
 </project>
