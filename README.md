@@ -1,7 +1,34 @@
 
+# Provision a server
 
-# Provision a Vagrant server
+## Dev
 
+``` bash
+uv sync
+uv run boss --help
+```
+
+## Dev testing
+
+``` bash
+sudo snap install multipass
+
+# Install the default image, LTS
+multipass launch
+
+# Mount the boss dir in the ubuntu user's dir
+multipass mount -t native . primary
+
+# run the bash shell
+multipass shell
+
+# Install pipx so UV can be installed
+sudo install pipx
+pipx install uv
+uv --version
+```
+
+<!--
 ## Todo
 - bash prompt
 - bash history with dates
@@ -13,15 +40,4 @@
 - downloads to home, not current location
 - phpinfo; if virtualhost use its dir instead
 - phpinfo; user: use root if normal else use www-data
-
-## Command line
-`$ boss -h`
-
-### Install
-`$ boss install -h`
-
-### Uninstall
-`$ boss uninstall -h`
-
-### List
-`$ boss list -h`
+-->

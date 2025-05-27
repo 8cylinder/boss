@@ -37,29 +37,9 @@ from .mods.virtualhost import VirtualHost
 from .mods.webmin import Webmin
 from .mods.webservers import Apache2
 from .mods.webservers import Nginx
-
+from .bash import Args
 import importlib.metadata
-from typing import NamedTuple, Any
-
-
-class Args(NamedTuple):
-    servername: str
-    modules: tuple[str, ...]
-    dry_run: bool
-    no_required: bool
-    no_dependencies: bool
-    generate_script: bool
-    dist_version: float | None
-    new_user_and_pass: tuple[str, str] | None
-    sql_file: str | None
-    db_name: str | None
-    db_root_pass: str
-    new_db_user_and_pass: tuple[str, str] | None
-    new_system_user_and_pass: tuple[str, str] | None
-    site_name_and_root: list[tuple[str, str, str]] | None
-    craft_credentials: tuple[str, str, str] | None
-    host_ip: str | None
-    netdata_user_pass: tuple[str, str] | None
+from typing import Any
 
 
 # DIST_VERSION = None
@@ -140,7 +120,7 @@ class UserPass(click.ParamType):
     name = "user_pass"
 
     def convert(
-        self, value: str, param: click.Parameter, ctx: click.Context
+        self, value: str, param: click.Parameter|None, ctx: click.Context|None
     ) -> tuple[str, str]:  # type: ignore[override]
         try:
             username, password = [i.strip() for i in value.split(",", 1) if i.strip()]
@@ -266,6 +246,19 @@ def boss() -> None:
     Its recommended to set up Apt-Cacher NG on the host machine.  Once
     that's done adding `aptproxy` to the list of modules will configure
     this server to make use of it."""
+
+
+@boss.command()
+@click.option(
+    "-n",
+    "--new-system-user-and-pass",
+    type=USER_PASS,
+    metavar="USERNAME,USERPASS",
+    help="a new unix user's name and password (seperated by a comma), they will be added to the www-data group",
+)
+
+def create_user(new_system_user_and_pass:tuple[str,str]) -> None:
+    print(new_system_user_and_pass)
 
 
 @boss.command()  # no_args_is_help=True # Click 7.1
@@ -452,7 +445,7 @@ def install(**all_args: Any) -> None:
 
 
 @boss.command()
-def list():
+def list() -> None:
     """List available modules"""
     installed_file = os.path.expanduser("~/boss-installed-modules")
     installed = []
@@ -475,7 +468,7 @@ def list():
 
 
 @boss.command()
-def help():
+def help() -> None:
     """Show help for each module"""
 
     content = []

@@ -5,10 +5,33 @@ import datetime
 import subprocess
 from typing import NamedTuple
 from .errors import *
-from .util import display_cmd, error
+from .util import display_cmd, error, notify
+from enum import Enum, auto
 
 
-# from . import util
+class Args(NamedTuple):
+    servername: str
+    modules: tuple[str, ...]
+    dry_run: bool
+    no_required: bool
+    no_dependencies: bool
+    generate_script: bool
+    dist_version: float | None
+    #new_user_and_pass: tuple[str, str]
+    sql_file: str | None
+    db_name: str | None
+    db_root_pass: str
+    new_db_user_and_pass: tuple[str, str]
+    new_system_user_and_pass: tuple[str, str]
+    site_name_and_root: list[tuple[str, str, str]]
+    craft_credentials: tuple[str, str, str]
+    host_ip: str | None
+    netdata_user_pass: tuple[str, str]
+
+
+class Snap(Enum):
+    classic = auto()
+    default = auto()
 
 
 class Bash:
@@ -16,10 +39,11 @@ class Bash:
     info_messages: list[list[str]] = []
     WWW_USER = "www-data"
 
-    def __init__(self, args: NamedTuple, dry_run: bool = False) -> None:
+    def __init__(self, args: Args, dry_run: bool = False) -> None:
         self.ok_code = 0
         self.requires: list[str] = []
         self.apt_pkgs: list[str] = []
+        self.snap_pkgs: list[tuple[str, str]] = []
         self.provides: list[str] = []
         self.distro = Dist()
         self.dry_run = dry_run
@@ -80,23 +104,22 @@ class Bash:
         if append is True:
             append_flag = "-a"
 
-        add_cmd = 'echo | sudo {user} tee {append} "{file}" <<EOF\n{text}\nEOF'.format(
-            text=text, file=filename, user=www_user, append=append_flag
-        )
+        add_cmd = f'echo | sudo {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
+        #.format(text=text, file=filename, user=www_user, append=append_flag)
         self.run(add_cmd, wrap=False)
 
     def apt(self, progs: list[str]) -> None:
         self._apt(progs)
 
-    def install(self) -> bool:
+    def install(self) -> None:
         self._apt(self.apt_pkgs)
-        return True
+        self._snap(self.snap_pkgs)
 
-    def pre_install(self) -> bool:
-        return True
+    def pre_install(self) -> None:
+        return
 
-    def post_install(self) -> bool:
-        return True
+    def post_install(self) -> None:
+        return
 
     def run(
         self, cmd: str, wrap: bool = True, capture: bool = False, comment: str = ""
@@ -140,11 +163,9 @@ class Bash:
         else:
             error("restart_apache has unknown platform")
 
-    def _apt(self, packages_list: list[str]) -> bool:
+    def _apt(self, packages_list: list[str]) -> None:
         dry = "--dry-run" if self.dry_run else ""
         packages = " ".join(packages_list)
-        if not packages:
-            return False
         if not Bash.APTUPDATED:
             self.run("sudo apt-get --quiet update")
             # self.run('sudo apt-get --quiet --yes upgrade')   # not really necessary
@@ -154,7 +175,15 @@ class Bash:
                 dry=dry, packages=packages
             )
         )
-        return True
+
+    def _snap(self, packages: list[tuple[str, str]]) -> None:
+        try:
+            for package, snap_mode in packages:
+                mode = "--classic" if snap_mode == Snap.classic else ""
+                self.run(f"sudo snap install {mode} {package}")
+        except ValueError as e:
+            notify(f'Snaps: {packages}')
+            error(f"Snap package not defined correctly: {e}")
 
     def info(self, title: str, msg: str) -> None:
         self.info_messages.append([title, msg])
