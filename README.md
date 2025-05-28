@@ -14,13 +14,16 @@ uv run boss --help
 sudo snap install multipass
 
 # Install the default image, LTS
-multipass launch
+multipass launch -n primary --cloud-init cloud-init.yaml
 
 # Mount the boss dir in the ubuntu user's dir
 multipass mount -t native . primary
 
 # run the bash shell
 multipass shell
+
+# delete all multipass vms
+multipass delete [--all|primary] && multipass purge
 
 # Install pipx so UV can be installed
 sudo apt install pipx

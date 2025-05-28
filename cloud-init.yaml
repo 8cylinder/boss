@@ -1,6 +1,27 @@
+packages:
+  - pipx
+#bootcmd:
+#  #- mkdir /home/ubuntu/boss
+#  # Wait for snapd to be ready
+#  - |
+#    while ! snap list 2>/dev/null; do
+#      echo "Waiting for snapd service..."
+#      sleep 2
+#    done
+#  - snap wait system seed.loaded
+#  - snap install multipass-sshfs
+#mounts:
+#  - [ /home/sm/projects/boss, /home/ubuntu/boss ]
+runcmd:
+  - pipx install uv
+  #- |
+  #  #!/bin/bash
+  #  cd /home/ubuntu/boss || exit
+  #  uv tool install --editable .
 users:
   - default
   - name: ubuntu
     sudo: ALL=(ALL) NOPASSWD:ALL
     ssh_authorized_keys:
     - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDmubzMqHo0efxcgNFlkKGaQkK17hriHnffsGhuXjl9K sheldon@8cylinder.com
+    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOXJgF6vwElABsqWzKBdOOMn/MGzSAUq6mlxYcNP6Zjy sheldon@8cylinder.com
