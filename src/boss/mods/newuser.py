@@ -5,8 +5,23 @@ from typing import Any
 
 
 class NewUserAsRoot(Bash):
-    """Create a new user assuming the current user is root."""
+    """Create a new user assuming the current user is root.
 
+    This class provides functionality to create a new system user with appropriate
+    shell access and group permissions. It handles user creation, password setup,
+    and additional system configurations.
+
+    The class performs the following operations:
+    - Creates a new user with /bin/bash as the default shell
+    - Creates the user's home directory
+    - Configures the user's password using SHA-512 encryption
+    - Adds the user to 'sudo' and 'www-data' groups
+    - Configures sudo to maintain authentication for the user's session duration
+
+    Note:
+        This class assumes root privileges are available for execution.  Sudo is not
+        used in this class.
+    """
     provides = ["newuserasroot"]
     requires = []
     title = "New user (as root)"
@@ -32,7 +47,7 @@ class NewUserAsRoot(Bash):
                     group=group, username=username
                 )
             )
-            
+
         # modify ssh.conf to allow passwords
 
         # Option A is only for local dev machines, option B should be used instead.
@@ -42,7 +57,7 @@ class NewUserAsRoot(Bash):
         # filename cannot have a . or ~
         # sudo_file = "/etc/sudoers.d/{}-{}".format(self.scriptname, username)
         # self.run(
-        #    "echo '{} ALL=(ALL) NOPASSWD:ALL' | sudo tee {}".format(username, sudo_file)
+        #    "echo '{} ALL=(ALL) NOPASSWD:ALL' | tee {}".format(username, sudo_file)
         # )
         #
         # B)
@@ -53,7 +68,19 @@ class NewUserAsRoot(Bash):
 
 
 class Personalize(Bash):
-    """Personalize the user's environment."""
+    """Personalize the user's environment with custom configurations.
+
+    This class handles the customization of a user's shell and editor environment by
+    configuring bash and emacs settings. It sets up various shell aliases, prompt
+    customization, history settings, and editor preferences.
+
+    The class performs the following configurations:
+    - Customizes the bash prompt (PS1) with color-coded user, host, and path info
+    - Sets up useful shell aliases for common commands like ls, grep, and tree
+    - Configures bash history settings for better command history tracking
+    - Sets default editor preferences for regular, visual, and sudo operations
+    - Configures emacs with custom theme (modus-vivendi) and interface settings
+    """
 
     provides = ["personalize"]
     requires = ["first"]
@@ -97,7 +124,8 @@ class Personalize(Bash):
         self.append_to_file(bashrc, settings, backup=True)
 
     def emacs_settings(self)->None:
-        dot_emacs = "~/.emacs"
+        dot_emacs = "$HOME/.emacs"
+        root_dot_emacs = "/root/.emacs"
         emacs_settings = """
           ;;; -*- lexical-binding: t -*-
           (custom-set-variables
@@ -105,6 +133,7 @@ class Personalize(Bash):
            ;; If you edit it by hand, you could mess it up, so be careful.
            ;; Your init file should contain only one such instance.
            ;; If there is more than one, they won't work right.
+           '(backup-directory-alist '(("." . "~/.emacs-backup")))
            '(custom-enabled-themes '(modus-vivendi))
            '(menu-bar-mode nil))
           (custom-set-faces
@@ -118,4 +147,5 @@ class Personalize(Bash):
         settings = "\n".join(
             [re.sub(r"^\s*", "", i) for i in emacs_settings.split("\n")]
         )
-        self.append_to_file(dot_emacs, settings, backup=True, append=False)
+        self.append_to_file(dot_emacs, settings, backup=False, append=False)
+        self.append_to_file(root_dot_emacs, settings, backup=False, append=False)

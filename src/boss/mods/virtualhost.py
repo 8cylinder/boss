@@ -5,7 +5,7 @@ import os
 from ..bash import Bash
 from ..dist import Dist
 from ..errors import *
-from .cert import Cert
+from .cert import LetsEncryptCert
 from collections import namedtuple
 
 

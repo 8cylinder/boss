@@ -19,7 +19,8 @@ from .util import error, title
 
 from .mods.aptproxy import AptProxy
 from .mods.bashrc import Bashrc
-from .mods.cert import Cert
+from .mods.cert import SelfCert
+from .mods.cert import LetsEncryptCert
 from .mods.craft import Craft3
 from .mods.databases import Mysql
 from .mods.databases import PhpMyAdmin
@@ -55,7 +56,8 @@ mods = (
     First,  # required
     NewUserAsRoot,
     Personalize,
-    Cert,
+    LetsEncryptCert,
+    SelfCert,
     Lamp,
     Apache2,
     Nginx,

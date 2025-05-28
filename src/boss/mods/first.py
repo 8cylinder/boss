@@ -1,13 +1,13 @@
-from ..bash import Bash, Snap
+from ..bash import Bash, Snap, Settings
 from ..dist import Dist
 from ..errors import *
 
 
 class First(Bash):
-    """Misc apps that are useful
+    """Install misc apps that are useful.
 
-    The timezone is set to "America/Los_Angeles" and Emacs is configured
-    as the default editor.
+    - The timezone is set to the value in Settings.timezone
+    - Emacs is configured as the default editor.
     """
 
     provides = ["first"]
@@ -63,8 +63,8 @@ class First(Bash):
                 "ssh",
             ]
             self.snap_pkgs = [
-                ("emacs", Snap.classic),
-                ("node", Snap.classic),
+                ("emacs", Snap.CLASSIC),
+                ("node", Snap.CLASSIC),
             ]
 
     def post_install(self):
@@ -74,8 +74,7 @@ class First(Bash):
         self.set_timezone()
 
     def set_timezone(self):
-        tz = "America/Los_Angeles"
-        self.run("sudo timedatectl set-timezone {}".format(tz))
+        self.run("sudo timedatectl set-timezone {}".format(Settings.timezone))
 
     def install_web_server(self):
         # Add 'tasksel' to apt_pkgs

@@ -4,6 +4,7 @@ from .dist import Dist
 import datetime
 import subprocess
 from typing import NamedTuple
+from dataclasses import dataclass
 from .errors import *
 from .util import display_cmd, error, notify
 from enum import Enum, auto
@@ -30,8 +31,13 @@ class Args(NamedTuple):
 
 
 class Snap(Enum):
-    classic = auto()
-    default = auto()
+    CLASSIC = auto()
+    DEFAULT = auto()
+
+
+@dataclass
+class Settings:
+    timezone: str = "America/Los_Angeles"
 
 
 class Bash:
@@ -43,7 +49,7 @@ class Bash:
         self.ok_code = 0
         self.requires: list[str] = []
         self.apt_pkgs: list[str] = []
-        self.snap_pkgs: list[tuple[str, str]] = []
+        self.snap_pkgs: list[tuple[str, Snap]] = []
         self.provides: list[str] = []
         self.distro = Dist()
         self.dry_run = dry_run
@@ -104,8 +110,10 @@ class Bash:
         if append is True:
             append_flag = "-a"
 
-        add_cmd = f'echo | sudo {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
-        #.format(text=text, file=filename, user=www_user, append=append_flag)
+        add_cmd = (
+            f'echo | sudo {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
+        )
+        # .format(text=text, file=filename, user=www_user, append=append_flag)
         self.run(add_cmd, wrap=False)
 
     def apt(self, progs: list[str]) -> None:
@@ -153,9 +161,9 @@ class Bash:
         return result
 
     def restart_apache(self) -> None:
-        """Restart Apache using the apropriate command
+        """Restart Apache using the appropriate command
 
-        Details about wether to use service or systemctl
+        Details about whether to use service or systemctl
         https://askubuntu.com/a/903405"""
 
         if self.distro == Dist.UBUNTU:
@@ -164,6 +172,8 @@ class Bash:
             error("restart_apache has unknown platform")
 
     def _apt(self, packages_list: list[str]) -> None:
+        if not packages_list:
+            return
         dry = "--dry-run" if self.dry_run else ""
         packages = " ".join(packages_list)
         if not Bash.APTUPDATED:
@@ -182,7 +192,7 @@ class Bash:
                 mode = "--classic" if snap_mode == Snap.classic else ""
                 self.run(f"sudo snap install {mode} {package}")
         except ValueError as e:
-            notify(f'Snaps: {packages}')
+            notify(f"Snaps: {packages}")
             error(f"Snap package not defined correctly: {e}")
 
     def info(self, title: str, msg: str) -> None:
