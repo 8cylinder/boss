@@ -10,33 +10,22 @@ uv run boss --help
 
 ## Dev testing
 
+Use multipass to run VMs for testing.
+
 ``` bash
 sudo snap install multipass
-
-# Install the default image, LTS
-multipass launch -n primary --cloud-init cloud-init.yaml
-
-# Mount the boss dir in the ubuntu user's dir
-multipass mount -t native . primary
-
-# run the bash shell
+./tests/vm.bash -h
+./tests/vm.bash new
 multipass shell
-
-# delete all multipass vms
-multipass delete [--all|primary] && multipass purge
-
-# Install pipx so UV can be installed
-sudo apt install pipx
-pipx install uv
-# logout and login again.
-uv --version
 ```
 
-Or user a shortcut:
+In the VM, run to install boss.
 
 ``` bash
-alias m=multipass
-m delete primary && m purge && m launch -n primary --cloud-init cloud-init.yaml --mount .
+# Install boss using the wheel file
+pipx install dist/boss-*.whl
+pipx ensurepath
+source ~/.bashrc
 ```
 
 <!--

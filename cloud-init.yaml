@@ -13,7 +13,8 @@ packages:
 
 runcmd:
   - snap install astral-uv --classic
-  - pipx install /home/ubuntu/dist/boss*.whl
+  # Cannot use since the dist dir in not mounted until after the cloud-init script is complete.
+  #- pipx install /home/ubuntu/dist/boss*.whl
 
 users:
   - default
