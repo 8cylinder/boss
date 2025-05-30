@@ -446,6 +446,10 @@ def list() -> None:
             installed = f.readlines()
         installed = [i.lower().strip() for i in installed]
 
+    col_max = 0
+    for mod in mods:
+        col_max = len(mod.__name__) if len(mod.__name__) > col_max else col_max
+
     for mod in mods:
         name = mod.__name__
         module = mod
@@ -455,7 +459,9 @@ def list() -> None:
         description = module.__doc__ if module.__doc__ else ""
         if description:
             description = description.splitlines()[0]
-        click.echo(state + click.style(name.ljust(13), bold=True) + description)
+        click.echo(
+            state + click.style(name.ljust(col_max + 2), bold=True) + description
+        )
         sys.stdout.flush()
 
 
