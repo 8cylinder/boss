@@ -189,7 +189,7 @@ class Bash:
     def _snap(self, packages: list[tuple[str, str]]) -> None:
         try:
             for package, snap_mode in packages:
-                mode = "--classic" if snap_mode == Snap.classic else ""
+                mode = "--classic" if snap_mode == Snap.CLASSIC else ""
                 self.run(f"sudo snap install {mode} {package}")
         except ValueError as e:
             notify(f"Snaps: {packages}")
