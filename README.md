@@ -32,6 +32,13 @@ pipx install uv
 uv --version
 ```
 
+Or user a shortcut:
+
+``` bash
+alias m=multipass
+m delete primary && m purge && m launch -n primary --cloud-init cloud-init.yaml --mount .
+```
+
 <!--
 ## Todo
 - bash prompt
