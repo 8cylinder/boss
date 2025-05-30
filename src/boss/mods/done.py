@@ -21,15 +21,20 @@ class Done(Bash):
             sys.stdout.write("set +x\n")
         self.run("figlet -w89 {}".format(self.args.servername))
 
-        for title, msg in self.info_messages:
-            if self.args.generate_script:
-                sys.stdout.write("echo '{:20} {}'\n".format(title + ":", msg))
-            else:
+        # titlec = linec = (255, 148, 0)
+        titlec = linec = keyc = (0, 145, 255)
+        valuec = "green"
+
+        end_tree = "└─"
+        for title, info in self.info_messages.items():
+            click.secho(title, fg=titlec, bold=True)
+            info[-1] = (end_tree, info[-1][1], info[-1][2])
+            for msg in info:
                 click.echo(
-                    "{:30} {}".format(
-                        click.style(title, fg="white"), click.style(msg, fg="blue")
-                    )
+                    click.style(f"  {msg[0]} ", fg=linec, dim=True)
+                    + click.style(msg[1] + ": ", fg=keyc)
+                    + click.style(msg[2], fg=valuec)
                 )
-            sys.stdout.flush()
+            print()
 
         sys.stdout.write("\n")

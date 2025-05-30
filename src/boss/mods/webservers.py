@@ -1,7 +1,6 @@
 # run-shell-command :: ../../build.bash
 
 from ..bash import Bash
-from ..dist import Dist
 from ..errors import *
 
 
@@ -11,20 +10,20 @@ class Apache2(Bash):
     With a default site at /var/www/html.
     """
 
-    provides = ['apache2']
+    provides = ["apache2"]
     requires = []
-    title = 'Apache2'
+    title = "Apache2"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.apt_pkgs = ['apache2']
+        self.apt_pkgs = ["apache2", "fail2ban"]
 
 
 class Nginx(Bash):
-    provides = ['nginx']
+    provides = ["nginx"]
     requires = []
-    title = 'Nginx'
+    title = "Nginx"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.apt_pkgs = ['nginx']
+        self.apt_pkgs = ["nginx"]

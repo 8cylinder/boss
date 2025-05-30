@@ -62,14 +62,14 @@ class First(Bash):
                 "fail2ban",
                 "ssh",
             ]
-            self.snap_pkgs = [
+            self.snap_pkgs: list[tuple[str, Snap]] = [
                 ("emacs", Snap.CLASSIC),
                 ("node", Snap.CLASSIC),
             ]
 
     def post_install(self):
         # Don't use this, install the parts individually.
-        #self.install_web_server()
+        # self.install_web_server()
 
         self.set_timezone()
 

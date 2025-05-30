@@ -42,7 +42,8 @@ class Settings:
 
 class Bash:
     APTUPDATED = False
-    info_messages: list[list[str]] = []
+    # info_messages: list[list[str]] = []
+    info_messages: dict[str, list[tuple[str, str, str]]] = {}
     WWW_USER = "www-data"
 
     def __init__(self, args: Args, dry_run: bool = False) -> None:
@@ -92,6 +93,7 @@ class Bash:
         filename: str,
         text: str,
         user: str | None = None,
+        nosudo: bool = False,
         backup: bool = True,
         append: bool = True,
     ) -> None:
@@ -110,9 +112,9 @@ class Bash:
         if append is True:
             append_flag = "-a"
 
-        add_cmd = (
-            f'echo | sudo {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
-        )
+        sudo = "" if nosudo else "sudo"
+
+        add_cmd = f'echo | {sudo} {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
         # .format(text=text, file=filename, user=www_user, append=append_flag)
         self.run(add_cmd, wrap=False)
 
@@ -186,7 +188,7 @@ class Bash:
             )
         )
 
-    def _snap(self, packages: list[tuple[str, str]]) -> None:
+    def _snap(self, packages: list[tuple[str, Snap]]) -> None:
         try:
             for package, snap_mode in packages:
                 mode = "--classic" if snap_mode == Snap.CLASSIC else ""
@@ -196,4 +198,9 @@ class Bash:
             error(f"Snap package not defined correctly: {e}")
 
     def info(self, title: str, msg: str) -> None:
-        self.info_messages.append([title, msg])
+        child_title = self.title
+        row = ("├─", title, msg)
+        try:
+            self.info_messages[child_title].append(row)
+        except KeyError:
+            self.info_messages[child_title] = [row]

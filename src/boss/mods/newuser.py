@@ -22,6 +22,7 @@ class NewUserAsRoot(Bash):
         This class assumes root privileges are available for execution.  Sudo is not
         used in this class.
     """
+
     provides = ["newuserasroot"]
     requires = []
     title = "New user (as root)"
@@ -43,9 +44,7 @@ class NewUserAsRoot(Bash):
         # add user to some groups
         for group in ("sudo", "www-data"):
             self.run(
-                "usermod -aG {group} {username}".format(
-                    group=group, username=username
-                )
+                "usermod -aG {group} {username}".format(group=group, username=username)
             )
 
         # modify ssh.conf to allow passwords
@@ -64,7 +63,9 @@ class NewUserAsRoot(Bash):
         # Make sudo last for the user's session length.
         self.run("echo 'Defaults timestamp_timeout=-1' | EDITOR='tee -a' visudo")
 
-        self.info('New user created', 'Try logging in in another terminal to test user.')
+        self.info(
+            "New user created", "Try logging in in another terminal to test user."
+        )
 
 
 class Personalize(Bash):
@@ -93,12 +94,17 @@ class Personalize(Bash):
         self.bash_settings()
         self.emacs_settings()
 
-    def bash_settings(self)->None:
+    def bash_settings(self) -> None:
         bashrc = "$HOME/.bashrc"
         editor = "emacs"
         bash_settings = rf"""
           #PS1='\n${{debian_chroot:+($debian_chroot)}}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\n\$ '
-          PS1='\n\[\e[38;5;214m\]\u@\H\[\e[0m\] \[\e[38;5;131m\]\A\[\e[0m\] \[\e[38;5;39m\]\w\n\[\e[0m\]\$ '
+          PS1='\n\[\e[38;5;214m\]\u@\H\[\e[0m\] \[\e[38;5;131m\]\A\[\e[0m\] \[\e[38;5;39m\]\w\n\[\e[0m\]\$ '\\
+          
+          LESS_PIPE="/usr/share/source-highlight/src-hilite-lesspipe.sh"
+          export LESSOPEN="| $LESS_PIPE %s"
+          export LESS=' -R -F --HILITE-UNREAD --chop-long-lines --ignore-case --tabs=4 --window=-5 '\
+          
           alias ls='LC_ALL=C ls --almost-all --classify --human-readable --color=auto --group-directories-first'
           alias time='/usr/bin/time --format="Time elapsed: %E"'
           alias pss='ps -Af | grep -i $1'
@@ -121,31 +127,24 @@ class Personalize(Bash):
         settings = "\n".join(
             [re.sub(r"^\s*", "", i) for i in bash_settings.split("\n")]
         )
-        self.append_to_file(bashrc, settings, backup=True)
+        self.append_to_file(bashrc, settings, backup=True, nosudo=True)
 
-    def emacs_settings(self)->None:
+    def emacs_settings(self) -> None:
         dot_emacs = "$HOME/.emacs"
         root_dot_emacs = "/root/.emacs"
         emacs_settings = """
           ;;; -*- lexical-binding: t -*-
           (custom-set-variables
-           ;; custom-set-variables was added by Custom.
-           ;; If you edit it by hand, you could mess it up, so be careful.
-           ;; Your init file should contain only one such instance.
-           ;; If there is more than one, they won't work right.
            '(backup-directory-alist '(("." . "~/.emacs-backup")))
            '(custom-enabled-themes '(modus-vivendi))
            '(menu-bar-mode nil))
-          (custom-set-faces
-           ;; custom-set-faces was added by Custom.
-           ;; If you edit it by hand, you could mess it up, so be careful.
-           ;; Your init file should contain only one such instance.
-           ;; If there is more than one, they won't work right.
-           )        
+          (custom-set-faces)        
         """
         # strip off the leading spaces
         settings = "\n".join(
             [re.sub(r"^\s*", "", i) for i in emacs_settings.split("\n")]
         )
-        self.append_to_file(dot_emacs, settings, backup=False, append=False)
+        self.append_to_file(
+            dot_emacs, settings, backup=False, append=False, nosudo=True
+        )
         self.append_to_file(root_dot_emacs, settings, backup=False, append=False)

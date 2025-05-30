@@ -5,6 +5,7 @@ import os
 from ..bash import Bash, Snap
 from ..dist import Dist
 from ..errors import PlatformError
+from typing import Any
 
 
 class LetsEncryptCert(Bash):
@@ -14,10 +15,10 @@ class LetsEncryptCert(Bash):
     """
 
     provides = ["cert"]
-    requires = []
+    requires: list[str] = []
     title = "Let's Encrypt cert"
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         if self.distro == (Dist.UBUNTU, Dist.V24_04):
             # self.apt_pkgs = [
@@ -36,7 +37,7 @@ class LetsEncryptCert(Bash):
         # command to get a certificate and have Certbot edit the apache configuration
         # automatically to serve it, turning on HTTPS access in a single step.
         self.run("sudo certbot --apache")
-        
+
         # to test
         self.run("sudo certbot renew --dry-run")
 
@@ -48,13 +49,13 @@ class SelfCert(Bash):
     They are installed in /etc/ssl."""
 
     provides = ["cert"]
-    requires = []
+    requires: list[str] = []
     title = "Self signed cert"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-    def cert_names(self, cert_basename):
+    def cert_names(self, cert_basename: str) -> tuple[str, str, str, str]:
         crt = "{}.crt".format(cert_basename)
         key = "{}.key".format(cert_basename)
 
@@ -65,9 +66,12 @@ class SelfCert(Bash):
         real_crt = os.path.join(cert_loc, "certs", crt)
         real_key = os.path.join(cert_loc, "private", key)
 
+        self.info("cert", f"{real_crt}")
+        self.info("key", f"{real_key}")
+
         return home_crt, home_key, real_crt, real_key
 
-    def pre_install(self):
+    def pre_install(self) -> None:
         cert_basename = self.args.servername
         self.run(
             """
