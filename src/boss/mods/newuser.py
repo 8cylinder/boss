@@ -138,7 +138,7 @@ class Personalize(Bash):
            '(backup-directory-alist '(("." . "~/.emacs-backup")))
            '(custom-enabled-themes '(modus-vivendi))
            '(menu-bar-mode nil))
-          (custom-set-faces)        
+          (custom-set-faces)
         """
         # strip off the leading spaces
         settings = "\n".join(

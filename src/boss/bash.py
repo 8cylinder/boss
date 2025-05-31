@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 from .dist import Dist
 import datetime
 import subprocess
@@ -45,6 +46,7 @@ class Bash:
     # info_messages: list[list[str]] = []
     info_messages: dict[str, list[tuple[str, str, str]]] = {}
     WWW_USER = "www-data"
+    title: str
 
     def __init__(self, args: Args, dry_run: bool = False) -> None:
         self.ok_code = 0
@@ -114,8 +116,25 @@ class Bash:
 
         sudo = "" if nosudo else "sudo"
 
-        add_cmd = f'echo | {sudo} {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
-        # .format(text=text, file=filename, user=www_user, append=append_flag)
+        # add_cmd = f"""#-----------------------------------------------------------------
+        # read -r -d '' boss_text <<'EOF'
+        # {text}
+        # EOF
+        # # echo "$boss_text"
+        # if [[ ! -e "{filename}" ]] then
+        #     # echo 'A'
+        #     echo | {sudo} {www_user} tee "{filename}" < <(echo "$boss_text")
+        # elif ! grep -Ff < <(echo "$boss_text") "{filename}" >/dev/null; then
+        #     # echo 'B'
+        #     echo | {sudo} {www_user} tee {append_flag} "{filename}" < <(echo "$boss_text")
+        # else
+        #     echo "File {filename} already contains the text, not appending."
+        # fi
+        # #-----------------------------------------------------------------
+        # """
+        add_cmd = f'echo | sudo {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
+        # remove leading spaces from add_cmd using regex
+        add_cmd = re.sub(r"^\s+", "", add_cmd, flags=re.MULTILINE)
         self.run(add_cmd, wrap=False)
 
     def apt(self, progs: list[str]) -> None:
