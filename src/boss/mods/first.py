@@ -1,6 +1,7 @@
 from ..bash import Bash, Snap, Settings
 from ..dist import Dist
 from ..errors import *
+from typing import Any
 
 
 class First(Bash):
@@ -14,7 +15,7 @@ class First(Bash):
     requires = []
     title = "First"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         if self.distro == (Dist.UBUNTU, Dist.V14_04):
             self.apt_pkgs = [
@@ -61,21 +62,22 @@ class First(Bash):
                 "figlet",
                 "fail2ban",
                 "ssh",
+                # "emacs-nox",  # installs postfix, use snap instead
             ]
             self.snap_pkgs: list[tuple[str, Snap]] = [
                 ("emacs", Snap.CLASSIC),
                 ("node", Snap.CLASSIC),
             ]
 
-    def post_install(self):
+    def post_install(self) -> None:
         # Don't use this, install the parts individually.
         # self.install_web_server()
 
         self.set_timezone()
 
-    def set_timezone(self):
+    def set_timezone(self) -> None:
         self.run("sudo timedatectl set-timezone {}".format(Settings.timezone))
 
-    def install_web_server(self):
+    def install_web_server(self) -> None:
         # Add 'tasksel' to apt_pkgs
         self.run("sudo tasksel install web-server")

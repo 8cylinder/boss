@@ -7,6 +7,7 @@ from ..bash import Bash
 from ..errors import *
 from collections import namedtuple
 from typing import Any
+from pathlib import Path
 
 
 class VirtualHost(Bash):
@@ -97,10 +98,11 @@ class VirtualHost(Bash):
         for m in mods:
             self.run("sudo a2enmod {}".format(m))
 
+        # disable all existing sites
         self.run(
-            "find /etc/apache2/sites-available/ -type f -exec basename '{}' \; | xargs -n 1 sudo a2dissite"
+            r"find /etc/apache2/sites-available/ -type f -exec basename '{}' \; | xargs -n 1 sudo a2dissite"
         )
-
+        # then create the new sites and enable them
         for site in self.args.site_name_and_root:
             site_name = site[0]
             full_document_root = os.path.join("/var/www", site[1])
@@ -111,16 +113,27 @@ class VirtualHost(Bash):
 
             conf_file = "/etc/apache2/sites-available/{}.conf".format(site_name)
 
-            self.append_to_file(conf_file, vhost_config, backup=False, append=False)
+            print(vhost_config)
+            self.write_new_file(conf_file, vhost_config)
 
             if site[2] == "y":
                 document_root = site[1]
                 self.create_doc_root(document_root)
+                html_file = "/var/www" / Path(document_root) / "index.html"
+                html_content = (
+                    f"<h1>Site: {site_name}</h1>\n<p>Document root: {document_root}</p>"
+                )
+                self.write_new_file(html_file, html_content)
+
+                info = "<?php phpinfo();"
 
             # enable this site
+
             self.run("sudo a2ensite {}".format(site_name))
 
             self.info("Website", "https://{}".format(site_name))
+            public_ip = self.run("hostname -I", capture=True)
+            self.info("Public IP", f"http://{public_ip}")
             self.info("Root", full_document_root)
             self.info("Apache conf", conf_file)
 

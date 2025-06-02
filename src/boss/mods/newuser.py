@@ -99,11 +99,11 @@ class Personalize(Bash):
         editor = "emacs"
         bash_settings = rf"""
           #PS1='\n${{debian_chroot:+($debian_chroot)}}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\n\$ '
-          PS1='\n\[\e[38;5;214m\]\u@\H\[\e[0m\] \[\e[38;5;131m\]\A\[\e[0m\] \[\e[38;5;39m\]\w\n\[\e[0m\]\$ '\\
+          PS1='\n\[\e[38;5;214m\]\u@\H\[\e[0m\] \[\e[38;5;131m\]\A\[\e[0m\] \[\e[38;5;39m\]\w\n\[\e[0m\]\$ '
           
           LESS_PIPE="/usr/share/source-highlight/src-hilite-lesspipe.sh"
           export LESSOPEN="| $LESS_PIPE %s"
-          export LESS=' -R -F --HILITE-UNREAD --chop-long-lines --ignore-case --tabs=4 --window=-5 '\
+          export LESS=' -R -F --HILITE-UNREAD --chop-long-lines --ignore-case --tabs=4 --window=-5 '
           
           alias ls='LC_ALL=C ls --almost-all --classify --human-readable --color=auto --group-directories-first'
           alias time='/usr/bin/time --format="Time elapsed: %E"'

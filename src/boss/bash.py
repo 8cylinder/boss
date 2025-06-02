@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from .errors import *
 from .util import display_cmd, error, notify
 from enum import Enum, auto
+from pathlib import Path
 
 
 class Args(NamedTuple):
@@ -47,6 +48,7 @@ class Bash:
     info_messages: dict[str, list[tuple[str, str, str]]] = {}
     WWW_USER = "www-data"
     title: str
+    requires: list[str]
 
     def __init__(self, args: Args, dry_run: bool = False) -> None:
         self.ok_code = 0
@@ -90,9 +92,16 @@ class Bash:
         sed_cmd = f'sudo sed --in-place="{new_ext}" "{sed_exp}" "{config_file}"'
         self.run(sed_cmd)
 
+    def write_new_file(
+        self, filename: str | Path, text: str, user: str | None = None
+    ) -> None:
+        alt_user = f"-u {user}" if user else ""
+        cmd = f'''echo | sudo {alt_user} tee "{filename}" > /dev/null <<'EOF'\n{text}\nEOF'''
+        self.run(cmd)
+
     def append_to_file(
         self,
-        filename: str,
+        filename: str | Path,
         text: str,
         user: str | None = None,
         nosudo: bool = False,
@@ -132,7 +141,7 @@ class Bash:
         # fi
         # #-----------------------------------------------------------------
         # """
-        add_cmd = f'echo | sudo {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
+        add_cmd = f'echo | sudo {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF > /dev/null'
         # remove leading spaces from add_cmd using regex
         add_cmd = re.sub(r"^\s+", "", add_cmd, flags=re.MULTILINE)
         self.run(add_cmd, wrap=False)
@@ -152,7 +161,7 @@ class Bash:
 
     def run(
         self, cmd: str, wrap: bool = True, capture: bool = False, comment: str = ""
-    ) -> str | int | bytes | None:
+    ) -> str | None:
         if wrap:
             pretty_cmd = " ".join(cmd.split())
             display_cmd(
@@ -163,16 +172,15 @@ class Bash:
                 cmd, wrap=False, script=self.args.generate_script, comment=comment
             )
 
+        result: str | bytes | int | None
         if self.args.dry_run or self.args.generate_script:
             return None
         if capture:
-            # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash', stdout=subprocess.PIPE)
             result = subprocess.check_output(cmd, shell=True, executable="/bin/bash")
             sys.stdout.flush()
         else:
-            # result = subprocess.run(cmd, shell=True, check=True, executable='/bin/bash')
             result = subprocess.check_call(cmd, shell=True, executable="/bin/bash")
-        return result
+        return str(result)
 
     def curl(
         self, url: str, output: str, capture: bool = False

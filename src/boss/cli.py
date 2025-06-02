@@ -8,6 +8,7 @@ import subprocess
 import socket
 from pprint import pprint as pp  # noqa
 import click
+from click.core import Parameter, Context
 # from mypyc.ir.class_ir import NamedTuple
 
 from .errors import DependencyError
@@ -42,7 +43,7 @@ from .mods.webservers import Apache2
 from .mods.webservers import Nginx
 from .bash import Args
 import importlib.metadata
-from typing import Any
+from typing import Any, List
 
 
 # DIST_VERSION = None
@@ -51,7 +52,7 @@ __version__ = importlib.metadata.version("boss")
 DIST_VERSION: float | None = None
 
 # All the mods available in the order they should be run
-mods = (
+MODS = (
     AptProxy,
     First,  # required
     NewUserAsRoot,
@@ -106,7 +107,7 @@ class Server(click.ParamType):
 
     name = "server"
 
-    def convert(self, value: str, param: click.Parameter, ctx: click.Context) -> str:  # type: ignore[override]
+    def convert(self, value: str, param: Parameter | None, ctx: Context | None) -> str:
         if not is_server(value):
             msg = 'the servername must have a "." in it, eg. something.local'
             self.fail(msg, param, ctx)
@@ -125,8 +126,8 @@ class UserPass(click.ParamType):
     name = "user_pass"
 
     def convert(
-        self, value: str, param: click.Parameter | None, ctx: click.Context | None
-    ) -> tuple[str, str]:  # type: ignore[override]
+        self, value: str, param: Parameter | None, ctx: Context | None
+    ) -> tuple[str, str]:
         try:
             username, password = [i.strip() for i in value.split(",", 1) if i.strip()]
         except ValueError:
@@ -148,8 +149,8 @@ class SiteDocroot(click.ParamType):
     name = "site_docroot"
 
     def convert(
-        self, value: str, param: click.Parameter, ctx: click.Context
-    ) -> list[tuple[str, str, str]]:  # type: ignore[override]
+        self, value: str, param: Parameter | None, ctx: Context | None
+    ) -> List[tuple[str, str, str]]:
         sites = value.split(":")
         cleaned_sites = []
         msg = 'must be a sitename, document root and a "y" or "n" (create site dir) seperated by a comma, and sitename must have a . in it'
@@ -177,7 +178,9 @@ class UserEmailPass(click.ParamType):
 
     name = "user_email_pass"
 
-    def convert(self, value, param, ctx):
+    def convert(
+        self, value: str, param: Parameter | None, ctx: Context | None
+    ) -> tuple[str, str, str]:
         msg = """must be a username, email and password seperated by a comma
                  (the password can have a comma in it, but not the username or email)."""
         msg = " ".join(msg.split())
@@ -198,7 +201,7 @@ USER_EMAIL_PASS = UserEmailPass()
 class IpAddress(click.ParamType):
     name = "ip_address"
 
-    def convert(self, value: str, param: click.Parameter, ctx: click.Context) -> str:
+    def convert(self, value: str, param: Parameter | None, ctx: Context | None) -> str:
         msg = "Ip address is not vaid"
         if not is_ipaddress(value):
             self.fail(msg, param, ctx)
@@ -367,10 +370,10 @@ def install(**all_args: Any) -> None:
         global DIST_VERSION
         DIST_VERSION = args.dist_version
 
-    available_mods = mods
+    available_mods = MODS
     wanted_mods = [i.lower() for i in args.modules]
     required_mods = ["first", "done"]
-    # extract the requested modules and the required from available_mods list
+    # extract the requested modules and the required from the available_mods list
     if args.no_required:
         wanted_apps = [i for i in available_mods if i.__name__.lower() in wanted_mods]
     else:
@@ -379,7 +382,6 @@ def install(**all_args: Any) -> None:
             for i in available_mods
             if i.__name__.lower() in wanted_mods or i.__name__.lower() in required_mods
         ]
-
     # check if the user is asking for non-existent modules
     mapping_keys = [i.__name__.lower() for i in available_mods]
     invalid_modules = [i for i in wanted_mods if i not in mapping_keys]
@@ -392,10 +394,10 @@ def install(**all_args: Any) -> None:
 
     # check if the requested modules have their dependencies met
     if not args.no_dependencies:
-        install_reqs: list[str] = []
+        install_reqs: List[str] = []
         for app in wanted_apps:
             install_reqs += app.provides
-            provided = set(install_reqs)
+            provided: set[str] = set(install_reqs)
             required = set(app.requires)
             if len(required - provided):
                 error(
@@ -425,13 +427,13 @@ def install(**all_args: Any) -> None:
             app.post_install()
             app.log(module_name)
         except subprocess.CalledProcessError as e:
-            error(e)
+            error(str(e))
         except DependencyError as e:
-            error(e)
+            error(str(e))
         except PlatformError as e:
-            error(e)
+            error(str(e))
         except SecurityError as e:
-            error(e)
+            error(str(e))
         except FileNotFoundError as e:
             error(e.args[0])
 
@@ -447,10 +449,10 @@ def list() -> None:
         installed = [i.lower().strip() for i in installed]
 
     col_max = 0
-    for mod in mods:
+    for mod in MODS:
         col_max = len(mod.__name__) if len(mod.__name__) > col_max else col_max
 
-    for mod in mods:
+    for mod in MODS:
         name = mod.__name__
         module = mod
         # state = '[X] ' if name in installed else '[-] '
@@ -473,7 +475,7 @@ def help() -> None:
     w = textwrap.TextWrapper(
         initial_indent="", subsequent_indent="  ", break_on_hyphens=False
     )
-    for app in mods:
+    for app in MODS:
         content.append("")
 
         title = "{} ({})".format(app.title, app.__name__.lower())

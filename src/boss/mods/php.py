@@ -2,11 +2,12 @@
 
 from ..bash import Bash
 from ..dist import Dist
-from ..errors import *
+from ..errors import PlatformError, SecurityError
 from ..util import error
 
 import os
 import datetime
+from typing import Any
 
 
 class Php(Bash):
@@ -16,7 +17,7 @@ class Php(Bash):
     requires = ["apache2"]
     title = "PHP"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.provides = ["php"]
         self.requires = ["apache2"]
@@ -66,6 +67,8 @@ class Php(Bash):
             ]
         elif self.distro == (Dist.UBUNTU, Dist.V24_04):
             self.apt_pkgs = [
+                "php",
+                "libapache2-mod-php",
                 "php-mbstring",
                 "php-imagick",
                 "php-curl",
@@ -89,11 +92,11 @@ class Xdebug(Bash):
     requires = ["php"]
     title = "Xdebug"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.apt_pkgs = ["php-xdebug"]
 
-    def post_install(self):
+    def post_install(self) -> None:
         settings = """
           ### added by Boss ###
           xdebug.remote_autostart = 1
@@ -111,6 +114,7 @@ class Xdebug(Bash):
         """
         settings = "\n".join([i[10:] for i in settings.split("\n")])
 
+        xdebug_ini = ""
         if self.distro == (Dist.UBUNTU, Dist.V18_04):
             xdebug_ini = "/etc/php/7.2/mods-available/xdebug.ini"
             self.append_to_file(xdebug_ini, settings)
@@ -134,20 +138,20 @@ class PhpInfo(Bash):
     requires = ["php"]
     title = "PHP Info"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.loc = "/var/www/html"
         # if self.document_root:
         # self.loc = self.document_root
-        self.info_file = "{}/phpinfo.php".format(self.loc)
+        self.info_file = f"{self.loc}/phpinfo.php"
 
-    def post_install(self):
+    def post_install(self) -> None:
         info = "<h1>{}</h1>\n<?php phpinfo();".format(
             datetime.datetime.now().isoformat()
         )
 
         if self.args.dry_run or self.args.generate_script or os.path.exists(self.loc):
-            self.append_to_file(self.info_file, info, backup=False)
+            self.write_new_file(self.info_file, info)
             # cmd = 'echo \'{info}\' | sudo -u www-data tee {loc}'.format(
             #     info=info,
             #     loc=self.info_file
@@ -160,9 +164,8 @@ class PhpInfo(Bash):
                 )
 
         site_name = self.args.site_name_and_root[0][0]
-        self.info(
-            "PHP Info", "http://{}/phpinfo.php -- {}".format(site_name, self.info_file)
-        )
+        self.info("Info URL", f"http://{site_name}/phpinfo.php")
+        self.info("Info file", self.info_file)
 
 
 class Composer(Bash):
@@ -174,10 +177,10 @@ class Composer(Bash):
     requires = ["php"]
     title = "Composer"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-    def post_install(self):
+    def post_install(self) -> None:
         if self.distro < (Dist.UBUNTU, Dist.V18_04):
             self.source_install()
         else:
@@ -187,10 +190,10 @@ class Composer(Bash):
         # www-data user, it can create a cache in ubuntu's home dir.
         self.run("sudo usermod -aG $USER www-data")
 
-    def apt_install(self):
+    def apt_install(self) -> None:
         self.apt(["composer"])
 
-    def source_install(self):
+    def source_install(self) -> None:
         url = "https://composer.github.io/installer.sig"
         sig_name = os.path.expanduser("~/composer.sig")
         self.curl(url, sig_name)

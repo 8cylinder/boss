@@ -1,6 +1,6 @@
 # run-shell-command :: ../../build.bash
 
-from ..bash import Bash
+from ..bash import Bash, Settings
 from ..dist import Dist
 from ..errors import *
 
@@ -46,9 +46,13 @@ class Example(Bash):
         self.curl('url', 'output-filename', capture=True)
         self.info('title', 'message')
         self.restart_apache()
+        self.append_to_file('filename', 'text to append', append=True, backup=False)
         self.run('any valid bash command string', wrap=True, capture=False)
         # capture the result of the command
         result = self.run('any valid bash command string', wrap=True, capture=True)
+
+        # get a value from the Settings class
+        variable = Settings.timezone
 
 
     # Run before apt installs the apt_pkgs.
