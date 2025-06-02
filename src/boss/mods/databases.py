@@ -3,7 +3,7 @@
 from ..bash import Bash
 from ..dist import Dist
 from ..util import error
-from ..errors import *
+from ..errors import PlatformError
 from typing import Any
 
 
@@ -19,7 +19,7 @@ class Mysql(Bash):
     """
 
     provides = ["mysql"]
-    requires = []
+    requires: list[str] = []
     title = "MySQL"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -78,6 +78,44 @@ class Mysql(Bash):
             )
         )
 
+    def test_mysql_connectivity(self) -> None:
+        """
+        Tests MySQL connectivity, including root user login, additional user login, and
+        database existence if configured. This method verifies that the MySQL server is
+        functional and accessible using the provided credentials and database name.
+
+        Raises:
+            PlatformError: If root login fails, additional user login fails, or the
+                specified database does not exist or is not accessible.
+        """
+        # Test root connection
+        try:
+            self.run(f"mysql -uroot -p{self.args.db_root_pass} -e 'SELECT 1;'")
+            self.info("Root test", "User 'root' login successful.")
+        except Exception as e:
+            raise PlatformError(f"Root login failed: {e}")
+
+        # Test configured user if provided
+        if self.args.new_db_user_and_pass:
+            db_user, db_pass = self.args.new_db_user_and_pass
+            try:
+                self.run(f"mysql -u{db_user} -p{db_pass} -e 'SELECT 1;'")
+                self.info("User test", f"User '{db_user}' login successful.")
+            except Exception as e:
+                raise PlatformError(f'User "{db_user}" login failed, {e}')
+
+        # Test database existence if configured
+        if self.args.db_name:
+            try:
+                self.run(
+                    f"mysqlshow -uroot -p{self.args.db_root_pass} {self.args.db_name};"
+                )
+                self.info("Database test", f"Database '{self.args.db_name}' exists")
+            except Exception:
+                raise PlatformError(
+                    f'Database "{self.args.db_name}" does not exist or is not accessible.'
+                )
+
     def pre_install(self) -> None:
         self.configure_root_password()
 
@@ -89,6 +127,9 @@ class Mysql(Bash):
             self.create_schema(self.args.db_name, self.args.db_root_pass)
         if self.args.sql_file:
             self.import_sql(self.args.db_root_pass, self.args.sql_file)
+
+        # Test the MySQL setup
+        self.test_mysql_connectivity()
 
 
 class PhpMyAdmin(Bash):
