@@ -4,6 +4,7 @@ from ..bash import Bash
 from ..dist import Dist
 from ..util import error
 from ..errors import *
+from typing import Any
 
 
 class Mysql(Bash):
@@ -21,11 +22,11 @@ class Mysql(Bash):
     requires = []
     title = "MySQL"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.apt_pkgs = ["mysql-server"]
 
-    def configure_root_password(self):
+    def configure_root_password(self) -> None:
         root_pass = self.args.db_root_pass
         self.run(
             '''sudo debconf-set-selections <<< \
@@ -38,7 +39,7 @@ class Mysql(Bash):
             )
         )
 
-    def setup_user(self, db_user, db_pass, root_pass):
+    def setup_user(self, db_user: str, db_pass: str, root_pass: str) -> None:
         # only for MySQL 5.7.8 and up?
         sql = """
         DROP USER IF EXISTS '{db_user}'@'localhost';
@@ -54,7 +55,7 @@ class Mysql(Bash):
             wrap=False,
         )
 
-    def create_schema(self, db_name, root_pass):
+    def create_schema(self, db_name: str, root_pass: str) -> None:
         sql = " ".join(
             """
           DROP DATABASE IF EXISTS {db_name};
@@ -70,17 +71,17 @@ class Mysql(Bash):
             wrap=False,
         )
 
-    def import_sql(self, root_pass, sql_file):
+    def import_sql(self, root_pass: str, sql_file: str) -> None:
         self.run(
             "mysql -uroot -p{root_pass} < {sql_file}".format(
                 root_pass=root_pass, sql_file=sql_file
             )
         )
 
-    def pre_install(self):
+    def pre_install(self) -> None:
         self.configure_root_password()
 
-    def post_install(self):
+    def post_install(self) -> None:
         if self.args.new_db_user_and_pass:
             db_user, db_pass = self.args.new_db_user_and_pass
             self.setup_user(db_user, db_pass, self.args.db_root_pass)
@@ -101,12 +102,12 @@ class PhpMyAdmin(Bash):
     requires = ["apache2", "php", "mysql"]
     title = "PhpMyAdmin"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.dist = Dist()
         super().__init__(*args, **kwargs)
         self.apt_pkgs = ["phpmyadmin"]
 
-    def pre_install(self):
+    def pre_install(self) -> None:
         root_pass = self.args.db_root_pass
         self.run(
             'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2"'
@@ -148,7 +149,7 @@ class Adminer(Bash):
     requires = ["apache2", "php", "mysql"]
     title = "Adminer"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         if self.distro >= (Dist.UBUNTU, Dist.V18_04):
@@ -159,7 +160,7 @@ class Adminer(Bash):
         site_name = self.args.servername
         self.info("URL", "http://{}/adminer.php".format(site_name))
 
-    def post_install(self):
+    def post_install(self) -> None:
         # for 18.04, an extra compile step needs to be
         # done.  20.04 and later doesn't need this.
         if self.distro == (Dist.UBUNTU, Dist.V18_04):

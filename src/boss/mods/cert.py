@@ -11,7 +11,9 @@ from typing import Any
 class LetsEncryptCert(Bash):
     """Let's Encrypt certificate installation and configuration using snap.
 
-    Documentation: https://certbot.eff.org/instructions?ws=apache&os=snap
+    Documentation:
+    - https://certbot.eff.org/instructions?ws=apache&os=snap
+    - https://www.digitalocean.com/community/tutorials/how-to-secure-apache-with-let-s-encrypt-on-ubuntu
     """
 
     provides = ["cert"]
@@ -21,10 +23,6 @@ class LetsEncryptCert(Bash):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         if self.distro == (Dist.UBUNTU, Dist.V24_04):
-            # self.apt_pkgs = [
-            #     "certbot",
-            #     "python3-certbot-apache",
-            # ]
             self.snap_pkgs = [
                 ("certbot", Snap.CLASSIC),
             ]
