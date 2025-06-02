@@ -22,7 +22,7 @@ from .mods.aptproxy import AptProxy
 from .mods.bashrc import Bashrc
 from .mods.cert import SelfCert
 from .mods.cert import LetsEncryptCert
-from .mods.craft import Craft3
+from .mods.craft import Craft
 from .mods.databases import Mysql
 from .mods.databases import PhpMyAdmin
 from .mods.databases import Adminer
@@ -70,7 +70,7 @@ MODS = (
     Adminer,
     VirtualHost,
     PhpInfo,
-    Craft3,
+    Craft,
     FakeSMTP,
     Netdata,
     Webmin,
@@ -298,7 +298,7 @@ def boss() -> None:
     "-N",
     "--db-name",
     metavar="DB-NAME",
-    required=deps("mysql", "lamp", "craft3"),
+    required=deps("mysql", "lamp", "craft"),
     help="the name the schema to create",
 )
 @click.option(
@@ -306,7 +306,7 @@ def boss() -> None:
     "--db-root-pass",
     default="password",
     metavar="PASSWORD",
-    required=deps("mysql", "lamp", "craft3", "phpmyadmin"),
+    required=deps("mysql", "lamp", "craft", "phpmyadmin"),
     help="password for mysql root user, required for the mysql module",
 )
 @click.option(
@@ -336,7 +336,7 @@ def boss() -> None:
                 CREATEDIR is an optional y/n that indicates if to create the dir or not (default:n).
                 Multiple sites can be specified by seperating them with a ":", eg: -s site1,root1,y:site2,root2""",
 )
-# craft 3
+# craft
 @click.option(
     "-c",
     "--craft-credentials",

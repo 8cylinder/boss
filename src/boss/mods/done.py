@@ -5,17 +5,18 @@ import click
 
 from ..bash import Bash
 from ..errors import *
+from typing import Any
 
 
 class Done(Bash):
     provides = ["done"]
-    requires = []
+    requires: list[str] = []
     title = "Done"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-    def pre_install(self):
+    def pre_install(self) -> None:
         # https://github.com/pwaller/pyfiglet/blob/master/doc/figfont.txt
         if self.args.generate_script:
             sys.stdout.write("set +x\n")
@@ -30,10 +31,14 @@ class Done(Bash):
             click.secho(title, fg=titlec, bold=True)
             info[-1] = (end_tree, info[-1][1], info[-1][2])
             for msg in info:
+                tree_line = msg[0]
+                msg_title = msg[1]
+                msg_value = msg[2]
+                msg_value = msg_value if msg_value.endswith(".") else msg_value + "."
                 click.echo(
-                    click.style(f"  {msg[0]} ", fg=linec, dim=True)
-                    + click.style(msg[1] + ": ", fg=keyc)
-                    + click.style(msg[2], fg=valuec)
+                    click.style(f"  {tree_line} ", fg=linec, dim=True)
+                    + click.style(msg_title + ": ", fg=keyc)
+                    + click.style(msg_value, fg=valuec)
                 )
             print()
 
