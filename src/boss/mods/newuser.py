@@ -91,6 +91,10 @@ class Personalize(Bash):
         super().__init__(*args, **kwargs)
 
     def pre_install(self) -> None:
+        # add user to some groups
+        for group in ("sudo", "www-data"):
+            self.run(f"sudo usermod -aG {group} $USER")
+
         self.bash_settings()
         self.emacs_settings()
 
@@ -144,7 +148,5 @@ class Personalize(Bash):
         settings = "\n".join(
             [re.sub(r"^\s*", "", i) for i in emacs_settings.split("\n")]
         )
-        self.append_to_file(
-            dot_emacs, settings, backup=False, append=False, nosudo=True
-        )
-        self.append_to_file(root_dot_emacs, settings, backup=False, append=False)
+        self.write_new_file(dot_emacs, settings)
+        self.write_new_file(root_dot_emacs, settings)

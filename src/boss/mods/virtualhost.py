@@ -90,8 +90,9 @@ class VirtualHost(Bash):
         # make www-root owner of the doc root
         doc_root = os.path.join("/var/www", document_root)
         if not os.path.exists(doc_root):
-            self.run("sudo mkdir {}".format(doc_root))
-        self.run("sudo chown www-data:www-data {}".format(doc_root))
+            self.run(f'sudo mkdir "{doc_root}"')
+        self.run(f'sudo chown www-data:www-data "{doc_root}"')
+        self.run(f'sudo chmod g+rw "{doc_root}"')
 
     def post_install(self) -> None:
         mods = ["ssl", "rewrite", "headers"]

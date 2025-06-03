@@ -6,7 +6,7 @@ import datetime
 import subprocess
 from typing import NamedTuple
 from dataclasses import dataclass
-from .errors import *
+from .errors import CommandError
 from .util import display_cmd, error, notify
 from enum import Enum, auto
 from pathlib import Path
@@ -180,6 +180,8 @@ class Bash:
             sys.stdout.flush()
         else:
             result = subprocess.check_call(cmd, shell=True, executable="/bin/bash")
+            if result > 0:
+                raise CommandError(cmd)
         return str(result)
 
     def curl(

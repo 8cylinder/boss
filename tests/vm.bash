@@ -40,7 +40,7 @@ case $ACTION in
 
         multipass delete $VMNAME
         multipass purge
-        multipass launch -n $VMNAME --cloud-init cloud-init.yaml --mount . --mount dist --mount tests
+        multipass launch -n $VMNAME --disk 20G --cloud-init cloud-init.yaml --mount . --mount dist --mount tests
         multipass shell $VMNAME
         ;;
 

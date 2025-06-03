@@ -71,20 +71,17 @@ class SelfCert(Bash):
 
     def pre_install(self) -> None:
         cert_basename = self.args.servername
-        self.run(
-            """
-            sudo openssl \
-                 req \
-                 -new \
-                 -newkey rsa:4096 \
-                 -days 10950 \
-                 -nodes \
-                 -x509 \
-                 -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN={servername}" \
-                 -keyout {cert_basename}.key \
-                 -out {cert_basename}.crt &>/dev/null
-        """.format(servername=self.args.servername, cert_basename=cert_basename)
-        )
+        self.run(f"""sudo openssl \
+            req \
+            -new \
+            -newkey rsa:4096 \
+            -days 10950 \
+            -nodes \
+            -x509 \
+            -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN={self.args.servername}" \
+            -keyout {cert_basename}.key \
+            -out {cert_basename}.crt &>/dev/null
+        """)
         self.run(
             "sudo cp {cert_basename}.crt /etc/ssl/certs/{cert_basename}.crt".format(
                 cert_basename=cert_basename

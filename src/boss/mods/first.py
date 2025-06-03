@@ -62,6 +62,7 @@ class First(Bash):
                 "figlet",
                 "fail2ban",
                 "ssh",
+                "trash-cli",
                 # "emacs-nox",  # installs postfix, use snap instead
             ]
             self.snap_pkgs: list[tuple[str, Snap]] = [

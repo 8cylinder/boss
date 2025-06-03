@@ -57,12 +57,10 @@ class Mysql(Bash):
 
     def create_schema(self, db_name: str, root_pass: str) -> None:
         sql = " ".join(
-            """
+            f"""
           DROP DATABASE IF EXISTS {db_name};
           CREATE DATABASE IF NOT EXISTS {db_name};
-        """.format(
-                db_name=db_name,
-            ).split()
+        """.split()
         )
         self.run(
             "mysql -uroot -p{root_pass} <<EOF\n{sql}\nEOF".format(
