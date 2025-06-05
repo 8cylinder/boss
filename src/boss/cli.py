@@ -322,7 +322,7 @@ def boss() -> None:
     "--db-root-pass",
     default="password",
     metavar="PASSWORD",
-    required=deps("mysql", "lamp", "craft", "phpmyadmin"),
+    required=deps("mysql", "lamp", "phpmyadmin"),
     help="password for mysql root user, required for the mysql module",
 )
 @click.option(
@@ -330,6 +330,7 @@ def boss() -> None:
     "--new-db-user-and-pass",
     type=USER_PASS,
     metavar="USERNAME,PASSWORD",
+    required=deps("craft"),
     help="a new db user's new username and password (seperated by a comma)",
 )
 # new user
@@ -347,7 +348,7 @@ def boss() -> None:
     "--site-name-and-root",
     type=SITE_DOCROOT,
     metavar="SITENAME,DOCUMENTROOT[:...]",
-    required=deps("virtualhost"),
+    required=deps("virtualhost", "craft"),
     help="""SITENAME, DOCUMENTROOT and CREATEDIR seperated by a comma (doc root will be put in /var/www).
                 CREATEDIR is an optional y/n that indicates if to create the dir or not (default:n).
                 Multiple sites can be specified by seperating them with a ":", eg: -s site1,root1,y:site2,root2""",
