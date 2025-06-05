@@ -9,15 +9,13 @@ import socket
 from pprint import pprint as pp  # noqa
 import click
 from click.core import Parameter, Context
-# from mypyc.ir.class_ir import NamedTuple
+import importlib.metadata
+from typing import Any
 
-from .errors import DependencyError
-from .errors import PlatformError
-from .errors import SecurityError
-
-# from . import util  # type: ignore
+from .errors import DependencyError, PlatformError, SecurityError, ModuleRequestError
 from .util import error, title
-
+from .bash import Args
+from .bash import Bash
 from .mods.aptproxy import AptProxy
 from .mods.bashrc import Bashrc
 from .mods.cert import SelfCert
@@ -41,9 +39,6 @@ from .mods.virtualhost import VirtualHost
 from .mods.webmin import Webmin
 from .mods.webservers import Apache2
 from .mods.webservers import Nginx
-from .bash import Args
-import importlib.metadata
-from typing import Any, List
 
 
 # DIST_VERSION = None
@@ -99,6 +94,27 @@ def is_ipaddress(ip: str) -> bool:
         return False
 
 
+def get_matching_modules(wanted_mods: list[str]) -> list[Bash]:
+    matching_mods: set[type[Bash]] = set()
+    for wanted in wanted_mods:
+        error_matches: list[str] = []
+        matched_count = 0
+        for mod in MODS:
+            module_name = mod.__name__
+            if module_name.lower().startswith(wanted):
+                error_matches.append(module_name)
+                matching_mods.add(mod)
+                matched_count += 1
+        if matched_count > 1:
+            # Convert a list of items to: "itema", "itemb" and "itemc"
+            l = [f'"{i}"' for i in error_matches]
+            matches = ", ".join(l[:-2] + [" and ".join(l[-2:])])
+            raise ModuleRequestError(
+                f'Module name "{wanted}" is ambiguous, it matches: {matches}'
+            )
+    return list(matching_mods)
+
+
 # ---------------------------- Custom types ----------------------------
 
 
@@ -150,7 +166,7 @@ class SiteDocroot(click.ParamType):
 
     def convert(
         self, value: str, param: Parameter | None, ctx: Context | None
-    ) -> List[tuple[str, str, str]]:
+    ) -> list[tuple[str, str, str]]:
         sites = value.split(":")
         cleaned_sites = []
         msg = 'must be a sitename, document root and a "y" or "n" (create site dir) seperated by a comma, and sitename must have a . in it'
@@ -370,41 +386,27 @@ def install(**all_args: Any) -> None:
         global DIST_VERSION
         DIST_VERSION = args.dist_version
 
-    available_mods = MODS
     wanted_mods = [i.lower() for i in args.modules]
-    required_mods = ["first", "done"]
-    # extract the requested modules and the required from the available_mods list
-    if args.no_required:
-        wanted_apps = [i for i in available_mods if i.__name__.lower() in wanted_mods]
-    else:
-        wanted_apps = [
-            i
-            for i in available_mods
-            if i.__name__.lower() in wanted_mods or i.__name__.lower() in required_mods
-        ]
-    # check if the user is asking for non-existent modules
-    mapping_keys = [i.__name__.lower() for i in available_mods]
-    invalid_modules = [i for i in wanted_mods if i not in mapping_keys]
-    if invalid_modules:
-        error(
-            'module(s) "{invalid}" does not exist.\nValid modules are:\n{valid}'.format(
-                valid=", ".join(mapping_keys), invalid=", ".join(invalid_modules)
-            )
-        )
+
+    try:
+        wanted = get_matching_modules(wanted_mods)
+    except ModuleRequestError as e:
+        error(e)
+
+    if not args.no_required:
+        wanted = [First] + wanted + [Done]
 
     # check if the requested modules have their dependencies met
     if not args.no_dependencies:
-        install_reqs: List[str] = []
-        for app in wanted_apps:
-            install_reqs += app.provides
-            provided: set[str] = set(install_reqs)
-            required = set(app.requires)
-            if len(required - provided):
-                error(
-                    "Requirements not met for {}: {}.".format(
-                        app.__name__.lower(), ", ".join(app.requires)
-                    )
-                )
+        provided = []
+        requires = []
+        for mod in wanted:
+            provided += mod.provides
+            requires += mod.requires
+        missing = set(requires) - set(provided)
+        if missing:
+            pretty_missing = ', '.join(missing)
+            error(f"Requirements not met, missing {pretty_missing}")
 
     if args.generate_script:
         script_header = (
@@ -416,8 +418,10 @@ def install(**all_args: Any) -> None:
             "set -x",
         )
         click.echo("\n".join(script_header))
+    else:
+        print(wanted)
 
-    for App in wanted_apps:
+    for App in wanted:
         module_name = App.title
         title(module_name, script=args.generate_script)
         try:
@@ -438,8 +442,8 @@ def install(**all_args: Any) -> None:
             error(e.args[0])
 
 
-@boss.command()
-def list() -> None:
+@boss.command(name='list')
+def list_modules() -> None:
     """List available modules"""
     installed_file = os.path.expanduser("~/boss-installed-modules")
     installed = []

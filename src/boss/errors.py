@@ -12,3 +12,7 @@ class SecurityError(Exception):
 
 class CommandError(Exception):
     """Raised when a command fails to execute properly."""
+
+
+class ModuleRequestError(Exception):
+    """Raised when the cli wanted module has more than one match."""
