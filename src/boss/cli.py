@@ -23,7 +23,7 @@ from .mods.craft import Craft
 from .mods.databases import Mysql
 from .mods.databases import PhpMyAdmin
 from .mods.databases import Adminer
-from .mods.done import Done
+from .mods.last import Last
 from .mods.fakesmtp import FakeSMTP
 from .mods.first import First
 from .mods.lamp import Lamp
@@ -69,7 +69,7 @@ MODS = (
     Netdata,
     Webmin,
     Bashrc,
-    Done,  # required
+    Last,  # required
 )
 
 
@@ -394,7 +394,7 @@ def install(**all_args: Any) -> None:
         error(str(e))
 
     if not args.no_required:
-        wanted = [First] + wanted + [Done]
+        wanted = [First] + wanted + [Last]
 
     # check if the requested modules have their dependencies met
     if not args.no_dependencies:

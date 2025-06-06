@@ -8,7 +8,7 @@ from ..errors import *
 from typing import Any
 
 
-class Done(Bash):
+class Last(Bash):
     """Show a summary of the installation process."""
 
     provides = ["done"]
