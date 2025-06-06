@@ -15,7 +15,6 @@ from typing import Any
 from .errors import DependencyError, PlatformError, SecurityError, ModuleRequestError
 from .util import error, title
 from .bash import Args
-from .bash import Bash
 from .mods.aptproxy import AptProxy
 from .mods.bashrc import Bashrc
 from .mods.cert import SelfCert
@@ -94,8 +93,8 @@ def is_ipaddress(ip: str) -> bool:
         return False
 
 
-def get_matching_modules(wanted_mods: list[str]) -> list[Bash]:
-    matching_mods: set[type[Bash]] = set()
+def get_matching_modules(wanted_mods: list[str]) -> list[Any]:
+    matching_mods: set[type[Any]] = set()
     for wanted in wanted_mods:
         error_matches: list[str] = []
         matched_count = 0
@@ -106,9 +105,9 @@ def get_matching_modules(wanted_mods: list[str]) -> list[Bash]:
                 matching_mods.add(mod)
                 matched_count += 1
         if matched_count > 1:
-            # Convert a list of items to: "itema", "itemb" and "itemc"
-            l = [f'"{i}"' for i in error_matches]
-            matches = ", ".join(l[:-2] + [" and ".join(l[-2:])])
+            # Convert a list of items to: '"itema", "itemb" and "itemc"'
+            quoted = [f'"{i}"' for i in error_matches]
+            matches = ", ".join(quoted[:-2] + [" and ".join(quoted[-2:])])
             raise ModuleRequestError(
                 f'Module name "{wanted}" is ambiguous, it matches: {matches}'
             )
@@ -380,7 +379,6 @@ def install(**all_args: Any) -> None:
     """Install any modules available from `boss list`"""
 
     # convert the args dict to a namedtuple
-    # Args = namedtuple("Args", sorted(all_args))
     args = Args(**all_args)
 
     if args.dist_version:
@@ -389,10 +387,11 @@ def install(**all_args: Any) -> None:
 
     wanted_mods = [i.lower() for i in args.modules]
 
+    wanted: list[Any] = []
     try:
         wanted = get_matching_modules(wanted_mods)
     except ModuleRequestError as e:
-        error(e)
+        error(str(e))
 
     if not args.no_required:
         wanted = [First] + wanted + [Done]
@@ -406,7 +405,7 @@ def install(**all_args: Any) -> None:
             requires += mod.requires
         missing = set(requires) - set(provided)
         if missing:
-            pretty_missing = ', '.join(missing)
+            pretty_missing = ", ".join(missing)
             error(f"Requirements not met, missing {pretty_missing}")
 
     if args.generate_script:
@@ -420,7 +419,10 @@ def install(**all_args: Any) -> None:
         )
         click.echo("\n".join(script_header))
     else:
-        print(wanted)
+        if not args.dry_run:
+            print("Installing:", ", ".join([i.__name__ for i in wanted]))
+            if not click.confirm("Continue?", default=True, abort=True):
+                sys.exit()
 
     for App in wanted:
         module_name = App.title
@@ -443,7 +445,7 @@ def install(**all_args: Any) -> None:
             error(e.args[0])
 
 
-@boss.command(name='list')
+@boss.command(name="list")
 def list_modules() -> None:
     """List available modules"""
     installed_file = os.path.expanduser("~/boss-installed-modules")
@@ -460,15 +462,14 @@ def list_modules() -> None:
     for mod in MODS:
         name = mod.__name__
         module = mod
-        # state = '[X] ' if name in installed else '[-] '
-        state = " ✓ " if name in installed else "   "
-        state = click.style(state, fg="green")
         description = module.__doc__ if module.__doc__ else ""
+        deps = ", ".join(mod.requires)
         if description:
             description = description.splitlines()[0]
-        click.echo(
-            state + click.style(name.ljust(col_max + 2), bold=True) + description
-        )
+        click.echo(click.style(name.ljust(col_max + 2, "."), bold=True) + description)
+        if deps:
+            indent = " " * (col_max + 2)
+            click.secho(f"{indent}Reqs: {deps}", fg="blue")
         sys.stdout.flush()
 
 

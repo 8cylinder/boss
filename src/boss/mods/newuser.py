@@ -102,6 +102,8 @@ class Personalize(Bash):
         bashrc = "$HOME/.bashrc"
         editor = "emacs"
         bash_settings = rf"""
+        
+          # Added by Boss on {self.now}
           #PS1='\n${{debian_chroot:+($debian_chroot)}}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\n\$ '
           PS1='\n\[\e[38;5;214m\]\u@\H\[\e[0m\] \[\e[38;5;131m\]\A\[\e[0m\] \[\e[38;5;39m\]\w\n\[\e[0m\]\$ '
           

@@ -1,5 +1,3 @@
-# run-shell-command :: ../../build.bash
-
 import os
 
 from ..bash import Bash
@@ -73,6 +71,10 @@ class Craft(Bash):
 
     def post_install(self) -> None:
         if not self.args.craft_credentials:
+            self.info(
+                "Install",
+                "Craft credentials (--craft-credentials) not provided, not installing Craft.",
+            )
             return
 
         # if site_name_and_root used, use the first one for craft
@@ -84,23 +86,13 @@ class Craft(Bash):
             return
         html_dir = os.path.join("/var/www/", self.args.site_name_and_root[0][1])
 
-        # setup the dirs
-        # craft_dir = self.craft_dir
-        if not os.path.exists(html_dir):
-            raise DependencyError(
-                f'Site root "{html_dir}" does not exist, include "virtualhost"'
-                + "in your command line arguments to create it."
-            )
-        self.run("sudo chown www-data: {}".format(html_dir))
-        self.run("sudo chmod ug+rw {}".format(html_dir))
+        self.configure_dirs(html_dir)
+
+        craft_db_user, craft_db_pass = self.args.new_db_user_and_pass
 
         # Install craft3 via composer
-        craft_db_user = "root"
-        craft_db_pass = self.args.db_root_pass
-        craft_db_name = self.args.db_name
-
         self.run(
-            f"sudo rm {html_dir}/index.html {html_dir}/*.local.crt {html_dir}/*.local.key"
+            f"sudo rm -If {html_dir}/index.html {html_dir}/*.local.crt {html_dir}/*.local.key"
         )
         # install from composer
         # cmd = f"sudo -u www-data composer create-project --no-ansi --remove-vcs --no-interaction --no-cache craftcms/craft {html_dir}"
@@ -114,7 +106,7 @@ class Craft(Bash):
             --server localhost \
             --port 3306 \
             --user {craft_db_user} \
-            --database {craft_db_name} \
+            --database {self.args.db_name} \
             --password {craft_db_pass} \
             '
         """)
@@ -148,3 +140,14 @@ class Craft(Bash):
         # self.run("sudo chown www-data:www-data {}".format(index))
 
         self.info("Craft admin", f"https://{self.args.servername}/admin")
+
+    def configure_dirs(self, html_dir: str) -> None:
+        # setup the dirs
+        # craft_dir = self.craft_dir
+        if not os.path.exists(html_dir):
+            raise DependencyError(
+                f'Site root "{html_dir}" does not exist, include "virtualhost"'
+                + "in your command line arguments to create it."
+            )
+        self.run("sudo chown www-data: {}".format(html_dir))
+        self.run("sudo chmod ug+rw {}".format(html_dir))

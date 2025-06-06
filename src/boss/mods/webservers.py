@@ -29,6 +29,8 @@ class Apache2(Bash):
 
 
 class Nginx(Bash):
+    """Stand-alone Nginx"""
+
     provides = ["nginx"]
     requires: list[str] = []
     title = "Nginx"

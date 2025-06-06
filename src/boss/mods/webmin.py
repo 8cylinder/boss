@@ -5,6 +5,8 @@ from ..errors import *
 
 
 class Webmin(Bash):
+    """Webmin console"""
+
     provides = ["webmin"]
     requires = ["apache2", "php", "cert"]
     title = "Webmin console"

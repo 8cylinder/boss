@@ -9,6 +9,8 @@ from typing import Any
 
 
 class Done(Bash):
+    """Show a summary of the installation process."""
+
     provides = ["done"]
     requires: list[str] = []
     title = "Done"

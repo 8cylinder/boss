@@ -88,6 +88,8 @@ class Php(Bash):
 
 
 class Xdebug(Bash):
+    """A standard Xdebug installation for PHP"""
+
     provides = ["xdebug"]
     requires = ["php"]
     title = "Xdebug"

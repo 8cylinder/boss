@@ -96,8 +96,8 @@ class Bash:
         self, filename: str | Path, text: str, user: str | None = None
     ) -> None:
         alt_user = f"-u {user}" if user else ""
-        cmd = f'''echo | sudo {alt_user} tee "{filename}" > /dev/null <<'EOF'\n{text}\nEOF'''
-        self.run(cmd)
+        cmd = f'''echo | sudo {alt_user} tee "{filename}" <<'EOF'\n{text}\nEOF'''
+        self.run(cmd, wrap=False)
 
     def append_to_file(
         self,
@@ -125,23 +125,9 @@ class Bash:
 
         sudo = "" if nosudo else "sudo"
 
-        # add_cmd = f"""#-----------------------------------------------------------------
-        # read -r -d '' boss_text <<'EOF'
-        # {text}
-        # EOF
-        # # echo "$boss_text"
-        # if [[ ! -e "{filename}" ]] then
-        #     # echo 'A'
-        #     echo | {sudo} {www_user} tee "{filename}" < <(echo "$boss_text")
-        # elif ! grep -Ff < <(echo "$boss_text") "{filename}" >/dev/null; then
-        #     # echo 'B'
-        #     echo | {sudo} {www_user} tee {append_flag} "{filename}" < <(echo "$boss_text")
-        # else
-        #     echo "File {filename} already contains the text, not appending."
-        # fi
-        # #-----------------------------------------------------------------
-        # """
-        add_cmd = f'echo | sudo {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF > /dev/null'
+        add_cmd = (
+            f'echo | sudo {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
+        )
         # remove leading spaces from add_cmd using regex
         add_cmd = re.sub(r"^\s+", "", add_cmd, flags=re.MULTILINE)
         self.run(add_cmd, wrap=False)

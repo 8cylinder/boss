@@ -63,18 +63,17 @@ class First(Bash):
                 "fail2ban",
                 "ssh",
                 "trash-cli",
-                # "emacs-nox",  # installs postfix, use snap instead
+                # "emacs-nox",  # installs postfix, use command in post_install
             ]
             self.snap_pkgs: list[tuple[str, Snap]] = [
-                ("emacs", Snap.CLASSIC),
                 ("node", Snap.CLASSIC),
             ]
 
     def post_install(self) -> None:
-        # Don't use this, install the parts individually.
-        # self.install_web_server()
-
         self.set_timezone()
+
+        # install emacs-nox without postfix
+        self.run("sudo apt install -y --no-install-recommends emacs-nox")
 
     def set_timezone(self) -> None:
         self.run("sudo timedatectl set-timezone {}".format(Settings.timezone))
