@@ -70,36 +70,45 @@ class Craft(Bash):
             )
 
     def post_install(self) -> None:
-        if not self.args.craft_credentials:
+        if not self.args.craft_credentials or not self.args.site_name_and_root:
             self.info(
                 "Install",
                 "Craft credentials (--craft-credentials) not provided, not installing Craft.",
             )
             return
 
-        # if site_name_and_root used, use the first one for craft
-        if not self.args.site_name_and_root:
-            self.info(
-                "Install",
-                "Site name and root (--site-name-and-root) not provided, not installing Craft.",
-            )
-            return
         html_dir = os.path.join("/var/www/", self.args.site_name_and_root[0][1])
 
+        # setup the dirs
         self.configure_dirs(html_dir)
 
-        craft_db_user, craft_db_pass = self.args.new_db_user_and_pass
-
         # Install craft3 via composer
-        self.run(
-            f"sudo rm -If {html_dir}/index.html {html_dir}/*.local.crt {html_dir}/*.local.key"
-        )
-        # install from composer
-        # cmd = f"sudo -u www-data composer create-project --no-ansi --remove-vcs --no-interaction --no-cache craftcms/craft {html_dir}"
+        self.composer_install_craft(html_dir)
 
-        cmd = f"sg www-data 'composer create-project --no-ansi --remove-vcs --no-interaction craftcms/craft {html_dir}/'"
-        self.run(cmd)
+        # configure craft
+        craft_db_user, craft_db_pass = self.args.new_db_user_and_pass
+        self.configure_craft(craft_db_pass, craft_db_user, html_dir)
 
+        # edit the apache conf to point the DocumentRoot to the /web directory
+        self.edit_conf(html_dir)
+
+        self.run("sudo a2enmod rewrite")
+        self.restart_apache()
+
+        self.info("Craft admin", f"https://{self.args.servername}/admin")
+
+    def edit_conf(self, name: str) -> None:
+        conf_file = f"/etc/apache2/sites-available/{name}.conf"
+        sed_exp = [
+            f"s|DocumentRoot {name}|DocumentRoot {name}/web|g",
+            f's|Directory "{name}/web"|Directory "{name}/web"|g',
+        ]
+        for exp in sed_exp:
+            self.sed(exp, conf_file)
+
+    def configure_craft(
+        self, craft_db_pass: str, craft_db_user: str, html_dir: str
+    ) -> None:
         # setup the db
         self.run(f"""sg www-data 'php {html_dir}/craft setup/db --interactive 0 \
             --driver mysql \
@@ -110,7 +119,7 @@ class Craft(Bash):
             --password {craft_db_pass} \
             '
         """)
-        # run the install
+        # run the craft install
         username, email, password = self.args.craft_credentials
         self.run(f"""sg www-data 'php {html_dir}/craft install/craft --interactive=0 \
             --email={email} \
@@ -120,26 +129,16 @@ class Craft(Bash):
             --siteUrl={"@web"}
             '
         """)
-        # copy web files to the html dir, adjust permissions, enable rewrite and restart server
-        [
-            self.run(command)
-            for command in (
-                # "sudo chown www-data: {}".format(html_dir),
-                # 'sudo -u www-data cp -r "{}/web/." "{}"'.format(html_dir, html_dir),
-                # "sudo chmod 774 {}/cpresources/".format(html_dir),
-                # "sudo chmod -R g+rw {}".format(html_dir),
-                # "sudo chmod -R g+rw {}".format(html_dir),
-                "sudo a2enmod rewrite",
-            )
-        ]
-        self.restart_apache()
 
-        # sed_exp = f"s|dirname(__DIR__)|'{html_dir}'|"
-        # index = os.path.join(html_dir, "index.php")
-        # self.sed(sed_exp, index)
-        # self.run("sudo chown www-data:www-data {}".format(index))
-
-        self.info("Craft admin", f"https://{self.args.servername}/admin")
+    def composer_install_craft(self, html_dir: str) -> None:
+        # remove existing files
+        # self.run(
+        #     f"sudo rm -If {html_dir}/index.html {html_dir}/*.local.crt {html_dir}/*.local.key"
+        # )
+        self.run("ls *")
+        self.run(f"sudo rm -Irf {html_dir}/*")
+        cmd = f"sg www-data 'composer create-project --no-ansi --remove-vcs --no-interaction craftcms/craft {html_dir}/'"
+        self.run(cmd)
 
     def configure_dirs(self, html_dir: str) -> None:
         # setup the dirs

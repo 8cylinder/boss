@@ -28,6 +28,14 @@ pipx ensurepath
 source ~/.bashrc
 ```
 
+### test commands
+
+``` bash
+boss install boss.local comp self pers apache phpbin mysql craft virt -N boss -A boss,password -s boss.local,boss,y -c sm,sheldon@8cylinder.com,password
+
+boss install boss.local craft -N boss -A boss,password -s boss.local,boss,y -c sm,sheldon@8cylinder.com,password -o 
+```
+
 <!--
 ## Todo
 - bash prompt
