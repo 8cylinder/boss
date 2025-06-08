@@ -30,10 +30,10 @@ from .mods.lamp import Lamp
 from .mods.netdata import Netdata
 from .mods.newuser import NewUserAsRoot
 from .mods.newuser import Personalize
-from .mods.php import Php
-from .mods.php import Xdebug
-from .mods.php import PhpInfo
-from .mods.php import Composer
+from .mods.phpbin import PhpBin
+from .mods.phpbin import Xdebug
+from .mods.phpbin import PhpInfo
+from .mods.phpbin import Composer
 from .mods.virtualhost import VirtualHost
 from .mods.webmin import Webmin
 from .mods.webservers import Apache2
@@ -56,7 +56,7 @@ MODS = (
     Lamp,
     Apache2,
     Nginx,
-    Php,
+    PhpBin,
     Mysql,
     Composer,
     Xdebug,
@@ -249,24 +249,9 @@ CONTEXT_SETTINGS = {
 @click.group(no_args_is_help=True, context_settings=CONTEXT_SETTINGS)
 @click.version_option(version=__version__)
 def boss() -> None:
-    """👔 Install various applications and miscellany to set up a dev server.
+    """👔 Install various applications and miscellany to set up a server.
 
-    This can be run standalone or as a Vagrant provider.  When run as
-    a vagrant provider its recommended that is be run unprivileged.
-    This will run as the default user and the script will use sudo
-    when necessary (this assumes the default user can use sudo).  This
-    means that any subsequent uses as the default user will be able to
-    update the '$HOME/boss-installed-modules' file.  Also if the
-    bashrc module is installed during provisioning, then the correct
-    home dir will be setup.
-
-    \b
-    eg:
-    config.vm.provision :shell,
-                        path: 'boss',
-                        args: 'install server.local ...'
-
-    Its recommended to set up Apt-Cacher NG on the host machine.  Once
+    It's recommended to set up Apt-Cacher NG on the host machine.  Once
     that's done adding `aptproxy` to the list of modules will configure
     this server to make use of it."""
 
@@ -394,7 +379,14 @@ def install(**all_args: Any) -> None:
         error(str(e))
 
     if not args.no_required:
-        wanted = [First] + wanted + [Last]
+        # AptProxy is a special case, it should always be first
+        if AptProxy in wanted:
+            # remove AptProxy from the list of wanted modules
+            wanted = [i for i in wanted if not i == AptProxy]
+            # and add it to the front
+            wanted = [AptProxy, First] + wanted + [Last]
+        else:
+            wanted = [First] + wanted + [Last]
 
     # check if the requested modules have their dependencies met
     if not args.no_dependencies:
@@ -425,6 +417,8 @@ def install(**all_args: Any) -> None:
                 sys.exit()
 
     for App in wanted:
+        print(App)
+        continue
         module_name = App.title
         title(module_name, script=args.generate_script)
         try:

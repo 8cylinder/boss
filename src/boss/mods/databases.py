@@ -138,7 +138,7 @@ class PhpMyAdmin(Bash):
     """
 
     provides = ["phpmyadmin"]
-    requires = ["apache2", "php", "mysql"]
+    requires = ["apache2", "phpbin", "mysql"]
     title = "PhpMyAdmin"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -185,7 +185,7 @@ class Adminer(Bash):
     """Web database client, an alternative to PhpMyAdmin"""
 
     provides = ["adminer"]
-    requires = ["apache2", "php", "mysql"]
+    requires = ["apache2", "phpbin", "mysql"]
     title = "Adminer"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

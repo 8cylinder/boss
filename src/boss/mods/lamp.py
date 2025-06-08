@@ -1,13 +1,9 @@
 # run-shell-command :: ../../build.bash
 
-from ..bash import Bash
-from ..dist import Dist
 from ..errors import *
 
 from .webservers import Apache2
-from .webservers import Nginx
 from .databases import Mysql
-from .php import Php
 
 
 class Lamp(Apache2, Mysql):
@@ -25,13 +21,13 @@ class Lamp(Apache2, Mysql):
     mysql-server-core-5.7, rename, php-common, php-mysql,
     php7.0-mysql, php7.0-readline"""
 
-    provides = ['apache2', 'php', 'mysql', 'lamp']
+    provides = ["apache2", "php", "mysql", "lamp"]
     requires = []
-    title = 'Lamp'
+    title = "Lamp"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.apt_pkgs = ['lamp-server^']
+        self.apt_pkgs = ["lamp-server^"]
 
     def pre_install(self):
         for cls in Lamp.__bases__:

@@ -10,12 +10,12 @@ import datetime
 from typing import Any
 
 
-class Php(Bash):
+class PhpBin(Bash):
     """PHP with additional packages that CMS's need"""
 
-    provides = ["php"]
+    provides = ["phpbin"]
     requires = ["apache2"]
-    title = "PHP"
+    title = "PHP bin"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -91,7 +91,7 @@ class Xdebug(Bash):
     """A standard Xdebug installation for PHP"""
 
     provides = ["xdebug"]
-    requires = ["php"]
+    requires = ["phpbin"]
     title = "Xdebug"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -137,7 +137,7 @@ class PhpInfo(Bash):
     It is available at https://<servername>/phpinfo.php"""
 
     provides = ["phpinfo"]
-    requires = ["php"]
+    requires = ["phpbin"]
     title = "PHP Info"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -176,7 +176,7 @@ class Composer(Bash):
     """
 
     provides = ["composer"]
-    requires = ["php"]
+    requires = ["phpbin"]
     title = "Composer"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

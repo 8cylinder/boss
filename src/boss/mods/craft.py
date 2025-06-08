@@ -12,13 +12,13 @@ class Craft(Bash):
     """https://craftcms.com"""
 
     provides = ["craft"]
-    requires = ["apache2", "php", "mysql", "composer", "virtualhost"]
+    requires = ["apache2", "phpbin", "mysql", "composer", "virtualhost"]
     title = "Craft CMS"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.provides = ["craft3"]
-        self.requires = ["apache2", "php", "mysql", "composer"]
+        # self.provides = ["craft"]
+        # self.requires = ["apache2", "phpbin", "mysql", "composer"]
         if self.distro == (Dist.UBUNTU, Dist.V16_04):
             self.apt_pkgs = [
                 "php-mbstring",
