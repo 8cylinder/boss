@@ -144,9 +144,9 @@ class Craft(Bash):
     def configure_dirs(self, html_dir: str) -> None:
         # setup the dirs
         # craft_dir = self.craft_dir
-        if not os.path.exists(html_dir):
+        if not os.path.exists(html_dir) and not self.args.dry_run:
             raise DependencyError(
-                f'Site root "{html_dir}" does not exist, include "virtualhost"'
+                f'Site root "{html_dir}" does not exist, include "virtualhost" '
                 + "in your command line arguments to create it."
             )
         self.run("sudo chown www-data: {}".format(html_dir))

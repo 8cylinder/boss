@@ -69,6 +69,10 @@ class First(Bash):
                 ("node", Snap.CLASSIC),
             ]
 
+    def pre_install(self) -> None:
+        self.run("sudo apt-get update")
+        self.run("sudo apt-get upgrade -y")
+
     def post_install(self) -> None:
         self.set_timezone()
 
