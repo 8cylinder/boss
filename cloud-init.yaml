@@ -5,6 +5,10 @@ verbose: true
 # Configure logging
 output: {all: '| tee -a /var/log/cloud-init-output.log'}
 
+package_update: true
+package_upgrade: true
+package_reboot_if_required: true
+
 packages:
   - pipx
 

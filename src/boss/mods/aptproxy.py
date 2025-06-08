@@ -29,6 +29,6 @@ class AptProxy(Bash):
 
     def post_install(self) -> None:
         host_ip = self.args.host_ip
-        proxy_setting = f"'Acquire::http::Proxy \"http://{host_ip}:3142\";'"
+        proxy_setting = f"""'Acquire::http::Proxy "http://{host_ip}:3142";'"""
         cmd = f"echo {proxy_setting} | sudo tee {self.conf_file}"
         self.run(cmd)
