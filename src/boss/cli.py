@@ -94,15 +94,26 @@ def is_ipaddress(ip: str) -> bool:
 
 
 def get_matching_modules(wanted_mods: list[str]) -> list[Any]:
-    matching_mods: set[type[Any]] = set()
+    """Return a list of modules that match the requested module names.
+
+    Try and match partial names too, but if there are multiple matches
+    raise an error.
+
+    Sort the list of modules by their order in MODS and remove duplicates.
+    """
+    matching_mods: list[Any] = []
     for wanted in wanted_mods:
+        wanted = wanted.lower()
         error_matches: list[str] = []
         matched_count = 0
         for mod in MODS:
-            module_name = mod.__name__
-            if module_name.lower().startswith(wanted):
+            module_name = mod.__name__.lower()
+            if module_name == wanted:
+                matching_mods.append(mod)
+                continue
+            elif module_name.startswith(wanted):
                 error_matches.append(module_name)
-                matching_mods.add(mod)
+                matching_mods.append(mod)
                 matched_count += 1
         if matched_count > 1:
             # Convert a list of items to: '"itema", "itemb" and "itemc"'
@@ -111,7 +122,19 @@ def get_matching_modules(wanted_mods: list[str]) -> list[Any]:
             raise ModuleRequestError(
                 f'Module name "{wanted}" is ambiguous, it matches: {matches}'
             )
-    return list(matching_mods)
+
+    # sort the matching_mods by their order in MODS
+    matching_mods.sort(key=lambda x: MODS.index(x))
+
+    # remove duplicates from the list
+    seen = set()
+    deduped_mods: list[Any] = []
+    for x in matching_mods:
+        if x not in seen:
+            deduped_mods.append(x)
+            seen.add(x)
+
+    return deduped_mods
 
 
 # ---------------------------- Custom types ----------------------------
@@ -382,7 +405,7 @@ def install(**all_args: Any) -> None:
         # AptProxy is a special case, it should always be first
         if AptProxy in wanted:
             # remove AptProxy from the list of wanted modules
-            wanted = [i for i in wanted if not i == AptProxy]
+            wanted = [i for i in wanted if i != AptProxy]
             # and add it to the front
             wanted = [AptProxy, First] + wanted + [Last]
         else:
@@ -417,8 +440,6 @@ def install(**all_args: Any) -> None:
                 sys.exit()
 
     for App in wanted:
-        print(App)
-        continue
         module_name = App.title
         title(module_name, script=args.generate_script)
         try:
