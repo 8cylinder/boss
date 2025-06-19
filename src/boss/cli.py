@@ -24,9 +24,9 @@ from .mods.databases import Mysql
 from .mods.databases import PhpMyAdmin
 from .mods.databases import Adminer
 from .mods.last import Last
-from .mods.fakesmtp import FakeSMTP
+from .mods.fakesmtp import FakeSMTP  # noqa: F401
 from .mods.first import First
-from .mods.lamp import Lamp
+from .mods.lamp import Lamp  # noqa: F401
 from .mods.netdata import Netdata
 from .mods.newuser import NewUserAsRoot
 from .mods.newuser import Personalize
@@ -53,7 +53,7 @@ MODS = (
     Personalize,
     LetsEncryptCert,
     SelfCert,
-    Lamp,
+    # Lamp,
     Apache2,
     Nginx,
     PhpBin,
@@ -65,7 +65,7 @@ MODS = (
     VirtualHost,
     PhpInfo,
     Craft,
-    FakeSMTP,
+    # FakeSMTP,
     Netdata,
     Webmin,
     Bashrc,
