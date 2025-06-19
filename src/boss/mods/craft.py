@@ -90,18 +90,19 @@ class Craft(Bash):
         self.configure_craft(craft_db_pass, craft_db_user, html_dir)
 
         # edit the apache conf to point the DocumentRoot to the /web directory
-        self.edit_conf(html_dir)
+        site_name = self.args.site_name_and_root[0][0]
+        self.edit_conf(site_name, html_dir)
 
         self.run("sudo a2enmod rewrite")
         self.restart_apache()
 
         self.info("Craft admin", f"https://{self.args.servername}/admin")
 
-    def edit_conf(self, name: str) -> None:
-        conf_file = f"/etc/apache2/sites-available/{name}.conf"
+    def edit_conf(self, site_name: str, site_dir: str) -> None:
+        conf_file = f"/etc/apache2/sites-available/{site_name}.conf"
         sed_exp = [
-            f"s|DocumentRoot {name}|DocumentRoot {name}/web|g",
-            f's|Directory "{name}/web"|Directory "{name}/web"|g',
+            f"s|DocumentRoot {site_dir}|DocumentRoot {site_dir}/web|g",
+            f's|Directory "{site_dir}/web"|Directory "{site_dir}/web"|g',
         ]
         for exp in sed_exp:
             self.sed(exp, conf_file)
