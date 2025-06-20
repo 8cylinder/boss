@@ -139,6 +139,12 @@ class Bash:
         self._apt(self.apt_pkgs)
         self._snap(self.snap_pkgs)
 
+    def is_apt_installed(self, package_name: str) -> bool:
+        """Check if a package is installed using apt."""
+        cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
+        result = True if self.run(cmd, capture=True) else False
+        return result
+
     def pre_install(self) -> None:
         return
 

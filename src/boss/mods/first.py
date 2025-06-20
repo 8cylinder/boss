@@ -79,6 +79,13 @@ class First(Bash):
         # install emacs-nox without postfix
         self.run("sudo apt install -y --no-install-recommends emacs-nox")
 
+        # Restart fail2ban
+        # `systemctl status fail2ban.service` reports warning: "The unit file,
+        # source configuration file or drop-ins of fail2ban.service changed on disk."
+        # restarting it seems to fix this.
+        if self.is_apt_installed("fail2ban"):
+            self.run("sudo systemctl restart fail2ban.service")
+
     def set_timezone(self) -> None:
         self.run("sudo timedatectl set-timezone {}".format(Settings.timezone))
 

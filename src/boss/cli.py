@@ -384,7 +384,11 @@ def boss() -> None:
     help="a new user's name and password (seperated by a comma)",
 )
 def install(**all_args: Any) -> None:
-    """Install any modules available from `boss list`"""
+    """Install server components.
+
+    MODULES is the list of modules, see `boss list` for available modules.
+    SERVERNAME is used to set up the self-signed certificate and virtual host.
+    """
 
     # convert the args dict to a namedtuple
     args = Args(**all_args)
