@@ -1,4 +1,4 @@
-from ..bash import Bash, Snap, Settings
+from ..bash import Bash, Settings
 from ..dist import Dist
 from ..errors import *
 from typing import Any
@@ -63,11 +63,12 @@ class First(Bash):
                 "fail2ban",
                 "ssh",
                 "trash-cli",
-                # "emacs-nox",  # installs postfix, see post_install()
+                "npm",
+                # "emacs-nox",  # installs postfix, use command in post_install
             ]
-            self.snap_pkgs: list[tuple[str, Snap]] = [
-                ("node", Snap.CLASSIC),
-            ]
+            # self.snap_pkgs: list[tuple[str, Snap]] = [
+            #     ("node", Snap.CLASSIC),
+            # ]
 
     def pre_install(self) -> None:
         self.run("sudo apt-get update")

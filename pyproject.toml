@@ -13,6 +13,9 @@ dependencies = [
     "rich>=13.9.4",
 ]
 
+[tool.setuptools.data-files]
+"share/man/man1" = ["man/boss.1"]
+
 [project.scripts]
 boss = "boss:cli.boss"
 
