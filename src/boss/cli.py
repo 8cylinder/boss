@@ -3,7 +3,6 @@
 import sys
 import os
 import re
-import textwrap
 import subprocess
 import socket
 from pprint import pprint as pp  # noqa
@@ -497,8 +496,38 @@ def help() -> None:
     """Show help for each module"""
 
     content = []
-    w = textwrap.TextWrapper(
-        initial_indent="", subsequent_indent="  ", break_on_hyphens=False
+    content.append(
+        click.style(
+            "Setup instructions for DigitalOcean",
+            fg="yellow",
+            bold=True,
+            underline=True,
+        )
+    )
+    content.append("""
+Setup for a new server on Digital Ocean or similar.
+  1. Create server
+  2. Add ssh keys during setup
+  3. Try:
+     : ssh root@<ipaddress>
+  4. Upload boss
+     : scp dist/boss*whl root@<ipaddress>
+  5. Install pipx
+     : apt install pipx
+     : pipx ensurepath
+  6. Install boss
+     : pipx install boss*whl
+  7. Run boss to setup user
+     : boss install the-devils-horn.local NewUserAsRoot -u sm,jZ77S4.....YRhDZ%P
+  8. Configure ssh for new user
+     : cp -r ~/.ssh /home/NEWUSER/
+     : chown -R NEWUSER:NEWUSER .ssh
+  9. Setup the firewall
+     https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu#step-4-setting-up-a-firewall
+  10. Test NEWUSER log-in in another window
+""")
+    content.append(
+        click.style("Available modules:", fg="yellow", bold=True, underline=True)
     )
     for app in MODS:
         content.append("")
