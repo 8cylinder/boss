@@ -8,6 +8,7 @@ import datetime
 import click
 from pathlib import Path
 from boss.cli import MODS
+import shutil
 
 
 def error(message: str) -> None:
@@ -66,7 +67,7 @@ def get_mods(full: bool = False) -> str:
 
 
 def main() -> None:
-    template = Path("boss.1.template")
+    template = Path("scripts/boss.1.template")
     destination = Path("man")
 
     # Check if destination directory exists
@@ -76,6 +77,9 @@ def main() -> None:
     # Check if template file exists
     if not template.exists():
         error(f"Template file {template} does not exist.")
+
+    if shutil.which("help2man") is None:
+        error("help2man is not installed. Please install it and try again.")
 
     # Run UV sync command
     subprocess.run(["uv", "sync"], check=True)
