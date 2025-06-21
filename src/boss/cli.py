@@ -1,7 +1,6 @@
 # run-shell-command :: ../build.bash
 
 import sys
-import os
 import re
 import subprocess
 import socket
@@ -268,17 +267,7 @@ CONTEXT_SETTINGS = {
 }
 
 
-@click.group(no_args_is_help=True, context_settings=CONTEXT_SETTINGS)
-@click.version_option(version=__version__)
-def boss() -> None:
-    """👔 Install various applications and miscellany to set up a server.
-
-    It's recommended to set up Apt-Cacher NG on the host machine.  Once
-    that's done adding `aptproxy` to the list of modules will configure
-    this server to make use of it."""
-
-
-@boss.command()  # no_args_is_help=True # Click 7.1
+@click.command(no_args_is_help=True, context_settings=CONTEXT_SETTINGS)
 @click.argument("servername", type=SERVER)
 @click.argument("modules", nargs=-1, required=True)
 @click.option(
@@ -382,8 +371,9 @@ def boss() -> None:
     metavar="USERNAME,USERPASS",
     help="a new user's name and password (seperated by a comma)",
 )
-def install(**all_args: Any) -> None:
-    """Install server components.
+@click.version_option(version=__version__)
+def boss(**all_args: Any) -> None:
+    """👔 Install various applications and miscellany to set up a server.
 
     MODULES is the list of modules, see `boss list` for available modules.
     SERVERNAME is used to set up the self-signed certificate and virtual host.
@@ -461,90 +451,3 @@ def install(**all_args: Any) -> None:
             error(str(e))
         except FileNotFoundError as e:
             error(e.args[0])
-
-
-@boss.command(name="list")
-def list_modules() -> None:
-    """List available modules"""
-    installed_file = os.path.expanduser("~/boss-installed-modules")
-    installed = []
-    if os.path.exists(installed_file):
-        with open(installed_file) as f:
-            installed = f.readlines()
-        installed = [i.lower().strip() for i in installed]
-
-    col_max = 0
-    for mod in MODS:
-        col_max = len(mod.__name__) if len(mod.__name__) > col_max else col_max
-
-    for mod in MODS:
-        name = mod.__name__
-        module = mod
-        description = module.__doc__ if module.__doc__ else ""
-        deps = ", ".join(mod.requires)
-        if description:
-            description = description.splitlines()[0]
-        click.echo(click.style(name.ljust(col_max + 2, "."), bold=True) + description)
-        if deps:
-            indent = " " * (col_max + 2)
-            click.secho(f"{indent}Reqs: {deps}", fg="blue")
-        sys.stdout.flush()
-
-
-@boss.command()
-def help() -> None:
-    """Show help for each module"""
-
-    content = []
-    content.append(
-        click.style(
-            "Setup instructions for DigitalOcean",
-            fg="yellow",
-            bold=True,
-            underline=True,
-        )
-    )
-    content.append("""
-Setup for a new server on Digital Ocean or similar.
-  1. Create server
-  2. Add ssh keys during setup
-  3. Try:
-     : ssh root@<ipaddress>
-  4. Upload boss
-     : scp dist/boss*whl root@<ipaddress>
-  5. Install pipx
-     : apt install pipx
-     : pipx ensurepath
-  6. Install boss
-     : pipx install boss*whl
-  7. Run boss to setup user
-     : boss install the-devils-horn.local NewUserAsRoot -u sm,jZ77S4.....YRhDZ%P
-  8. Configure ssh for new user
-     : cp -r ~/.ssh /home/NEWUSER/
-     : chown -R NEWUSER:NEWUSER .ssh
-  9. Setup the firewall
-     https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu#step-4-setting-up-a-firewall
-  10. Test NEWUSER log-in in another window
-""")
-    content.append(
-        click.style("Available modules:", fg="yellow", bold=True, underline=True)
-    )
-    for app in MODS:
-        content.append("")
-
-        title = "{} ({})".format(app.title, app.__name__.lower())
-        under = "-" * len(title)
-        content.append(click.style(title, fg="yellow", bold=False, underline=True))
-
-        if app.__doc__:
-            lines = app.__doc__.splitlines()
-            lines = [i.strip() for i in lines]
-            content.append("\n".join(lines).strip())
-        else:
-            content.append(click.style("(No documentation)", dim=True))
-        if app.requires:
-            content.append("")
-            cont_title = click.style("Required modules:", fg="blue")
-            content.append("{} {}".format(cont_title, ", ".join(app.requires)))
-    content.append("\n")
-    click.echo_via_pager("\n".join(content))

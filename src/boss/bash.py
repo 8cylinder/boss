@@ -146,9 +146,11 @@ class Bash:
         return result
 
     def pre_install(self) -> None:
+        """Stub to ensure that all modules have this method."""
         return
 
     def post_install(self) -> None:
+        """Stub to ensure that all modules have this method."""
         return
 
     def run(

@@ -1,6 +1,6 @@
 .\" Manpage for boss, a server config tool.
 
-.TH boss 1 "2025-06-19" "1.0" "boss man page"
+.TH boss 1 "2025-06-20" "2.1.0" "boss man page"
 
 .SH NAME
 boss \- configure a server
@@ -8,13 +8,360 @@ boss \- configure a server
 .SH SYNOPSIS
 
 .B boss
-install [\fIOPTIONS\fR] \fISERVERNAME MODULES...\fR
-
-.B boss
-help
-
-.B boss
-list
+install [\fIOPTION\fR]... \fISERVERNAME MODULES...\fR
 
 .SH DESCRIPTION
-Configure a server.
+Configure a server.  This program is meant for local or remove server
+configuration.  It is a python module that is expected to be installed
+on the server after user access is setup.
+
+The built wheel should be installed via pipx.
+
+\fBboss install\fR will install the modules
+
+.SH OPTIONS
+.TP
+\fB\-d\fR, \fB\-\-dry\-run\fR
+Only print the commands that would be used
+.TP
+\fB\-o\fR, \fB\-\-no\-required\fR
+Don't install the required modules
+.TP
+\fB\-O\fR, \fB\-\-no\-dependencies\fR
+Don't install dependent modules
+.TP
+\fB\-\-generate\-script\fR
+Output suitable for a bash script instead of
+running them
+.TP
+\fB\-\-dist\-version\fR FLOAT
+The version of Ubuntu to assume instead of
+autodetect.
+.TP
+\fB\-n\fR, \fB\-\-new\-user\-and\-pass\fR USERNAME,USERPASS
+a new unix user's name and password
+(seperated by a comma), they will be added
+to the www\-data group
+.TP
+\fB\-S\fR, \fB\-\-sql\-file\fR SQLFILE
+sql file to be run during install
+.TP
+\fB\-N\fR, \fB\-\-db\-name\fR DB\-NAME
+the name the schema to create
+.TP
+\fB\-P\fR, \fB\-\-db\-root\-pass\fR PASSWORD
+password for mysql root user, required for
+the mysql module
+.TP
+\fB\-A\fR, \fB\-\-new\-db\-user\-and\-pass\fR USERNAME,PASSWORD
+a new db user's new username and password
+(seperated by a comma)
+.TP
+\fB\-u\fR, \fB\-\-new\-system\-user\-and\-pass\fR USERNAME,PASSWORD
+a new system user's new username and
+password (seperated by a comma)
+.TP
+\fB\-s\fR, \fB\-\-site\-name\-and\-root\fR SITENAME,DOCUMENTROOT[:...]
+SITENAME, DOCUMENTROOT and CREATEDIR
+seperated by a comma (doc root will be put
+in \fI\,/var/www\/\fP). CREATEDIR is an optional y/n
+that indicates if to create the dir or not
+(default:n). Multiple sites can be specified
+by seperating them with a ":", eg: \fB\-s\fR
+site1,root1,y:site2,root2
+.TP
+\fB\-c\fR, \fB\-\-craft\-credentials\fR USERNAME,EMAIL,PASSWORD
+Craft admin credentials. If not set, only
+system requirements for Craft will be
+installed
+.TP
+\fB\-i\fR, \fB\-\-host\-ip\fR IP_ADDRESS
+Host ip to be used in aptproxy config
+.TP
+\fB\-\-netdata\-user\-pass\fR USERNAME,USERPASS
+a new user's name and password (seperated by
+a comma)
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Show this message and exit.
+
+.SH MODULES
+
+.TP
+.B AptProxy
+Use the host machine's apt proxy.
+
+
+.TP
+.B First
+Install misc apps that are useful.
+
+
+.TP
+.B NewUserAsRoot
+Create a new user assuming the current user is root.
+
+
+.TP
+.B Personalize
+Personalize the user's environment with custom configurations.
+
+
+.TP
+.B LetsEncryptCert
+Let's Encrypt certificate installation and configuration using snap.
+
+
+.TP
+.B SelfCert
+A self-signed cert good for 30 years
+
+
+.TP
+.B Apache2
+Stand-alone Apache
+
+
+.TP
+.B Nginx
+Stand-alone Nginx
+
+
+.TP
+.B PhpBin
+PHP with additional packages that CMS's need
+
+
+.TP
+.B Mysql
+Mysql db and password configuration
+
+
+.TP
+.B Composer
+If the distro is older than 18.04 composer is installed from source
+
+
+.TP
+.B Xdebug
+A standard Xdebug installation for PHP
+
+
+.TP
+.B PhpMyAdmin
+Web database client
+
+
+.TP
+.B Adminer
+Web database client, an alternative to PhpMyAdmin
+
+
+.TP
+.B VirtualHost
+Create virtualhost configuration files for http and https
+
+
+.TP
+.B PhpInfo
+Create a phpinfo.php file in /var/www/html
+
+
+.TP
+.B Craft
+https://craftcms.com
+
+
+.TP
+.B Netdata
+Netdata server monitoring
+
+
+.TP
+.B Webmin
+Webmin console
+
+
+.TP
+.B Bashrc
+A custom bashrc from GitHub and symlink boss to ~/bin/
+
+
+.TP
+.B Last
+Show a summary of the installation process.
+
+
+.SH MODULE DETAILS
+
+.TP
+.B AptProxy
+Use the host machine's apt proxy.
+
+apt-cacher-ng needs to be installed and configured on the host:
+1. sudo apt install apt-cacher-ng
+2. echo 'Acquire::http::Proxy "http://<HOST IP>:3142";' | sudo tee /etc/apt/apt.conf.d/00aptproxy
+
+Installation can be checked by going to http://<HOST IP>:3142/acng-report.html
+
+Then when using the `aptproxy` module, it will create a config
+file in apt.conf.d to configure apt to use the host's apt cache by
+running the following command:
+`echo 'Acquire::http::Proxy "http://<HOST IP>:3142";' | sudo tee /etc/apt/apt.conf.d/00aptproxy`
+
+
+.TP
+.B First
+Install misc apps that are useful.
+
+- The timezone is set to the value in Settings.timezone
+- Emacs is configured as the default editor.
+
+
+.TP
+.B NewUserAsRoot
+Create a new user assuming the current user is root.
+
+This class provides functionality to create a new system user with appropriate
+shell access and group permissions. It handles user creation, password setup,
+and additional system configurations.
+
+The class performs the following operations:
+- Creates a new user with /bin/bash as the default shell
+- Creates the user's home directory
+- Configures the user's password using SHA-512 encryption
+- Adds the user to 'sudo' and 'www-data' groups
+- Configures sudo to maintain authentication for the user's session duration
+
+Note:
+This class assumes root privileges are available for execution.  Sudo is not
+used in this class.
+
+
+.TP
+.B Personalize
+Personalize the user's environment with custom configurations.
+
+This class handles the customization of a user's shell and editor environment by
+configuring bash and emacs settings. It sets up various shell aliases, prompt
+customization, history settings, and editor preferences.
+
+The class performs the following configurations:
+- Customizes the bash prompt (PS1) with color-coded user, host, and path info
+- Sets up useful shell aliases for common commands like ls, grep, and tree
+- Configures bash history settings for better command history tracking
+- Sets default editor preferences for regular, visual, and sudo operations
+- Configures emacs with custom theme (modus-vivendi) and interface settings
+
+
+.TP
+.B LetsEncryptCert
+Let's Encrypt certificate installation and configuration using snap.
+
+Documentation:
+- https://certbot.eff.org/instructions?ws=apache&os=snap
+- https://www.digitalocean.com/community/tutorials/how-to-secure-apache-with-let-s-encrypt-on-ubuntu
+
+
+.TP
+.B SelfCert
+A self-signed cert good for 30 years
+
+Its name is the servername, SERVERNAME.crt and SERVERNAME.key.
+They are installed in /etc/ssl.
+
+
+.TP
+.B Apache2
+Stand-alone Apache
+
+With a default site at /var/www/html.
+
+
+.TP
+.B Nginx
+Stand-alone Nginx
+
+
+.TP
+.B PhpBin
+PHP with additional packages that CMS's need
+
+
+.TP
+.B Mysql
+Mysql db and password configuration
+
+Requires root's password and new db to create.  Optionally, a new
+user can be created.
+
+root's password: --db-root-password=PASSWORD
+New db: --db-name=DBNAME
+Optional new user and password: --new-db-user-and-pass=USER,PASSWORD
+
+
+.TP
+.B Composer
+If the distro is older than 18.04 composer is installed from source
+from github.  Otherwise it is installed from the apt repo.
+
+
+.TP
+.B Xdebug
+A standard Xdebug installation for PHP
+
+
+.TP
+.B PhpMyAdmin
+Web database client
+
+Access at http://<servername>/phpmyadmin
+Use the root username and the password specified via --db_root_pass
+
+
+.TP
+.B Adminer
+Web database client, an alternative to PhpMyAdmin
+
+
+.TP
+.B VirtualHost
+Create virtualhost configuration files for http and https
+
+
+.TP
+.B PhpInfo
+Create a phpinfo.php file in /var/www/html
+
+It is available at https://<servername>/phpinfo.php
+
+
+.TP
+.B Craft
+https://craftcms.com
+
+
+.TP
+.B Netdata
+Netdata server monitoring
+
+
+.TP
+.B Webmin
+Webmin console
+
+
+.TP
+.B Bashrc
+A custom bashrc from GitHub and symlink boss to ~/bin/
+
+1. Downloads a bashrc from GitHub and creates a bin dir in the $HOME dir.
+2. Backups the orginal .bashrc
+3. Symlinks the ~/bin/bashrc to ~/.bashrc
+4. Symlink /project/boss to ~/bin/boss
+
+
+.TP
+.B Last
+Show a summary of the installation process.
+

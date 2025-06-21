@@ -1,0 +1,29 @@
+.\" Manpage for boss, a server config tool.
+
+.TH boss 1 "{date}" "{version}" "boss man page"
+
+.SH NAME
+boss \- configure a server
+
+.SH SYNOPSIS
+
+.B boss
+install [\fIOPTION\fR]... \fISERVERNAME MODULES...\fR
+
+.SH DESCRIPTION
+Configure a server.  This program is meant for local or remove server
+configuration.  It is a python module that is expected to be installed
+on the server after user access is setup.
+
+The built wheel should be installed via pipx.
+
+\fBboss install\fR will install the modules
+
+.SH OPTIONS
+{options}
+
+.SH MODULES
+{modules}
+
+.SH MODULE DETAILS
+{details}
