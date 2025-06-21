@@ -7,7 +7,7 @@ from typing import Any
 class First(Bash):
     """Install misc apps that are useful.
 
-    - The timezone is set to the value in Settings.timezone
+    - The timezone is set to the value in Settings.timezone.
     - Emacs is configured as the default editor.
     """
 

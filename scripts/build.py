@@ -47,22 +47,58 @@ def get_options() -> str:
     return options
 
 
+def unindent(text: str) -> str:
+    """Remove leading whitespace from each line in the text.
+
+    Uses the first line's indentation level to determine how much to remove."""
+    lines = text.splitlines()
+    if not lines:
+        return ""
+    # find the indent level of the first line.
+    indent_level = len(lines[0]) - len(lines[0].lstrip())
+    indent = " " * indent_level
+    lines = [f"{indent}{i.strip()}" for i in lines]
+    return "\n".join(lines)
+
+
 def get_mods(full: bool = False) -> str:
-    template = """
-.TP
-.B {name}
-{description}
-"""
+    basic_template = unindent(""".B
+        {name}
+        .br""")
+    full_template = unindent(""".TP
+        .B {name}
+        {description}
+
+        {requirements}""")
     mods = []
     for mod in MODS:
         name = mod.__name__
         description = mod.__doc__ if mod.__doc__ else ""
+        description = unindent(description)
+        requirements = ""
+        if mod.requires:
+            requirements = r"\fBRequirements: \fI" + ", ".join(mod.requires) + r"\fR"
         lines = description.splitlines()
         if full:
-            description = "\n".join([i.strip() for i in lines])
+            # lines = [i.strip() for i in lines]
+            # fix bullets, add a .br after each line that starts with a number or a dash
+            formatted = []
+            for l in lines:
+                formatted.append(l)
+                if re.match(r"^([1-9]+\.|- )", l):
+                    formatted.append(".br")
+            description = "\n".join(formatted)
+            mods.append(
+                full_template.format(
+                    name=name,
+                    # description=description.strip(),
+                    description=description,
+                    requirements=requirements,
+                )
+            )
         else:
-            description = lines[0]
-        mods.append(template.format(name=name, description=description.strip()))
+            mods.append(basic_template.format(name=name))
+
     return "\n".join(mods)
 
 

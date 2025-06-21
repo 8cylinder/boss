@@ -12,6 +12,7 @@ class LetsEncryptCert(Bash):
     """Let's Encrypt certificate installation and configuration using snap.
 
     Documentation:
+
     - https://certbot.eff.org/instructions?ws=apache&os=snap
     - https://www.digitalocean.com/community/tutorials/how-to-secure-apache-with-let-s-encrypt-on-ubuntu
     """

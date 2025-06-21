@@ -1,29 +1,73 @@
 .\" Manpage for boss, a server config tool.
 
+
 .TH boss 1 "{date}" "{version}" "boss man page"
+
 
 .SH NAME
 boss \- configure a server
+
 
 .SH SYNOPSIS
 
 .B boss
 [\fIOPTION\fR]... \fISERVERNAME MODULES\fR...
 
+
 .SH DESCRIPTION
-Configure a server.  This program is meant for local or remove server
-configuration.  It is a python module that is expected to be installed
-on the server after user access is setup.
 
-The built wheel should be installed via pipx.
+This program is meant for local or remote server configuration.  It is
+a python module that is expected to be installed on the server after
+user access is setup using pipx.  It will output the commands as they
+are used and optionally can generate a script instead of executing
+them.
 
-\fBboss\fR will install the modules
+.SH EXAMPLE USAGE
+
+This is an example setting up a Digitalocean server.
+
+.TP
+.B
+Setup the server
+Setup a server and ensure access via root.  Make sure ssh keys are added during setup.  Then test with,
+.br
+$ \fBssh \fIroot@<ipaddress>\fR
+
+.TP
+.B
+Upload boss
+Upload the boss wheel to the server.
+.br
+$ \fBscp \fIdist/boss*whl root@<ipaddress>\fR
+
+.TP
+.B
+Install pipx
+Install pipx and modify the $PATH to point to pipx applications.  After ensurepath, log out and log in again, or run "source .bashrc".
+.br
+$ \fBapt install pipx\fR
+.br
+$ \fBpipx ensurepath\fR
+
+.TP
+.B
+Setup non root user
+Run boss to setup and configure the default user that will access the server.  Use "-d" to see what it will do before actually running it.
+.br
+$ \fBboss \fIexample.com \fRnewuserasroot -u \fIusername,password\fR -d
+
+.TP
+.B
+Login as new user
+Test the login in another terminal, and if successfull procede to set up the rest of the server.
 
 .SH OPTIONS
 {options}
 
-.SH MODULES
+
+.SH AVAILABLE MODULES
 {modules}
+
 
 .SH MODULE DETAILS
 {details}

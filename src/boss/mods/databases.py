@@ -13,9 +13,9 @@ class Mysql(Bash):
     Requires root's password and new db to create.  Optionally, a new
     user can be created.
 
-    root's password: --db-root-password=PASSWORD
-    New db: --db-name=DBNAME
-    Optional new user and password: --new-db-user-and-pass=USER,PASSWORD
+    - root's password: --db-root-password=PASSWORD
+    - New db: --db-name=DBNAME
+    - Optional new user and password: --new-db-user-and-pass=USER,PASSWORD
     """
 
     provides = ["mysql"]
@@ -134,6 +134,7 @@ class PhpMyAdmin(Bash):
     """Web database client
 
     Access at http://<servername>/phpmyadmin
+
     Use the root username and the password specified via --db_root_pass
     """
 
