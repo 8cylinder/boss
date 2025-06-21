@@ -6,3 +6,4 @@ __pycache__
 sink.yaml*
 sink.yam*
 **/*.egg-info
+man/boss.1
