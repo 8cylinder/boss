@@ -15,7 +15,7 @@ class VirtualHost(Bash):
 
     provides = ["virtualhost"]
     requires = ["apache2", "cert"]
-    # requires = ["apache2"]
+    required_args = ["site_name_and_root", "servername"]
     title = "Virtual host"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

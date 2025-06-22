@@ -15,6 +15,7 @@ class PhpBin(Bash):
 
     provides = ["phpbin"]
     requires = ["apache2"]
+    required_args = []
     title = "PHP bin"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -92,6 +93,7 @@ class Xdebug(Bash):
 
     provides = ["xdebug"]
     requires = ["phpbin"]
+    required_args = []
     title = "Xdebug"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -138,6 +140,7 @@ class PhpInfo(Bash):
 
     provides = ["phpinfo"]
     requires = ["phpbin"]
+    required_args = []
     title = "PHP Info"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -177,6 +180,7 @@ class Composer(Bash):
 
     provides = ["composer"]
     requires = ["phpbin"]
+    required_args = []
     title = "Composer"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

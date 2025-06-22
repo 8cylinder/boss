@@ -20,6 +20,7 @@ class FakeSMTP(Bash):
 
     provides = ["fakesmtp"]
     requires = ["phpbin"]
+    required_args = []
     title = "FakeSMTP (Mailhog)"
 
     def __init__(self, *args, **kwargs):

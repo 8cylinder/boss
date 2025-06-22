@@ -13,6 +13,12 @@ class Craft(Bash):
 
     provides = ["craft"]
     requires = ["apache2", "phpbin", "mysql", "composer", "virtualhost"]
+    required_args = [
+        "db_name",
+        "craft_credentials",
+        "site_name_and_root",
+        "new_db_user_and_pass",
+    ]
     title = "Craft CMS"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

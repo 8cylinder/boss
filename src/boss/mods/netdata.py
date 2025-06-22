@@ -15,6 +15,7 @@ class Netdata(Bash):
 
     provides = ["netdata"]
     requires = ["apache2"]
+    required_args = ["netdata_user_pass"]
     title = "Netdata"
 
     def __init__(self, *args, **kwargs):

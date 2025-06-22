@@ -19,6 +19,7 @@ class LetsEncryptCert(Bash):
 
     provides = ["cert"]
     requires: list[str] = []
+    required_args = ["servername"]
     title = "Let's Encrypt cert"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -49,6 +50,7 @@ class SelfCert(Bash):
 
     provides = ["cert"]
     requires: list[str] = []
+    required_args = []
     title = "Self signed cert"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

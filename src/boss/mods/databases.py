@@ -20,6 +20,7 @@ class Mysql(Bash):
 
     provides = ["mysql"]
     requires: list[str] = []
+    required_args = ["db_name", "db_root_pass"]
     title = "MySQL"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -79,7 +80,7 @@ class Mysql(Bash):
     def config_for_low_memory(self) -> None:
         setting_file = "/etc/mysql/my.cnf"
         setting = self.set_indent("""
-            [mysql]
+            [mysqld]
             performance_schema = off
         """)
         self.append_to_file(setting_file, setting)
@@ -150,6 +151,7 @@ class PhpMyAdmin(Bash):
 
     provides = ["phpmyadmin"]
     requires = ["apache2", "phpbin", "mysql"]
+    required_args = []
     title = "PhpMyAdmin"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -197,6 +199,7 @@ class Adminer(Bash):
 
     provides = ["adminer"]
     requires = ["apache2", "phpbin", "mysql"]
+    required_args = []
     title = "Adminer"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

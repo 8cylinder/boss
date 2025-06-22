@@ -6,6 +6,7 @@ from ..bash import Bash
 class Wordpress(Bash):
     provides = ["wordpress"]
     requires = ["phpbin"]
+    required_args = []
     title = "Wordpress"
 
     def __init__(self, *args, **kwargs):

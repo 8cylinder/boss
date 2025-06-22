@@ -23,6 +23,7 @@ class Lamp(Apache2, Mysql):
 
     provides = ["apache2", "php", "mysql", "lamp"]
     requires = []
+    required_args = ["db_name", "db_root_pass"]
     title = "Lamp"
 
     def __init__(self, *args, **kwargs):

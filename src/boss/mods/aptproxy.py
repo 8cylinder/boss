@@ -24,6 +24,7 @@ class AptProxy(Bash):
 
     provides = ["aptproxy"]
     requires: list[str] = []
+    required_args = ["host_ip"]
     title = "Apt Proxy"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

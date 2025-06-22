@@ -26,6 +26,7 @@ class NewUserAsRoot(Bash):
 
     provides = ["newuserasroot"]
     requires = []
+    required_args = ["new_system_user_and_pass"]
     title = "New user (as root)"
 
     def __init__(self, *args: tuple[Any, ...], **kwargs: dict[str, Any]) -> None:

@@ -6,7 +6,7 @@ import datetime
 import subprocess
 from typing import NamedTuple
 from dataclasses import dataclass
-from .errors import CommandError
+from .errors import CommandError, DependencyError
 from .util import display_cmd, error, notify
 from enum import Enum, auto
 from pathlib import Path
@@ -49,6 +49,7 @@ class Bash:
     WWW_USER = "www-data"
     title: str
     requires: list[str]
+    required_args: list[str]
 
     def __init__(self, args: Args, dry_run: bool = False) -> None:
         self.ok_code = 0
@@ -86,6 +87,20 @@ class Bash:
 
         with open(os.path.expanduser(log_name), "w") as f:
             f.writelines(installed_mods)
+
+    def ensure_arg_requirements(self) -> None:
+        """Ensure that all required arguments are provided."""
+        if not self.args:
+            return
+        missing_args = []
+
+        for arg in self.required_args:
+            if not getattr(self.args, arg, None):
+                missing_args.append(arg)
+        if missing_args:
+            missing = ", ".join(missing_args)
+            this = self.__class__.__name__
+            raise DependencyError(f"Missing arguments for {this}: {missing}. ")
 
     def sed(self, sed_exp: str, config_file: str) -> None:
         new_ext = ".original-{}".format(self.now)

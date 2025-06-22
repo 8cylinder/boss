@@ -13,6 +13,7 @@ class Last(Bash):
 
     provides = ["done"]
     requires: list[str] = []
+    required_args = []
     title = "Done"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

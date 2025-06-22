@@ -13,6 +13,7 @@ class Apache2(Bash):
 
     provides = ["apache2"]
     requires: list[str] = []
+    required_args = []
     title = "Apache2"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

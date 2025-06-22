@@ -9,6 +9,7 @@ class Webmin(Bash):
 
     provides = ["webmin"]
     requires = ["apache2", "phpbin", "cert"]
+    required_args = []
     title = "Webmin console"
 
     def __init__(self, *args, **kwargs):

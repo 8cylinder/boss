@@ -13,6 +13,7 @@ class First(Bash):
 
     provides = ["first"]
     requires = []
+    required_args = []
     title = "First"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

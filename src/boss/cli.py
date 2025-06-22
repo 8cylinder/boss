@@ -94,7 +94,7 @@ def is_ipaddress(ip: str) -> bool:
 def get_matching_modules(wanted_mods: list[str]) -> list[Any]:
     """Return a list of modules that match the requested module names.
 
-    Try and match partial names too, but if there are multiple matches
+    Try and match partial names too, but if there are multiple matches,
     raise an error.
 
     Sort the list of modules by their order in MODS and remove duplicates.
@@ -315,7 +315,6 @@ CONTEXT_SETTINGS = {
 @click.option(
     "-P",
     "--db-root-pass",
-    default="password",
     metavar="PASSWORD",
     required=deps("mysql", "lamp", "phpmyadmin"),
     help="password for mysql root user, required for the mysql module",
@@ -423,7 +422,8 @@ def boss(**all_args: Any) -> None:
             "# Boss command used to generate this script",
             "# {}".format(" ".join(sys.argv)),
             "",
-            "set -x",
+            "set -x"
+            r"PS4=$'\e[30;103m+\e[0m '",
         )
         click.echo("\n".join(script_header))
     else:
@@ -431,6 +431,18 @@ def boss(**all_args: Any) -> None:
             print("Installing:", ", ".join([i.__name__ for i in wanted]))
             if not click.confirm("Continue?", default=True, abort=True):
                 sys.exit()
+
+    # ensure that the required arguments are provided
+    is_error = False
+    for App in wanted:
+        app = App(dry_run=True, args=args)
+        try:
+            app.ensure_arg_requirements()
+        except DependencyError as e:
+            is_error = True
+            click.secho(str(e), fg="red")
+    if is_error:
+        exit(1)
 
     for App in wanted:
         module_name = App.title

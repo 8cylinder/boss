@@ -25,6 +25,9 @@ class Example(Bash):
     # matched to provides.
     requires = ['example2', 'example3']
 
+    # A list of options that this mod requires to be passed in via the args namedtuple.
+    required_args = []
+
     # A human readable name that is used in help and listing.
     title = 'Pretty name'
 
