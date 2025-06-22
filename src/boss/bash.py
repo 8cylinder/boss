@@ -125,9 +125,8 @@ class Bash:
 
         sudo = "" if nosudo else "sudo"
 
-        add_cmd = (
-            f'echo | sudo {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
-        )
+        add_cmd = f'echo | {sudo} {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
+
         # remove leading spaces from add_cmd using regex
         add_cmd = re.sub(r"^\s+", "", add_cmd, flags=re.MULTILINE)
         self.run(add_cmd, wrap=False)
@@ -227,3 +226,18 @@ class Bash:
             self.info_messages[child_title].append(row)
         except KeyError:
             self.info_messages[child_title] = [row]
+
+    def set_indent(self, text: str, amount: int = 0) -> str:
+        """Remove leading whitespace from each line in the text.
+
+        Uses the first line's indentation level to determine how much to remove."""
+        lines = text.splitlines()
+        if not lines:
+            return ""
+        new_indent = " " * amount
+        indent_level = len(lines[0]) - len(lines[0].lstrip())
+        # unindent each line by the indent level
+        lines = [i[indent_level:] for i in lines]
+        # add the new indent level to each line
+        lines = [f"{new_indent}{i}" for i in lines]
+        return "\n".join(lines)

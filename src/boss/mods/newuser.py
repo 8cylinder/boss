@@ -12,6 +12,7 @@ class NewUserAsRoot(Bash):
     and additional system configurations.
 
     The class performs the following operations:
+
     - Creates a new user with /bin/bash as the default shell
     - Creates the user's home directory
     - Configures the user's password using SHA-512 encryption
@@ -76,6 +77,7 @@ class Personalize(Bash):
     customization, history settings, and editor preferences.
 
     The class performs the following configurations:
+
     - Customizes the bash prompt (PS1) with color-coded user, host, and path info
     - Sets up useful shell aliases for common commands like ls, grep, and tree
     - Configures bash history settings for better command history tracking

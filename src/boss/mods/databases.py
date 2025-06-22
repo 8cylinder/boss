@@ -76,6 +76,14 @@ class Mysql(Bash):
             )
         )
 
+    def config_for_low_memory(self) -> None:
+        setting_file = "/etc/mysql/my.cnf"
+        setting = self.set_indent("""
+            [mysql]
+            performance_schema = off
+        """)
+        self.append_to_file(setting_file, setting)
+
     def test_mysql_connectivity(self) -> None:
         """
         Tests MySQL connectivity, including root user login, additional user login, and
@@ -125,6 +133,8 @@ class Mysql(Bash):
             self.create_schema(self.args.db_name, self.args.db_root_pass)
         if self.args.sql_file:
             self.import_sql(self.args.db_root_pass, self.args.sql_file)
+
+        self.config_for_low_memory()
 
         # Test the MySQL setup
         self.test_mysql_connectivity()
