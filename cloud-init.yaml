@@ -5,9 +5,9 @@ verbose: true
 # Configure logging
 output: {all: '| tee -a /var/log/cloud-init-output.log'}
 
-package_update: true
-package_upgrade: true
-package_reboot_if_required: true
+#package_update: true
+#package_upgrade: true
+#package_reboot_if_required: true
 
 packages:
   - pipx
@@ -15,10 +15,10 @@ packages:
 #mounts:
 #  - [ /home/sm/projects/boss, /home/ubuntu/boss ]
 
-runcmd:
-  - snap install astral-uv --classic
-  # Cannot use since the dist dir in not mounted until after the cloud-init script is complete.
-  #- pipx install /home/ubuntu/dist/boss*.whl
+#runcmd:
+#  - snap install astral-uv --classic
+#  # Cannot use since the dist dir in not mounted until after the cloud-init script is complete.
+#  #- pipx install /home/ubuntu/dist/boss*.whl
 
 users:
   - default
