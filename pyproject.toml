@@ -1,6 +1,6 @@
 [project]
 name = "boss"
-version = "2.1.0"
+version = "2.2.0"
 description = "Provision a server"
 readme = "README.md"
 authors = [
