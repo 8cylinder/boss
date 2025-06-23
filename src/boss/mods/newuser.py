@@ -154,5 +154,5 @@ class Personalize(Bash):
         settings = "\n".join(
             [re.sub(r"^\s*", "", i) for i in emacs_settings.split("\n")]
         )
-        self.write_new_file(dot_emacs, settings)
+        self.write_new_file(dot_emacs, settings, nosudo=True)
         self.write_new_file(root_dot_emacs, settings)

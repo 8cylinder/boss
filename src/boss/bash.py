@@ -108,10 +108,15 @@ class Bash:
         self.run(sed_cmd)
 
     def write_new_file(
-        self, filename: str | Path, text: str, user: str | None = None
+        self,
+        filename: str | Path,
+        text: str,
+        user: str | None = None,
+        nosudo: bool = False,
     ) -> None:
+        sudo = "" if nosudo else "sudo"
         alt_user = f"-u {user}" if user else ""
-        cmd = f'''echo | sudo {alt_user} tee "{filename}" <<'EOF'\n{text}\nEOF'''
+        cmd = f'''echo | {sudo} {alt_user} tee "{filename}" <<'EOF'\n{text}\nEOF'''
         self.run(cmd, wrap=False)
 
     def append_to_file(
@@ -123,11 +128,10 @@ class Bash:
         backup: bool = True,
         append: bool = True,
     ) -> None:
+        sudo = "" if nosudo else "sudo"
+
         if backup:
-            new_ext = ".original-{}".format(self.now)
-            copy_cmd = 'sudo cp "{file}" "{file}{now}"'.format(
-                file=filename, now=new_ext
-            )
+            copy_cmd = f'{sudo} cp "{filename}" "{filename}.original-{self.now}"'
             self.run(copy_cmd)
 
         www_user = ""
@@ -137,8 +141,6 @@ class Bash:
         append_flag = ""
         if append is True:
             append_flag = "-a"
-
-        sudo = "" if nosudo else "sudo"
 
         add_cmd = f'echo | {sudo} {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
 
