@@ -88,6 +88,7 @@ class Personalize(Bash):
 
     provides = ["personalize"]
     requires = ["first"]
+    required_args = []
     title = "Personalize"
 
     def __init__(self, *args: tuple[Any, ...], **kwargs: dict[str, Any]) -> None:
