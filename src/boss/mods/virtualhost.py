@@ -109,6 +109,7 @@ class VirtualHost(Bash):
             full_document_root = os.path.join("/var/www", site[1])
             vhost_config = self._http(site_name, full_document_root)
 
+            # TODO: if no self signed cert exists, don't create https vhost
             crt, key = self.existing_cert(self.args.servername)
             vhost_config += self._https(site_name, full_document_root, crt, key)
 

@@ -49,19 +49,12 @@ class NewUserAsRoot(Bash):
                 "usermod -aG {group} {username}".format(group=group, username=username)
             )
 
-        # modify ssh.conf to allow passwords
+        # TODO: copy root .ssh to new user's .ssh
 
-        # Option A is only for local dev machines, option B should be used instead.
-        #
-        # A)
-        # Make user not need a password for sudo.
-        # filename cannot have a . or ~
-        # sudo_file = "/etc/sudoers.d/{}-{}".format(self.scriptname, username)
-        # self.run(
-        #    "echo '{} ALL=(ALL) NOPASSWD:ALL' | tee {}".format(username, sudo_file)
-        # )
-        #
-        # B)
+        # TODO: disable root login via ssh
+
+        # TODO: disable password login via ssh
+
         # Make sudo last for the user's session length.
         self.run("echo 'Defaults timestamp_timeout=-1' | EDITOR='tee -a' visudo")
 
