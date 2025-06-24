@@ -64,7 +64,7 @@ class First(Bash):
                 "fail2ban",
                 "ssh",
                 "trash-cli",
-                "npm",
+                # "npm",
                 # "emacs-nox",  # installs postfix, use command in post_install
             ]
             # self.snap_pkgs: list[tuple[str, Snap]] = [
