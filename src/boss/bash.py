@@ -16,8 +16,8 @@ class Args(NamedTuple):
     servername: str
     modules: tuple[str, ...]
     dry_run: bool
-    no_required: bool
-    no_dependencies: bool
+    required: bool
+    dependencies: bool
     generate_script: bool
     dist_version: float | None
     new_user_and_pass: tuple[str, str]  # ...?

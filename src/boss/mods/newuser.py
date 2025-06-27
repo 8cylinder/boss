@@ -42,8 +42,6 @@ class NewUserAsRoot(Bash):
             useradd --shell=/bin/bash --create-home --password $(mkpasswd -m sha-512 {password}) {username}; 
             fi"""
         )
-        self.run("### or if using these commands interactively, use:")
-        self.run(f"# adduser {username}...")
 
         # add user to some groups
         for group in ("sudo", "www-data"):

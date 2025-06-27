@@ -227,6 +227,7 @@ class UserEmailPass(click.ParamType):
         except ValueError:
             self.fail(msg, param, ctx)
         if not is_email(email):
+            msg = f"{msg}\n\nEmail is not valid"
             self.fail(msg, param, ctx)
         return username.strip(), email.strip(), password.strip()
 
@@ -263,7 +264,7 @@ CONTEXT_SETTINGS = {
     # add -h in addition to --help
     "help_option_names": ["-h", "--help"],
     # allow case insensitive commands
-    "token_normalize_func": lambda x: x.lower(),
+    # "token_normalize_func": lambda x: x.lower(),
 }
 
 
@@ -274,10 +275,16 @@ CONTEXT_SETTINGS = {
     "-d", "--dry-run", is_flag=True, help="Only print the commands that would be used"
 )
 @click.option(
-    "-o", "--no-required", is_flag=True, help="Don't install the required modules"
+    "--required/--no-required",
+    " /-R",
+    default=True,
+    help="Install the required modules, first & last",
 )
 @click.option(
-    "-O", "--no-dependencies", is_flag=True, help="Don't install dependent modules"
+    "--dependencies/--no-dependencies",
+    " /-D",
+    default=True,
+    help="Require dependencies",
 )
 @click.option(
     "--generate-script",
@@ -377,7 +384,6 @@ def boss(**all_args: Any) -> None:
     MODULES is the list of modules, see `boss list` for available modules.
     SERVERNAME is used to set up the self-signed certificate and virtual host.
     """
-
     # convert the args dict to a namedtuple
     args = Args(**all_args)
 
@@ -393,7 +399,7 @@ def boss(**all_args: Any) -> None:
     except ModuleRequestError as e:
         error(str(e))
 
-    if not args.no_required:
+    if args.required:
         # AptProxy is a special case, it should always be first
         if AptProxy in wanted:
             # remove AptProxy from the list of wanted modules
@@ -404,7 +410,7 @@ def boss(**all_args: Any) -> None:
             wanted = [First] + wanted + [Last]
 
     # check if the requested modules have their dependencies met
-    if not args.no_dependencies:
+    if args.dependencies:
         provided = []
         requires = []
         for mod in wanted:
