@@ -161,8 +161,11 @@ class Bash:
     def is_apt_installed(self, package_name: str) -> bool:
         """Check if a package is installed using apt."""
         cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
-        result = True if self.run(cmd, capture=True) else False
-        return result
+        result = self.run(cmd, capture=True)
+        if result == "installed":
+            return True
+        else:
+            return False
 
     def pre_install(self) -> None:
         """Stub to ensure that all modules have this method."""
@@ -188,8 +191,11 @@ class Bash:
         result: str | bytes | int | None
         if self.args.dry_run or self.args.generate_script:
             return None
+
         if capture:
-            result = subprocess.check_output(cmd, shell=True, executable="/bin/bash")
+            result = subprocess.check_output(
+                cmd, shell=True, executable="/bin/bash"
+            ).decode()
             sys.stdout.flush()
         else:
             result = subprocess.check_call(cmd, shell=True, executable="/bin/bash")

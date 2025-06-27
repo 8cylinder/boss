@@ -34,6 +34,7 @@ from .mods.virtualhost import VirtualHost
 from .mods.webmin import Webmin
 from .mods.webservers import Apache2
 from .mods.webservers import Nginx
+from .mods.firewall import Firewall
 
 
 # DIST_VERSION = None
@@ -65,6 +66,7 @@ MODS = (
     Netdata,
     Webmin,
     Bashrc,
+    Firewall,
     Last,  # required
 )
 
