@@ -30,6 +30,7 @@ class Args(NamedTuple):
     craft_credentials: tuple[str, str, str]
     host_ip: str | None
     netdata_user_pass: tuple[str, str]
+    wanted: list[str] = []
 
 
 class Snap(Enum):
@@ -98,6 +99,8 @@ class Bash:
             if not getattr(self.args, arg, None):
                 missing_args.append(arg)
         if missing_args:
+            # make the missing args look like command line args
+            missing_args = [f"--{i.replace('_', '-')}" for i in missing_args]
             missing = ", ".join(missing_args)
             this = self.__class__.__name__
             raise DependencyError(f"Missing arguments for {this}: {missing}. ")

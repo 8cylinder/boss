@@ -1,7 +1,6 @@
-
 import os
 
-from .cert import SelfCert
+from .cert import SelfCert, LetsEncryptCert
 from ..bash import Bash
 from ..errors import *
 from collections import namedtuple
@@ -13,7 +12,7 @@ class VirtualHost(Bash):
     """Create virtualhost configuration files for http and https"""
 
     provides = ["virtualhost"]
-    requires = ["apache2", "cert"]
+    requires = ["apache2"]
     required_args = ["site_name_and_root", "servername"]
     title = "Virtual host"
 
@@ -72,7 +71,10 @@ class VirtualHost(Bash):
 
     def existing_cert(self, servername: str) -> tuple[str, str]:
         # retrieve the existing cert for servername
-        cert = SelfCert([], [])
+        if SelfCert in self.args.wanted:
+            cert = SelfCert([], [])
+        elif LetsEncryptCert in self.args.wanted:
+            cert = LetsEncryptCert([], [])
         _, _, crt, key = cert.cert_names(servername)
         return (crt, key)
 
@@ -108,13 +110,11 @@ class VirtualHost(Bash):
             full_document_root = os.path.join("/var/www", site[1])
             vhost_config = self._http(site_name, full_document_root)
 
-            # TODO: if no self signed cert exists, don't create https vhost
             crt, key = self.existing_cert(self.args.servername)
-            vhost_config += self._https(site_name, full_document_root, crt, key)
+            if crt:
+                vhost_config += self._https(site_name, full_document_root, crt, key)
 
             conf_file = "/etc/apache2/sites-available/{}.conf".format(site_name)
-
-            print(vhost_config)
             self.write_new_file(conf_file, vhost_config)
 
             if site[2] == "y":

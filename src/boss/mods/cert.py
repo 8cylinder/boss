@@ -1,4 +1,3 @@
-
 import os
 
 from ..bash import Bash, Snap
@@ -16,7 +15,7 @@ class LetsEncryptCert(Bash):
     - https://www.digitalocean.com/community/tutorials/how-to-secure-apache-with-let-s-encrypt-on-ubuntu
     """
 
-    provides = ["cert"]
+    provides = ["letsencryptcert"]
     requires: list[str] = []
     required_args = ["servername"]
     title = "Let's Encrypt cert"
@@ -40,6 +39,10 @@ class LetsEncryptCert(Bash):
         # to test
         self.run("sudo certbot renew --dry-run")
 
+    def cert_names(self, cert_basename: str) -> tuple[str, str, str, str]:
+        """Maintain api compatibility with SelfCert."""
+        return ("", "", "", "")
+
 
 class SelfCert(Bash):
     """A self-signed cert good for 30 years
@@ -47,7 +50,7 @@ class SelfCert(Bash):
     Its name is the servername, SERVERNAME.crt and SERVERNAME.key.
     They are installed in /etc/ssl."""
 
-    provides = ["cert"]
+    provides = ["selfcert"]
     requires: list[str] = []
     required_args = []
     title = "Self signed cert"

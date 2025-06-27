@@ -1,4 +1,3 @@
-
 import sys
 import re
 import subprocess
@@ -442,6 +441,9 @@ def boss(**all_args: Any) -> None:
             click.secho(str(e), fg="red")
     if is_error:
         exit(1)
+
+    # add the wanted modules to the args
+    args.wanted.extend(wanted)
 
     for App in wanted:
         module_name = App.title
