@@ -18,6 +18,8 @@ class NewUserAsRoot(Bash):
     - Configures the user's password using SHA-512 encryption
     - Adds the user to 'sudo' and 'www-data' groups
     - Configures sudo to maintain authentication for the user's session duration
+    - Set up ssh access using the root user's .ssh directory
+    - Disables root login and password authentication via SSH
 
     Note:
         This class assumes root privileges are available for execution.  Sudo is not
@@ -49,11 +51,17 @@ class NewUserAsRoot(Bash):
                 "usermod -aG {group} {username}".format(group=group, username=username)
             )
 
-        # TODO: copy root .ssh to new user's .ssh
+        # copy root .ssh to new user's .ssh
+        self.run(f"cp -r .ssh /home/{username}/")
+        self.run(f"chown -R {username}:{username} /home/{username}/.ssh")
 
-        # TODO: disable root login via ssh
+        ssh_conf = "/etc/ssh/sshd_config"
 
-        # TODO: disable password login via ssh
+        # disable root login via ssh
+        self.sed("s/#*PermitRootLogin.*/PermitRootLogin no/", ssh_conf)
+
+        # disable password login via ssh
+        self.sed("s/#*PasswordAuthentication.*/PasswordAuthentication no/", ssh_conf)
 
         # Make sudo last for the user's session length.
         self.run("echo 'Defaults timestamp_timeout=-1' | EDITOR='tee -a' visudo")
