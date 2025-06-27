@@ -73,10 +73,13 @@ class VirtualHost(Bash):
         # retrieve the existing cert for servername
         if SelfCert in self.args.wanted:
             cert = SelfCert([], [])
+            _, _, crt, key = cert.cert_names(servername)
         elif LetsEncryptCert in self.args.wanted:
             cert = LetsEncryptCert([], [])
-        _, _, crt, key = cert.cert_names(servername)
-        return (crt, key)
+            _, _, crt, key = cert.cert_names(servername)
+        else:
+            crt = key = ""
+        return crt, key
 
     def new_cert(self, site_name: str) -> tuple[str, str]:
         # create a new cert using this site's site_name
