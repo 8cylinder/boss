@@ -255,7 +255,7 @@ class Bash:
         if not lines:
             return ""
         new_indent = " " * amount
-        indent_level = len(lines[0]) - len(lines[0].lstrip())
+        indent_level = len(lines[1]) - len(lines[1].lstrip())
         # unindent each line by the indent level
         lines = [i[indent_level:] for i in lines]
         # add the new indent level to each line

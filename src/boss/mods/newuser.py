@@ -151,9 +151,6 @@ class Personalize(Bash):
            '(menu-bar-mode nil))
           (custom-set-faces)
         """
-        # strip off the leading spaces
-        settings = "\n".join(
-            [re.sub(r"^\s*", "", i) for i in emacs_settings.split("\n")]
-        )
+        settings = self.set_indent(emacs_settings)
         self.write_new_file(dot_emacs, settings, nosudo=True)
         self.write_new_file(root_dot_emacs, settings)
