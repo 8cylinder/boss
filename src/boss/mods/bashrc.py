@@ -1,4 +1,3 @@
-# run-shell-command :: ../../build.bash
 
 import os
 from ..bash import Bash

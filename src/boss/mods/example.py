@@ -1,4 +1,3 @@
-# run-shell-command :: ../../build.bash
 
 from ..bash import Bash, Settings
 from ..dist import Dist

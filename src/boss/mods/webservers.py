@@ -1,4 +1,3 @@
-# run-shell-command :: ../../build.bash
 from typing import Any
 
 from ..bash import Bash

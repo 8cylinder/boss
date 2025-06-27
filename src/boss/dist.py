@@ -1,4 +1,3 @@
-# run-shell-command :: ../build.bash
 
 import distro
 from .util import error
