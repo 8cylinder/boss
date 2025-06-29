@@ -1,6 +1,7 @@
 from ..bash import Bash, Settings
 from ..dist import Dist
 from ..errors import *
+from typing import Any
 
 
 class Example(Bash):
@@ -29,7 +30,7 @@ class Example(Bash):
     # A human readable name that is used in help and listing.
     title = "Pretty name"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: tuple[Any, ...], **kwargs: dict[str, Any]) -> None:
         super().__init__(*args, **kwargs)
 
         # List of apt packages to be installed via apt.
@@ -41,7 +42,7 @@ class Example(Bash):
             self.apt_pkgs = ["package1", "package2", "18.04_package_only"]
 
     # Run before apt installs the apt_pkgs.
-    def pre_install(self):
+    def pre_install(self) -> None:
         # bash provides several methods
         self.sed("sed expression", "file")
         self.apt(["list", "of", "packages"])
@@ -57,5 +58,5 @@ class Example(Bash):
         variable = Settings.timezone
 
     # Run after apt installs the apt_pkgs.
-    def post_install(self):
+    def post_install(self) -> None:
         pass

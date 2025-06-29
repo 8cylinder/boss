@@ -7,6 +7,7 @@ import click
 from click.core import Parameter, Context
 import importlib.metadata
 from typing import Any
+from pathlib import Path
 
 from .errors import DependencyError, PlatformError, SecurityError, ModuleRequestError
 from .util import error, title
@@ -35,7 +36,38 @@ from .mods.webmin import Webmin
 from .mods.webservers import Apache2
 from .mods.webservers import Nginx
 from .mods.firewall import Firewall
+from dotenv import load_dotenv
 
+
+# Load environment variables from .env file in current dir or parent directories
+# load_dotenv(dotenv_path=".env.boss")
+
+
+def find_dotenv_file() -> Path | None:
+    """Search for .env or .env.boss file in current and parent directories."""
+    current = Path.cwd()
+    while current != current.parent:
+        env_file = current / ".env"
+        env_boss = current / ".env.boss"
+
+        if env_boss.exists():
+            return env_boss
+        elif env_file.exists():
+            return env_file
+
+        current = current.parent
+    return None
+
+
+if dotenv_path := find_dotenv_file():
+    click.echo(
+        click.style("Loading environment from: ", fg="green")
+        + click.style(f'"{dotenv_path}"', fg="green", bold=True)
+    )
+    load_dotenv(dotenv_path)
+
+# Prefix for environment variables
+PREFIX = "BOSS_"
 
 # DIST_VERSION = None
 __version__ = importlib.metadata.version("boss")
@@ -263,18 +295,17 @@ def deps(*dependencies: str) -> bool:
 CONTEXT_SETTINGS = {
     # add -h in addition to --help
     "help_option_names": ["-h", "--help"],
-    # allow case insensitive commands
-    # "token_normalize_func": lambda x: x.lower(),
 }
 
 
-@click.command(no_args_is_help=True, context_settings=CONTEXT_SETTINGS)
-# @click.argument("servername", type=SERVER)
-@click.argument("modules", nargs=-1, required=True)
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.argument("modules", nargs=-1, required=True, envvar=f"{PREFIX}MODULES")
 @click.option(
     "-U",
     "--servername",
     type=SERVER,
+    metavar="SERVERNAME",
+    envvar=f"{PREFIX}SERVERNAME",
     help="The server name to use for the self-signed certificate and virtual host.",
 )
 @click.option(
@@ -308,6 +339,7 @@ CONTEXT_SETTINGS = {
     "--new-user-and-pass",
     type=USER_PASS,
     metavar="USERNAME,USERPASS",
+    envvar=f"{PREFIX}NEW_USER_AND_PASS",
     help="a new unix user's name and password (seperated by a comma), they will be added to the www-data group",
 )
 # mysql
@@ -316,12 +348,14 @@ CONTEXT_SETTINGS = {
     "--sql-file",
     type=click.Path(exists=True, dir_okay=False),
     metavar="SQLFILE",
+    envvar=f"{PREFIX}SQLFILE",
     help="sql file to be run during install",
 )
 @click.option(
     "-N",
     "--db-name",
     metavar="DB-NAME",
+    envvar=f"{PREFIX}DB_NAME",
     required=deps("mysql", "lamp", "craft"),
     help="the name the schema to create",
 )
@@ -329,6 +363,7 @@ CONTEXT_SETTINGS = {
     "-P",
     "--db-root-pass",
     metavar="PASSWORD",
+    envvar=f"{PREFIX}DB_ROOT_PASS",
     required=deps("mysql", "lamp", "phpmyadmin"),
     help="password for mysql root user, required for the mysql module",
 )
@@ -337,6 +372,7 @@ CONTEXT_SETTINGS = {
     "--new-db-user-and-pass",
     type=USER_PASS,
     metavar="USERNAME,PASSWORD",
+    envvar=f"{PREFIX}NEW_DB_USER_AND_PASS",
     required=deps("craft"),
     help="a new db user's new username and password (seperated by a comma)",
 )
@@ -346,6 +382,7 @@ CONTEXT_SETTINGS = {
     "--new-system-user-and-pass",
     type=USER_PASS,
     metavar="USERNAME,PASSWORD",
+    envvar=f"{PREFIX}NEW_SYSTEM_USER_AND_PASS",
     required=deps("newuser"),
     help="a new system user's new username and password (seperated by a comma)",
 )
@@ -355,6 +392,7 @@ CONTEXT_SETTINGS = {
     "--site-name-and-root",
     type=SITE_DOCROOT,
     metavar="SITENAME,DOCUMENTROOT[:...]",
+    envvar=f"{PREFIX}SITE_NAME_AND_ROOT",
     required=deps("virtualhost", "craft"),
     help="""SITENAME, DOCUMENTROOT and CREATEDIR seperated by a comma (doc root will be put in /var/www).
                 CREATEDIR is an optional y/n that indicates if to create the dir or not (default:n).
@@ -366,6 +404,7 @@ CONTEXT_SETTINGS = {
     "--craft-credentials",
     type=USER_EMAIL_PASS,
     metavar="USERNAME,EMAIL,PASSWORD",
+    envvar=f"{PREFIX}CRAFT_CREDENTIALS",
     help="Craft admin credentials. If not set, only system requirements for Craft will be installed",
 )
 # aptproxy
@@ -373,6 +412,7 @@ CONTEXT_SETTINGS = {
     "-i",
     "--host-ip",
     type=IP_ADDRESS,
+    envvar=f"{PREFIX}HOST_IP",
     required=deps("aptproxy"),
     help="Host ip to be used in aptproxy config",
 )
@@ -381,6 +421,7 @@ CONTEXT_SETTINGS = {
     "--netdata-user-pass",
     type=USER_PASS,
     metavar="USERNAME,USERPASS",
+    envvar=f"{PREFIX}NETDATA_USER_PASS",
     help="a new user's name and password (seperated by a comma)",
 )
 @click.version_option(version=__version__)
@@ -388,7 +429,10 @@ def boss(**all_args: Any) -> None:
     """👔 Install various applications and miscellany to set up a server.
 
     MODULES is the list of modules, see `boss list` for available modules.
-    SERVERNAME is used to set up the self-signed certificate and virtual host.
+
+    Arguments and options can be provided in environment variables and can
+    be provided in a .env or .env.boss file in the current directory or
+    parent directories.
     """
     # convert the args dict to a namedtuple
     args = Args(**all_args)
@@ -441,8 +485,12 @@ def boss(**all_args: Any) -> None:
     else:
         if not args.dry_run:
             print("Installing:", ", ".join([i.__name__ for i in wanted]))
-            if not click.confirm("Continue?", default=True, abort=True):
-                sys.exit()
+            try:
+                if not click.confirm("Continue?", default=True, abort=True):
+                    sys.exit()
+            except (KeyboardInterrupt, click.Abort):
+                # don't show the 'Aborted!' message
+                sys.exit(1)
 
     # ensure that the required arguments are provided
     is_error = False
@@ -478,3 +526,6 @@ def boss(**all_args: Any) -> None:
             error(str(e))
         except FileNotFoundError as e:
             error(e.args[0])
+        except (KeyboardInterrupt, click.Abort):
+            # don't show the 'Aborted!' message
+            sys.exit(1)
