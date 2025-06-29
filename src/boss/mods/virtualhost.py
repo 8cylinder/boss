@@ -103,10 +103,6 @@ class VirtualHost(Bash):
         for m in mods:
             self.run("sudo a2enmod {}".format(m))
 
-        # disable all existing sites
-        self.run(
-            r"find /etc/apache2/sites-available/ -type f -exec basename '{}' \; | xargs -n 1 sudo a2dissite"
-        )
         # then create the new sites and enable them
         for site in self.args.site_name_and_root:
             site_name = site[0]
