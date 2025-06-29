@@ -527,7 +527,6 @@ def install(**all_args: Any) -> None:
             app.pre_install()
             app.install()
             app.post_install()
-            app.log(module_name)
         except subprocess.CalledProcessError as e:
             error(str(e))
         except DependencyError as e:

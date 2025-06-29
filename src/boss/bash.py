@@ -62,32 +62,7 @@ class Bash:
         self.dry_run = dry_run
         self.args = args
         self.scriptname = os.path.basename(__file__)
-        if args and not dry_run:
-            # action = args.subparser_name
-            self.log(self.__class__.__name__)
         self.now = datetime.datetime.now().strftime("%y-%m-%d-%X")
-
-    @staticmethod
-    def log(name: str) -> None:
-        """Logs a module name.
-
-        The method ensures that the file contains a record of unique module names.
-        If the log file does not exist, it creates one and records the provided
-        module name.
-        """
-        log_name = "~/boss-installed-modules"
-        mod = "{}\n".format(name)
-        try:
-            with open(os.path.expanduser(log_name), "r") as f:
-                installed_mods = f.readlines()
-        except FileNotFoundError:
-            installed_mods = []
-
-        normalized_mods: set[str] = set(installed_mods)
-        normalized_mods.add(mod)
-
-        with open(os.path.expanduser(log_name), "w") as f:
-            f.writelines(installed_mods)
 
     def ensure_arg_requirements(self) -> None:
         """Ensure that all required arguments are provided."""
