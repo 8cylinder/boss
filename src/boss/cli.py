@@ -269,8 +269,14 @@ CONTEXT_SETTINGS = {
 
 
 @click.command(no_args_is_help=True, context_settings=CONTEXT_SETTINGS)
-@click.argument("servername", type=SERVER)
+# @click.argument("servername", type=SERVER)
 @click.argument("modules", nargs=-1, required=True)
+@click.option(
+    "-U",
+    "--servername",
+    type=SERVER,
+    help="The server name to use for the self-signed certificate and virtual host.",
+)
 @click.option(
     "-d", "--dry-run", is_flag=True, help="Only print the commands that would be used"
 )

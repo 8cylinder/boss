@@ -34,7 +34,7 @@ fi
 # Convert to lowercase for case-insensitive matching
 ACTION=$(echo "$ACTION" | tr '[:upper:]' '[:lower:]')
 
-set -x
+#set -x
 
 case $ACTION in
     n*)
