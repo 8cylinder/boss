@@ -1,4 +1,5 @@
 import sys
+import os
 import re
 import subprocess
 import socket
@@ -8,6 +9,7 @@ from click.core import Parameter, Context
 import importlib.metadata
 from typing import Any
 from pathlib import Path
+import textwrap
 
 from .errors import DependencyError, PlatformError, SecurityError, ModuleRequestError
 from .util import error, title
@@ -61,7 +63,7 @@ def find_dotenv_file() -> Path | None:
 
 if dotenv_path := find_dotenv_file():
     click.echo(
-        click.style("Loading environment from: ", fg="green")
+        click.style("Loading vars from: ", fg="green")
         + click.style(f'"{dotenv_path}"', fg="green", bold=True)
     )
     load_dotenv(dotenv_path)
@@ -298,7 +300,17 @@ CONTEXT_SETTINGS = {
 }
 
 
-@click.command(context_settings=CONTEXT_SETTINGS)
+@click.group(context_settings=CONTEXT_SETTINGS)
+def boss() -> None:
+    """👔 Boss - a tool to install various applications and miscellany to set up a server.
+
+    Use `boss --help` for more information on how to use it.
+    """
+    # Load environment variables from .env file in current dir or parent directories
+    # load_dotenv(dotenv_path=".env.boss")
+
+
+@boss.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("modules", nargs=-1, required=True, envvar=f"{PREFIX}MODULES")
 @click.option(
     "-U",
@@ -425,7 +437,7 @@ CONTEXT_SETTINGS = {
     help="a new user's name and password (seperated by a comma)",
 )
 @click.version_option(version=__version__)
-def boss(**all_args: Any) -> None:
+def install(**all_args: Any) -> None:
     """👔 Install various applications and miscellany to set up a server.
 
     MODULES is the list of modules, see `boss list` for available modules.
@@ -529,3 +541,49 @@ def boss(**all_args: Any) -> None:
         except (KeyboardInterrupt, click.Abort):
             # don't show the 'Aborted!' message
             sys.exit(1)
+
+
+@boss.command(context_settings=CONTEXT_SETTINGS)
+@click.option(
+    "-f/-s", "--full/--simple", default=False, help="Show full or simple output"
+)
+def info(full: bool) -> None:
+    """List any vars defined in a .env and available modules."""
+
+    is_env = False
+    for key, val in os.environ.items():
+        if key.startswith(PREFIX):
+            is_env = True
+            click.echo(f'{key}="{val}"')
+
+    if not is_env:
+        print()
+        click.secho(
+            f'No environment variables starting with "{PREFIX}" found.', fg="yellow"
+        )
+
+    print()
+
+    if not full:
+        click.secho("Available modules:", fg="green")
+        available = ", ".join([i.__name__ for i in MODS])
+        available = textwrap.fill(available)
+        print(available)
+
+    else:
+        indent = "  "
+        for mod in MODS:
+            click.secho(f"{', '.join(mod.provides)}", bold=True, fg="green")
+            if mod.requires:
+                click.echo(
+                    click.style(f"{indent}Req mods: ", dim=True, fg="cyan")
+                    + click.style(", ".join(mod.requires), fg="cyan"),
+                )
+            if mod.required_args:
+                required_args = ", ".join(
+                    [f"--{i.replace('_', '-')}" for i in mod.required_args]
+                )
+                click.echo(
+                    click.style(f"{indent}Req opts: ", dim=True, fg="yellow")
+                    + click.style(required_args, fg="yellow"),
+                )

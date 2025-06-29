@@ -33,6 +33,7 @@ class Nginx(Bash):
 
     provides = ["nginx"]
     requires: list[str] = []
+    required_args = []
     title = "Nginx"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
