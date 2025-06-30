@@ -4,7 +4,7 @@ import re
 from .dist import Dist
 import datetime
 import subprocess
-from typing import NamedTuple
+from typing import NamedTuple, Any
 from dataclasses import dataclass
 from .errors import CommandError, DependencyError
 from .util import display_cmd, error, notify
@@ -38,9 +38,162 @@ class Snap(Enum):
     DEFAULT = auto()
 
 
+class ModType(Enum):
+    BASH = auto()
+    ANSIBLE = auto()
+
+
 @dataclass
 class Settings:
     timezone: str = "America/Los_Angeles"
+
+
+class ModBase:
+    """Base class for modules that can switch between Bash and Ansible implementations.
+
+    Example usage:
+    ```python
+    from boss.mods import ModBase, ModType
+    from boss.mods.bash import Bash
+    from boss.mods.ansible import Ansible
+    ModBase.set_mod_type(ModType.BASH)  # or ModType.ANSIBLE
+    class MyModule(ModBase):
+        provides = ["my_module"]
+        requires = ["some_dependency"]
+        required_args = ["arg1", "arg2"]
+        title = "My Module"
+    ```
+    """
+
+    _mod_type: ModType = ModType.BASH
+
+    @classmethod
+    def set_mod_type(cls, mod_type: ModType) -> None:
+        """Set the module type to either bash or ansible."""
+        cls._mod_type = mod_type
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Dynamically set the parent class based on _mod_type."""
+        super().__init_subclass__(**kwargs)
+
+        # # Import here to avoid circular imports
+        # from .bash import Bash
+        # from .ansible import Ansible
+
+        # Map mod types to their implementation classes
+        implementations = {
+            ModType.BASH: Bash,
+            ModType.ANSIBLE: Ansible,
+        }
+
+        # Get current bases except ModBase
+        current_bases = tuple(b for b in cls.__bases__ if b is not ModBase)
+
+        # Set new bases with the correct implementation
+        cls.__bases__ = (implementations[cls._mod_type],) + current_bases
+
+
+class Ansible:
+    """Ansible implementation with the same API as Bash class."""
+
+    APTUPDATED = False
+    info_messages: dict[str, list[tuple[str, str, str]]] = {}
+    WWW_USER = "www-data"
+    title: str
+    requires: list[str]
+    required_args: list[str]
+
+    def __init__(self, args: Args, dry_run: bool = False) -> None:
+        self.ok_code = 0
+        self.requires: list[str] = []
+        self.apt_pkgs: list[str] = []
+        self.snap_pkgs: list[tuple[str, Snap]] = []
+        self.provides: list[str] = []
+        self.dry_run = dry_run
+        self.args = args
+        self.scriptname = os.path.basename(__file__)
+        self.now = datetime.datetime.now().strftime("%y-%m-%d-%X")
+
+    def ensure_arg_requirements(self) -> None:
+        pass
+
+    def sed(self, sed_exp: str, config_file: str) -> None:
+        pass
+
+    def write_new_file(
+        self,
+        filename: str | Path,
+        text: str,
+        user: str | None = None,
+        nosudo: bool = False,
+    ) -> None:
+        pass
+
+    def append_to_file(
+        self,
+        filename: str | Path,
+        text: str,
+        user: str | None = None,
+        nosudo: bool = False,
+        backup: bool = True,
+        append: bool = True,
+    ) -> None:
+        pass
+
+    def apt(self, progs: list[str]) -> None:
+        pass
+
+    def install(self) -> None:
+        pass
+
+    def is_apt_installed(self, package_name: str) -> bool:
+        return True
+
+    def pre_install(self) -> None:
+        pass
+
+    def post_install(self) -> None:
+        pass
+
+    def run(
+        self, cmd: str, wrap: bool = True, capture: bool = False, comment: str = ""
+    ) -> str | None:
+        pass
+
+    def curl(self, url: str, output: str, capture: bool = False) -> str | None:
+        pass
+
+    def restart_apache(self) -> None:
+        pass
+
+    def _apt(self, packages_list: list[str]) -> None:
+        pass
+
+    def _snap(self, packages: list[tuple[str, Snap]]) -> None:
+        pass
+
+    def info(self, title: str, msg: str) -> None:
+        child_title = self.title
+        row = ("├─", title, msg)
+        try:
+            self.info_messages[child_title].append(row)
+        except KeyError:
+            self.info_messages[child_title] = [row]
+
+    def set_indent(self, text: str, amount: int = 0) -> str:
+        """Remove leading whitespace from each line in the text.
+
+        Uses the first line's indentation level to determine how much to remove."""
+        lines = text.splitlines()
+        if not lines:
+            return ""
+        new_indent = " " * amount
+        indent_level = len(lines[1]) - len(lines[1].lstrip())
+        # unindent each line by the indent level
+        lines = [i[indent_level:] for i in lines]
+        # add the new indent level to each line
+        lines = [f"{new_indent}{i}" for i in lines]
+        return "\n".join(lines)
 
 
 class Bash:
