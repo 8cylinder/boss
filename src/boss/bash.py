@@ -4,12 +4,47 @@ import re
 from .dist import Dist
 import datetime
 import subprocess
-from typing import NamedTuple, Any
+from typing import NamedTuple, Any, TypeVar, Callable, ParamSpec, cast  # noqa F401
 from dataclasses import dataclass
 from .errors import CommandError, DependencyError
 from .util import display_cmd, error, notify
 from enum import Enum, auto
 from pathlib import Path
+import click
+from functools import wraps
+
+
+# Type variable for the return type of the decorated function
+R = TypeVar("R")
+# Parameter specification for capturing all possible argument types
+P = ParamSpec("P")
+
+
+def warn(warning_message: str) -> Callable[[Callable[P, R]], Callable[P, R | None]]:
+    """A decorator that prompts the user for confirmation before executing the function."""
+
+    def decorator(func: Callable[P, R]) -> Callable[P, R | None]:
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R | None:
+            # Ask user for confirmation
+            if (
+                click.prompt(
+                    warning_message,
+                    type=click.Choice(["y", "N"], case_sensitive=False),
+                    default="n",
+                    show_default=False,
+                ).lower()
+                == "y"
+            ):
+                return func(*args, **kwargs)
+            else:
+                click.echo("Boss halted.")
+                sys.exit(1)
+                # return None
+
+        return wrapper
+
+    return decorator
 
 
 class Args(NamedTuple):
@@ -275,6 +310,7 @@ class Ansible:
     ) -> None:
         pass
 
+    @warn('"append_to_file(...)" is untested in Ansible. Proceed?')
     def append_to_file(
         self,
         filename: str | Path,
