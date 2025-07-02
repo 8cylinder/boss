@@ -21,7 +21,8 @@ class Last(ModBase):
         # https://github.com/pwaller/pyfiglet/blob/master/doc/figfont.txt
         if self.args.generate_script:
             sys.stdout.write("set +x\n")
-        self.run("figlet -w89 {}".format(self.args.servername))
+        if servername := self.args.servername:
+            self.run("figlet -w89 {}".format(servername))
 
         # titlec = linec = (255, 148, 0)
         titlec = linec = keyc = (0, 145, 255)
