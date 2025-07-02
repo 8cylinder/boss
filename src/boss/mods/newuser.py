@@ -1,10 +1,10 @@
 import re
-from ..bash import Bash
+from ..bash import ModBase
 from ..errors import *
 from typing import Any
 
 
-class NewUserAsRoot(Bash):
+class NewUserAsRoot(ModBase):
     """Create a new user assuming the current user is root.
 
     This class provides functionality to create a new system user with appropriate
@@ -27,7 +27,7 @@ class NewUserAsRoot(Bash):
     """
 
     provides = ["newuserasroot"]
-    requires = []
+    requires: list[str] = []
     required_args = ["new_system_user_and_pass"]
     title = "New user (as root)"
 
@@ -69,7 +69,7 @@ class NewUserAsRoot(Bash):
         )
 
 
-class Personalize(Bash):
+class Personalize(ModBase):
     """Personalize the user's environment with custom configurations.
 
     This class handles the customization of a user's shell and editor environment by
@@ -87,7 +87,7 @@ class Personalize(Bash):
 
     provides = ["personalize"]
     requires = ["first"]
-    required_args = []
+    required_args: list[str] = []
     title = "Personalize"
 
     def __init__(self, *args: tuple[Any, ...], **kwargs: dict[str, Any]) -> None:
@@ -100,6 +100,8 @@ class Personalize(Bash):
 
         self.bash_settings()
         self.emacs_settings()
+
+        # self.doit()
 
     def bash_settings(self) -> None:
         bashrc = "$HOME/.bashrc"

@@ -1,15 +1,14 @@
-
-from ..bash import Bash
 from ..dist import Dist
 from ..errors import PlatformError, SecurityError
 from ..util import error
+from ..bash import ModBase
 
 import os
 import datetime
 from typing import Any
 
 
-class PhpBin(Bash):
+class PhpBin(ModBase):
     """PHP with additional packages that CMS's need"""
 
     provides = ["phpbin"]
@@ -87,7 +86,7 @@ class PhpBin(Bash):
             )
 
 
-class Xdebug(Bash):
+class Xdebug(ModBase):
     """A standard Xdebug installation for PHP"""
 
     provides = ["xdebug"]
@@ -132,7 +131,7 @@ class Xdebug(Bash):
         self.info("Xdebug INI", xdebug_ini)
 
 
-class PhpInfo(Bash):
+class PhpInfo(ModBase):
     """Create a phpinfo.php file in /var/www/html
 
     It is available at https://<servername>/phpinfo.php"""
@@ -172,7 +171,7 @@ class PhpInfo(Bash):
         self.info("Info file", self.info_file)
 
 
-class Composer(Bash):
+class Composer(ModBase):
     """If the distro is older than 18.04 composer is installed from source
     from github.  Otherwise it is installed from the apt repo.
     """

@@ -1,17 +1,16 @@
-
 import urllib.request
 import json
 
-from ..bash import Bash
 from ..dist import Dist
 from ..util import error
+from ..bash import ModBase
 
 # noinspection PyUnresolvedReferences
 # noinspection PyUnresolvedReferences
 from ..errors import *
 
 
-class FakeSMTP(Bash):
+class FakeSMTP(ModBase):
     """A fake SMTP server for mail testing
 
     https://www.lullabot.com/articles/installing-mailhog-for-ubuntu-1604

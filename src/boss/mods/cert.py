@@ -1,12 +1,13 @@
 import os
 
-from ..bash import Bash, Snap
+from ..bash import Snap
 from ..dist import Dist
 from ..errors import PlatformError
 from typing import Any
+from ..bash import ModBase
 
 
-class LetsEncryptCert(Bash):
+class LetsEncryptCert(ModBase):
     """Let's Encrypt certificate installation and configuration using snap.
 
     Documentation:
@@ -44,7 +45,7 @@ class LetsEncryptCert(Bash):
         return ("", "", "", "")
 
 
-class SelfCert(Bash):
+class SelfCert(ModBase):
     """A self-signed cert good for 30 years
 
     Its name is the servername, SERVERNAME.crt and SERVERNAME.key.

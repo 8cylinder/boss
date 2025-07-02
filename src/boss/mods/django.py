@@ -1,9 +1,8 @@
-
-from ..bash import Bash
 from ..errors import *
+from ..bash import ModBase
 
 
-class Django(Bash):
+class Django(ModBase):
     """ """
 
     provides = ["django"]
@@ -32,7 +31,7 @@ class Django(Bash):
         self.run()
 
 
-class Wagtail(Bash):
+class Wagtail(ModBase):
     provides = ["wagtail"]
     requires = ["django"]
     required_args = []

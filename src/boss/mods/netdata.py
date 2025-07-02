@@ -1,10 +1,9 @@
-
-from ..bash import Bash
 from ..dist import Dist
 from ..errors import *
+from ..bash import ModBase
 
 
-class Netdata(Bash):
+class Netdata(ModBase):
     """Netdata server monitoring"""
 
     # https://github.com/firehol/netdata

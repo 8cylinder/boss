@@ -1,10 +1,11 @@
-from ..bash import Bash, Settings
+from ..bash import Settings
 from ..dist import Dist
 from ..errors import *
 from typing import Any
+from ..bash import ModBase
 
 
-class First(Bash):
+class First(ModBase):
     """Install misc apps that are useful.
 
     - The timezone is set to the value in Settings.timezone.

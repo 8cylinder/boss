@@ -1,10 +1,11 @@
-from ..bash import Bash, Settings
+from ..bash import Settings
 from ..dist import Dist
 from ..errors import *
 from typing import Any
+from ..bash import ModBase
 
 
-class Example(Bash):
+class Example(ModBase):
     """Short doc string here for the list command
 
     The full doc string is used for the help command.  This should list

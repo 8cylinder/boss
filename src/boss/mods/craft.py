@@ -1,14 +1,14 @@
 import os
 
-from ..bash import Bash
 from ..dist import Dist
 from ..errors import PlatformError, DependencyError
+from ..bash import ModBase
 
 # noinspection PyUnresolvedReferences
 from typing import Any
 
 
-class Craft(Bash):
+class Craft(ModBase):
     """https://craftcms.com"""
 
     provides = ["craft"]

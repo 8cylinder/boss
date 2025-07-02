@@ -1,13 +1,12 @@
-
 import sys
 import click
 
-from ..bash import Bash
 from ..errors import *
 from typing import Any
+from ..bash import ModBase
 
 
-class Last(Bash):
+class Last(ModBase):
     """Show a summary of the installation process."""
 
     provides = ["done"]

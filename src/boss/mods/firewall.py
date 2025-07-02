@@ -1,9 +1,9 @@
-from ..bash import Bash
 from ..errors import *
 from typing import Any
+from ..bash import ModBase
 
 
-class Firewall(Bash):
+class Firewall(ModBase):
     """Enable and configure the firewall.
 
     Set up for ssh and Apache2 if installed.

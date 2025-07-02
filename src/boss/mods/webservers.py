@@ -1,10 +1,10 @@
 from typing import Any
 
-from ..bash import Bash
 from ..errors import *
+from ..bash import ModBase
 
 
-class Apache2(Bash):
+class Apache2(ModBase):
     """Stand-alone Apache
 
     With a default site at /var/www/html.
@@ -28,7 +28,7 @@ class Apache2(Bash):
     #     self.append_to_file('index.html', html_file)
 
 
-class Nginx(Bash):
+class Nginx(ModBase):
     """Stand-alone Nginx"""
 
     provides = ["nginx"]

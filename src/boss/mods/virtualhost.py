@@ -1,14 +1,14 @@
 import os
 
 from .cert import SelfCert, LetsEncryptCert
-from ..bash import Bash
 from ..errors import *
 from collections import namedtuple
 from typing import Any
 from pathlib import Path
+from ..bash import ModBase
 
 
-class VirtualHost(Bash):
+class VirtualHost(ModBase):
     """Create virtualhost configuration files for http and https"""
 
     provides = ["virtualhost"]

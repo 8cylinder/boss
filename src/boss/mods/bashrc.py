@@ -1,10 +1,9 @@
-
 import os
-from ..bash import Bash
 from ..errors import *
+from ..bash import ModBase
 
 
-class Bashrc(Bash):
+class Bashrc(ModBase):
     """A custom bashrc from GitHub and symlink boss to ~/bin/
 
     1. Downloads a bashrc from GitHub and creates a bin dir in the $HOME dir.
