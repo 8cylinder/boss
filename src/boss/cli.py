@@ -546,7 +546,8 @@ def install(**all_args: Any) -> None:
 @click.option(
     "-f/-s", "--full/--simple", default=False, help="Show full or simple output"
 )
-def info(full: bool) -> None:
+@click.option("--write-env", is_flag=True, help="Write an env file, .env.boss")
+def info(full: bool, write_env: bool) -> None:
     """List any vars defined in a .env and available modules."""
 
     is_env = False
@@ -586,3 +587,22 @@ def info(full: bool) -> None:
                     click.style(f"{indent}Req opts: ", dim=True, fg="yellow")
                     + click.style(required_args, fg="yellow"),
                 )
+
+    if write_env:
+        env_content: list[str] = []
+        modlist = [i.__name__ for i in MODS]
+        env_content.append(f"{PREFIX}MODULES={' '.join(modlist)}")
+
+        for mod in MODS:
+            for var in mod.required_args:
+                env_content.append(f"{PREFIX}{var.upper()}=")
+
+        overwrite = False
+        env_file = Path(".env.boss")
+        if env_file.exists():
+            overwrite = click.confirm(
+                '".env.boss" already exists, overwrite?', abort=True
+            )
+        if overwrite or not env_file.exists():
+            with env_file.open("w") as f:
+                f.write("\n".join(env_content))
