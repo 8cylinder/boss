@@ -1,4 +1,5 @@
 import sys
+import re
 import click
 
 from ..errors import *
@@ -36,7 +37,7 @@ class Last(ModBase):
                 tree_line = msg[0]
                 msg_title = msg[1]
                 msg_value = msg[2]
-                msg_value = msg_value if msg_value.endswith(".") else msg_value + "."
+                msg_value = re.sub(r"\.$", "", msg_value)  # remove trailing period
                 click.echo(
                     click.style(f"  {tree_line} ", fg=linec, dim=True)
                     + click.style(msg_title + ": ", fg=keyc)

@@ -6,7 +6,7 @@ class Webmin(ModBase):
     """Webmin console"""
 
     provides = ["webmin"]
-    requires = ["apache2", "phpbin", "cert"]
+    requires = ["apache2", "phpbin"]
     required_args = []
     title = "Webmin console"
 

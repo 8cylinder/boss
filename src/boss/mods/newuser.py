@@ -67,6 +67,7 @@ class NewUserAsRoot(ModBase):
         self.info(
             "New user created", "Try logging in in another terminal to test user."
         )
+        self.info("ssh", f"ssh {username}@{self.args.servername}")
 
 
 class Personalize(ModBase):
