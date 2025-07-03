@@ -37,7 +37,7 @@ class NewUserAsRoot(ModBase):
     def pre_install(self) -> None:
         username, password = self.args.new_system_user_and_pass
 
-        self.run(
+        self.mod.run(
             f"""if ! id -u {username} &>/dev/null; then 
             useradd --shell=/bin/bash --create-home --password $(mkpasswd -m sha-512 {password}) {username}; 
             fi"""
@@ -45,24 +45,26 @@ class NewUserAsRoot(ModBase):
 
         # add user to some groups
         for group in ("sudo", "www-data"):
-            self.run(
+            self.mod.run(
                 "usermod -aG {group} {username}".format(group=group, username=username)
             )
 
         # copy root .ssh to new user's .ssh
-        self.run(f"cp -r .ssh /home/{username}/")
-        self.run(f"chown -R {username}:{username} /home/{username}/.ssh")
+        self.mod.run(f"cp -r .ssh /home/{username}/")
+        self.mod.run(f"chown -R {username}:{username} /home/{username}/.ssh")
 
         ssh_conf = "/etc/ssh/sshd_config"
 
         # disable root login via ssh
-        self.sed("s/#*PermitRootLogin.*/PermitRootLogin no/", ssh_conf)
+        self.mod.sed("s/#*PermitRootLogin.*/PermitRootLogin no/", ssh_conf)
 
         # disable password login via ssh
-        self.sed("s/#*PasswordAuthentication.*/PasswordAuthentication no/", ssh_conf)
+        self.mod.sed(
+            "s/#*PasswordAuthentication.*/PasswordAuthentication no/", ssh_conf
+        )
 
         # Make sudo last for the user's session length.
-        self.run("echo 'Defaults timestamp_timeout=-1' | EDITOR='tee -a' visudo")
+        self.mod.run("echo 'Defaults timestamp_timeout=-1' | EDITOR='tee -a' visudo")
 
         self.info(
             "New user created", "Try logging in in another terminal to test user."
@@ -97,7 +99,7 @@ class Personalize(ModBase):
     def pre_install(self) -> None:
         # add user to some groups
         for group in ("sudo", "www-data"):
-            self.run(f"sudo usermod -aG {group} $USER")
+            self.mod.run(f"sudo usermod -aG {group} $USER")
 
         self.bash_settings()
         self.emacs_settings()
@@ -139,7 +141,7 @@ class Personalize(ModBase):
         settings = "\n".join(
             [re.sub(r"^\s*", "", i) for i in bash_settings.split("\n")]
         )
-        self.append_to_file(bashrc, settings, backup=True, nosudo=True)
+        self.mod.append_to_file(bashrc, settings, backup=True, nosudo=True)
 
     def emacs_settings(self) -> None:
         dot_emacs = "$HOME/.emacs"
@@ -153,5 +155,5 @@ class Personalize(ModBase):
           (custom-set-faces)
         """
         settings = self.set_indent(emacs_settings)
-        self.write_new_file(dot_emacs, settings, nosudo=True)
-        self.write_new_file(root_dot_emacs, settings)
+        self.mod.write_new_file(dot_emacs, settings, nosudo=True)
+        self.mod.write_new_file(root_dot_emacs, settings)
