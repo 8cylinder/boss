@@ -94,14 +94,14 @@ class VirtualHost(ModBase):
         # make www-root owner of the doc root
         doc_root = os.path.join("/var/www", document_root)
         if not os.path.exists(doc_root):
-            self.run(f'sudo mkdir "{doc_root}"')
-        self.run(f'sudo chown www-data:www-data "{doc_root}"')
-        self.run(f'sudo chmod g+rw "{doc_root}"')
+            self.mod.run(f'sudo mkdir "{doc_root}"')
+        self.mod.run(f'sudo chown www-data:www-data "{doc_root}"')
+        self.mod.run(f'sudo chmod g+rw "{doc_root}"')
 
     def post_install(self) -> None:
         mods = ["ssl", "rewrite", "headers"]
         for m in mods:
-            self.run("sudo a2enmod {}".format(m))
+            self.mod.run("sudo a2enmod {}".format(m))
 
         # then create the new sites and enable them
         for site in self.args.site_name_and_root:
@@ -114,7 +114,7 @@ class VirtualHost(ModBase):
                 vhost_config += self._https(site_name, full_document_root, crt, key)
 
             conf_file = "/etc/apache2/sites-available/{}.conf".format(site_name)
-            self.write_new_file(conf_file, vhost_config)
+            self.mod.write_new_file(conf_file, vhost_config)
 
             if site[2] == "y":
                 document_root = site[1]
@@ -123,18 +123,18 @@ class VirtualHost(ModBase):
                 html_content = (
                     f"<h1>Site: {site_name}</h1>\n<p>Document root: {document_root}</p>"
                 )
-                self.write_new_file(html_file, html_content)
+                self.mod.write_new_file(html_file, html_content)
 
                 info = "<?php phpinfo();"
 
             # enable this site
 
-            self.run("sudo a2ensite {}".format(site_name))
+            self.mod.run("sudo a2ensite {}".format(site_name))
 
             self.info("Website", "https://{}".format(site_name))
-            public_ip = self.run("hostname -I", capture=True)
+            public_ip = self.mod.run("hostname -I", capture=True)
             self.info("Public IP", f"http://{public_ip}")
             self.info("Root", full_document_root)
             self.info("Apache conf", conf_file)
 
-        self.restart_apache()
+        self.mod.restart_apache()

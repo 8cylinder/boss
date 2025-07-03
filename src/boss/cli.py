@@ -525,7 +525,7 @@ def install(**all_args: Any) -> None:
         try:
             app = App(dry_run=args.dry_run, args=args)
             app.pre_install()
-            app.install()
+            app.mod.install()
             app.post_install()
         except subprocess.CalledProcessError as e:
             error(str(e))

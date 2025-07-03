@@ -31,14 +31,14 @@ class LetsEncryptCert(ModBase):
             raise PlatformError("Certbot install for non Ubuntu 20.04 not implemented")
 
     def post_install(self) -> None:
-        self.run("sudo ln -s /snap/bin/certbot /usr/bin/certbot")
+        self.mod.run("sudo ln -s /snap/bin/certbot /usr/bin/certbot")
 
         # command to get a certificate and have Certbot edit the apache configuration
         # automatically to serve it, turning on HTTPS access in a single step.
-        self.run("sudo certbot --apache")
+        self.mod.run("sudo certbot --apache")
 
         # to test
-        self.run("sudo certbot renew --dry-run")
+        self.mod.run("sudo certbot renew --dry-run")
 
     def cert_names(self, cert_basename: str) -> tuple[str, str, str, str]:
         """Maintain api compatibility with SelfCert."""
@@ -77,7 +77,7 @@ class SelfCert(ModBase):
 
     def pre_install(self) -> None:
         cert_basename = self.args.servername
-        self.run(f"""sudo openssl \
+        self.mod.run(f"""sudo openssl \
             req \
             -new \
             -newkey rsa:4096 \
@@ -88,12 +88,12 @@ class SelfCert(ModBase):
             -keyout {cert_basename}.key \
             -out {cert_basename}.crt &>/dev/null
         """)
-        self.run(
+        self.mod.run(
             "sudo cp {cert_basename}.crt /etc/ssl/certs/{cert_basename}.crt".format(
                 cert_basename=cert_basename
             )
         )
-        self.run(
+        self.mod.run(
             "sudo cp {cert_basename}.key /etc/ssl/private/{cert_basename}.key".format(
                 cert_basename=cert_basename
             )

@@ -12,7 +12,7 @@ class Last(ModBase):
 
     provides = ["done"]
     requires: list[str] = []
-    required_args = []
+    required_args: list[str] = []
     title = "Done"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -23,7 +23,7 @@ class Last(ModBase):
         if self.args.generate_script:
             sys.stdout.write("set +x\n")
         if servername := self.args.servername:
-            self.run("figlet -w89 {}".format(servername))
+            self.mod.run("figlet -w89 {}".format(servername))
 
         # titlec = linec = (255, 148, 0)
         titlec = linec = keyc = (0, 145, 255)

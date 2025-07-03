@@ -1,5 +1,5 @@
 from ..dist import Dist
-from ..errors import *
+from ..errors import PlatformError
 from ..bash import ModBase
 
 
@@ -27,9 +27,9 @@ class Netdata(ModBase):
 
     def post_install(self):
         if self.distro >= (Dist.UBUNTU, Dist.V18_04):
-            self.sed(
+            self.mod.sed(
                 "s/bind socket to IP = .*$/bind socket to IP = *.*.*.*/",
                 "/etc/netdata/netdata.conf",
             )
-            self.run("sudo systemctl restart netdata")
+            self.mod.run("sudo systemctl restart netdata")
             self.info("URL", "http://{}:19999".format(self.args.servername))

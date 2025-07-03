@@ -141,13 +141,12 @@ class ModBase:
     info_messages: dict[str, list[tuple[str, str, str]]] = {}
     WWW_USER = "www-data"
     title: str
-    requires: list[str]
+    # requires: list[str]
     required_args: list[str]
 
-    # def __init__(self, *args: tuple[Any, ...], **kwargs: dict[str, Any]) -> None:
     def __init__(self, args: Args, dry_run: bool = False) -> None:
-        self.ok_code = 0
-        self.requires: list[str] = []
+        # self.ok_code = 0
+        # self.requires: list[str] = []
         self.apt_pkgs: list[str] = []
         self.snap_pkgs: list[tuple[str, Snap]] = []
         self.provides: list[str] = []
@@ -157,6 +156,7 @@ class ModBase:
         self.scriptname = os.path.basename(__file__)
         self.now = datetime.datetime.now().strftime("%y-%m-%d-%X")
 
+        # print("A>>>", args)
         self.mod = Bash(dry_run=dry_run, args=args)
 
     def ensure_arg_requirements(self) -> None:
@@ -174,6 +174,15 @@ class ModBase:
             missing = ", ".join(missing_args)
             this = self.__class__.__name__
             raise DependencyError(f"Missing arguments for {this}: {missing}. ")
+
+    def is_apt_installed(self, package_name: str) -> bool:
+        """Check if a package is installed using apt."""
+        cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
+        result = self.mod.run(cmd, capture=True)
+        if result == "installed":
+            return True
+        else:
+            return False
 
     def info(self, title: str, msg: str) -> None:
         """Add information messages to be displayed later."""
@@ -379,14 +388,14 @@ class Ansible:
         handled by the playbook."""
         pass
 
-    def is_apt_installed(self, package_name: str) -> bool:
-        """Check if a package is installed using apt."""
-        cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
-        result = self.run(cmd, capture=True)
-        if result == "installed":
-            return True
-        else:
-            return False
+    # def is_apt_installed(self, package_name: str) -> bool:
+    #     """Check if a package is installed using apt."""
+    #     cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
+    #     result = self.run(cmd, capture=True)
+    #     if result == "installed":
+    #         return True
+    #     else:
+    #         return False
 
     def pre_install(self) -> None:
         """Stub to ensure that all modules have this method."""
@@ -439,7 +448,6 @@ class Ansible:
 
 class Bash:
     APTUPDATED = False
-    # info_messages: list[list[str]] = []
     info_messages: dict[str, list[tuple[str, str, str]]] = {}
     WWW_USER = "www-data"
     title: str
@@ -447,6 +455,7 @@ class Bash:
     required_args: list[str]
 
     def __init__(self, args: Args, dry_run: bool = False) -> None:
+        pass
         self.ok_code = 0
         self.requires: list[str] = []
         self.apt_pkgs: list[str] = []
@@ -527,22 +536,22 @@ class Bash:
         self._apt(self.apt_pkgs)
         self._snap(self.snap_pkgs)
 
-    def is_apt_installed(self, package_name: str) -> bool:
-        """Check if a package is installed using apt."""
-        cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
-        result = self.run(cmd, capture=True)
-        if result == "installed":
-            return True
-        else:
-            return False
+    # def is_apt_installed(self, package_name: str) -> bool:
+    #     """Check if a package is installed using apt."""
+    #     cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
+    #     result = self.run(cmd, capture=True)
+    #     if result == "installed":
+    #         return True
+    #     else:
+    #         return False
 
-    def pre_install(self) -> None:
-        """Stub to ensure that all modules have this method."""
-        return
+    # def pre_install(self) -> None:
+    #     """Stub to ensure that all modules have this method."""
+    #     return
 
-    def post_install(self) -> None:
-        """Stub to ensure that all modules have this method."""
-        return
+    # def post_install(self) -> None:
+    #     """Stub to ensure that all modules have this method."""
+    #     return
 
     def run(
         self, cmd: str, wrap: bool = True, capture: bool = False, comment: str = ""

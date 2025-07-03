@@ -18,7 +18,7 @@ class Firewall(ModBase):
         super().__init__(*args, **kwargs)
 
     def post_install(self) -> None:
-        self.run("sudo ufw allow OpenSSH")
+        self.mod.run("sudo ufw allow OpenSSH")
 
         # if Apache2 in self.args.wanted:
         #     # If Apache2 is installed, allow HTTP and HTTPS traffic.
@@ -26,8 +26,8 @@ class Firewall(ModBase):
 
         if self.is_apt_installed("apache2"):
             # If Apache2 is installed, allow HTTP and HTTPS traffic.
-            self.run('sudo ufw allow in "Apache"')
+            self.mod.run('sudo ufw allow in "Apache"')
 
-        self.run("sudo ufw enable")
+        self.mod.run("sudo ufw enable")
 
-        self.run("sudo ufw status")
+        self.mod.run("sudo ufw status")

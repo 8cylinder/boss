@@ -99,8 +99,8 @@ class Craft(ModBase):
         site_name = self.args.site_name_and_root[0][0]
         self.edit_conf(site_name, html_dir)
 
-        self.run("sudo a2enmod rewrite")
-        self.restart_apache()
+        self.mod.run("sudo a2enmod rewrite")
+        self.mod.restart_apache()
 
         self.info("Craft admin", f"https://{self.args.servername}/admin")
 
@@ -111,13 +111,13 @@ class Craft(ModBase):
             f's|Directory "{site_dir}/web"|Directory "{site_dir}/web"|g',
         ]
         for exp in sed_exp:
-            self.sed(exp, conf_file)
+            self.mod.sed(exp, conf_file)
 
     def configure_craft(
         self, craft_db_pass: str, craft_db_user: str, html_dir: str
     ) -> None:
         # setup the db
-        self.run(f"""sg www-data 'php {html_dir}/craft setup/db --interactive 0 \
+        self.mod.run(f"""sg www-data 'php {html_dir}/craft setup/db --interactive 0 \
             --driver mysql \
             --server localhost \
             --port 3306 \
@@ -128,7 +128,7 @@ class Craft(ModBase):
         """)
         # run the craft install
         username, email, password = self.args.craft_credentials
-        self.run(f"""sg www-data 'php {html_dir}/craft install/craft --interactive=0 \
+        self.mod.run(f"""sg www-data 'php {html_dir}/craft install/craft --interactive=0 \
             --email={email} \
             --username={username} \
             --password={password} \
@@ -142,10 +142,10 @@ class Craft(ModBase):
         # self.run(
         #     f"sudo rm -If {html_dir}/index.html {html_dir}/*.local.crt {html_dir}/*.local.key"
         # )
-        self.run("ls *")
-        self.run(f"sudo rm -Irf {html_dir}/*")
+        self.mod.run("ls *")
+        self.mod.run(f"sudo rm -Irf {html_dir}/*")
         cmd = f"sg www-data 'composer create-project --no-ansi --remove-vcs --no-interaction craftcms/craft {html_dir}/'"
-        self.run(cmd)
+        self.mod.run(cmd)
 
     def configure_dirs(self, html_dir: str) -> None:
         # setup the dirs
@@ -155,5 +155,5 @@ class Craft(ModBase):
                 f'Site root "{html_dir}" does not exist, include "virtualhost" '
                 + "in your command line arguments to create it."
             )
-        self.run("sudo chown www-data: {}".format(html_dir))
-        self.run("sudo chmod ug+rw {}".format(html_dir))
+        self.mod.run("sudo chown www-data: {}".format(html_dir))
+        self.mod.run("sudo chmod ug+rw {}".format(html_dir))

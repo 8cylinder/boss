@@ -22,12 +22,12 @@ class Webmin(ModBase):
             # 'wget http://www.webmin.com/jcameron-key.asc',
             # 'sudo apt-key add jcameron-key.asc',
         ]
-        self.curl("http://www.webmin.com/jcameron-key.asc", "jcameron-key.asc")
-        self.run("sudo apt-key add jcameron-key.asc")
+        self.mod.curl("http://www.webmin.com/jcameron-key.asc", "jcameron-key.asc")
+        self.mod.run("sudo apt-key add jcameron-key.asc")
         for cmd in cmds:
             global APTUPDATED
             APTUPDATED = False
-            self.run(cmd)
+            self.mod.run(cmd)
 
         self.info(
             "URL",
