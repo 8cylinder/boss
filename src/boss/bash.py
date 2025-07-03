@@ -101,8 +101,8 @@ class ModBase:
     """
 
     # _mod_type: ModType
-    _mod_type: ModType = ModType.BASH
-    # _mod_type: ModType = ModType.ANSIBLE
+    # _mod_type: ModType = ModType.BASH
+    _mod_type: ModType = ModType.ANSIBLE
 
     @classmethod
     def set_mod_type(cls, mod_type: ModType) -> None:
@@ -270,6 +270,22 @@ class Ansible:
     requires: list[str]
     required_args: list[str]
 
+    apt_task: dict[str, Any] = {
+        "name": "Install apt packages",
+        "ansible.builtin.apt": {
+            "state": "present",
+            "pkg": [],
+        },
+    }
+    playbook: list[dict[str, Any]] = [
+        {
+            "name": "Configure server",
+            "hosts": "webservers",  # from inventory
+            "become": "yes",
+            "tasks": [],
+        },
+    ]
+
     def __init__(self, args: Args, dry_run: bool = False) -> None:
         self.ok_code = 0
         self.requires: list[str] = []
@@ -299,7 +315,17 @@ class Ansible:
             raise DependencyError(f"Missing arguments for {this}: {missing}. ")
 
     def sed(self, sed_exp: str, config_file: str) -> None:
-        pass
+        # ansible.builtin.lineinfile or ansible.builtin.replace
+        task: dict[str, Any] = {
+            "name": f"Replace string in {config_file}",
+            "ansible.builtin.replace": {
+                "path": str(config_file),
+                "regexp": sed_exp,
+                "replace": "",
+                "backup": True,
+            },
+        }
+        self.playbook[0]["tasks"].append(task)
 
     def write_new_file(
         self,
@@ -308,7 +334,17 @@ class Ansible:
         user: str | None = None,
         nosudo: bool = False,
     ) -> None:
-        pass
+        task: dict[str, Any] = {
+            "name": f"Create file {filename}",
+            "ansible.builtin.copy": {
+                "dest": str(filename),
+                "content": text,
+                "owner": user if user else "root",
+                "mode": "0644",
+                "force": True,
+            },
+        }
+        self.playbook[0]["tasks"].append(task)
 
     @warn('"append_to_file(...)" is untested in Ansible. Proceed?')
     def append_to_file(
@@ -320,12 +356,25 @@ class Ansible:
         backup: bool = True,
         append: bool = True,
     ) -> None:
-        pass
+        task: dict[str, Any] = {
+            "name": f"Append to file {filename}",
+            "ansible.builtin.blockinfile": {
+                "path": str(filename),
+                "block": text,
+                "create": False,
+                "backup": backup,
+            },
+        }
+        self.playbook[0]["tasks"].append(task)
 
     def apt(self, progs: list[str]) -> None:
-        pass
+        self.apt_task["tasks"].append(*progs)
 
     def install(self) -> None:
+        """This is here to match bash.install().
+
+        It doesn't do anything in Ansible, since that is
+        handled by the playbook."""
         pass
 
     def is_apt_installed(self, package_name: str) -> bool:
