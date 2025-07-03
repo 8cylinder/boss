@@ -48,6 +48,7 @@ def warn(warning_message: str) -> Callable[[Callable[P, R]], Callable[P, R | Non
 
 
 class Args(NamedTuple):
+    bash: bool
     servername: str
     modules: tuple[str, ...]
     dry_run: bool
@@ -83,58 +84,7 @@ class Settings:
     timezone: str = "America/Los_Angeles"
 
 
-# class ModBase:
-#     """Base class for modules that can switch between Bash and Ansible implementations.
-#
-#     Example usage:
-#     ```python
-#     from boss.mods import ModBase, ModType
-#     from boss.mods.bash import Bash
-#     from boss.mods.ansible import Ansible
-#     ModBase.set_mod_type(ModType.BASH)  # or ModType.ANSIBLE
-#     class MyModule(ModBase):
-#         provides = ["my_module"]
-#         requires = ["some_dependency"]
-#         required_args = ["arg1", "arg2"]
-#         title = "My Module"
-#     ```
-#     """
-#
-#     # _mod_type: ModType
-#     # _mod_type: ModType = ModType.BASH
-#     _mod_type: ModType = ModType.ANSIBLE
-#
-#     @classmethod
-#     def set_mod_type(cls, mod_type: ModType) -> None:
-#         """Set the module type to either bash or ansible."""
-#         cls._mod_type = mod_type
-#
-#     def __init_subclass__(cls, **kwargs: Any) -> None:
-#         """Dynamically set the parent class based on _mod_type."""
-#         super().__init_subclass__(**kwargs)
-#
-#         # # Import here to avoid circular imports
-#         # from .bash import Bash
-#         # from .ansible import Ansible
-#
-#         # Map mod types to their implementation classes
-#         implementations = {
-#             ModType.BASH: Bash,
-#             ModType.ANSIBLE: Ansible,
-#         }
-#
-#         # Get current bases except ModBase
-#         current_bases = tuple(b for b in cls.__bases__ if b is not ModBase)
-#
-#         # Set new bases with the correct implementation
-#         cls.__bases__ = (implementations[cls._mod_type],) + current_bases
-#         # cls.__bases__ = (implementations[cls._mod_type], ModBase)
-#
-#     def doit(self) -> None:
-#         print("x" * 80)
-
-
-class ModBase:
+class Engine:
     """Base class containing shared functionality between Bash and Ansible implementations."""
 
     APTUPDATED = False
@@ -143,6 +93,7 @@ class ModBase:
     title: str
     # requires: list[str]
     required_args: list[str]
+    mod: Bash | Ansible
 
     def __init__(self, args: Args, dry_run: bool = False) -> None:
         # self.ok_code = 0
@@ -156,8 +107,10 @@ class ModBase:
         self.scriptname = os.path.basename(__file__)
         self.now = datetime.datetime.now().strftime("%y-%m-%d-%X")
 
-        # print("A>>>", args)
-        self.mod = Bash(dry_run=dry_run, args=args)
+        if args.bash:
+            self.mod = Bash(dry_run=dry_run, args=args)
+        else:
+            self.mod = Ansible(dry_run=dry_run, args=args)
 
     def ensure_arg_requirements(self) -> None:
         """Ensure that all required arguments are provided."""

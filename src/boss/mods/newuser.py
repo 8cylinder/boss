@@ -1,10 +1,10 @@
 import re
-from ..bash import ModBase
+from ..engine import Engine
 from ..errors import *
 from typing import Any
 
 
-class NewUserAsRoot(ModBase):
+class NewUserAsRoot(Engine):
     """Create a new user assuming the current user is root.
 
     This class provides functionality to create a new system user with appropriate
@@ -72,7 +72,7 @@ class NewUserAsRoot(ModBase):
         self.info("ssh", f"ssh {username}@{self.args.servername}")
 
 
-class Personalize(ModBase):
+class Personalize(Engine):
     """Personalize the user's environment with custom configurations.
 
     This class handles the customization of a user's shell and editor environment by

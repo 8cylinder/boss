@@ -1,9 +1,9 @@
 from ..dist import Dist
 from ..errors import PlatformError
-from ..bash import ModBase
+from ..engine import Engine
 
 
-class Netdata(ModBase):
+class Netdata(Engine):
     """Netdata server monitoring"""
 
     # https://github.com/firehol/netdata

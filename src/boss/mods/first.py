@@ -1,11 +1,11 @@
-from ..bash import Settings
+from ..engine import Settings
 from ..dist import Dist
 from ..errors import *
 from typing import Any
-from ..bash import ModBase
+from ..engine import Engine
 
 
-class First(ModBase):
+class First(Engine):
     """Install misc apps that are useful.
 
     - The timezone is set to the value in Settings.timezone.

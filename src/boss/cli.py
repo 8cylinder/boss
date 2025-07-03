@@ -13,7 +13,7 @@ import textwrap
 
 from .errors import DependencyError, PlatformError, SecurityError, ModuleRequestError
 from .util import error, title
-from .bash import Args
+from .engine import Args
 from .mods.aptproxy import AptProxy
 from .mods.bashrc import Bashrc
 from .mods.cert import SelfCert

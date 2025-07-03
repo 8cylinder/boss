@@ -4,10 +4,10 @@ import click
 
 from ..errors import *
 from typing import Any
-from ..bash import ModBase
+from ..engine import Engine
 
 
-class Last(ModBase):
+class Last(Engine):
     """Show a summary of the installation process."""
 
     provides = ["done"]

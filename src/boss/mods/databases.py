@@ -2,10 +2,10 @@ from ..dist import Dist
 from ..util import error
 from ..errors import PlatformError
 from typing import Any
-from ..bash import ModBase
+from ..engine import Engine
 
 
-class Mysql(ModBase):
+class Mysql(Engine):
     """Mysql db and password configuration
 
     Requires root's password and new db to create.  Optionally, a new
@@ -139,7 +139,7 @@ class Mysql(ModBase):
         self.test_mysql_connectivity()
 
 
-class PhpMyAdmin(ModBase):
+class PhpMyAdmin(Engine):
     """Web database client
 
     Access at http://<servername>/phpmyadmin
@@ -192,7 +192,7 @@ class PhpMyAdmin(ModBase):
         self.info("URL", "http://{}/phpmyadmin".format(site_name))
 
 
-class Adminer(ModBase):
+class Adminer(Engine):
     """Web database client, an alternative to PhpMyAdmin"""
 
     provides = ["adminer"]

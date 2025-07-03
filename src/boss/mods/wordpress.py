@@ -1,7 +1,7 @@
-from ..bash import ModBase
+from ..engine import Engine
 
 
-class Wordpress(ModBase):
+class Wordpress(Engine):
     provides = ["wordpress"]
     requires = ["phpbin"]
     required_args = []
@@ -11,7 +11,7 @@ class Wordpress(ModBase):
         super().__init__(*args, **kwargs)
 
 
-class WpCli(ModBase):
+class WpCli(Engine):
     """The wordpress cli application"""
 
     provides = ["wpcli"]

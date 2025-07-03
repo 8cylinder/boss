@@ -1,8 +1,8 @@
 from ..errors import *
-from ..bash import ModBase
+from ..engine import Engine
 
 
-class Django(ModBase):
+class Django(Engine):
     """ """
 
     provides = ["django"]
@@ -31,7 +31,7 @@ class Django(ModBase):
         self.run()
 
 
-class Wagtail(ModBase):
+class Wagtail(Engine):
     provides = ["wagtail"]
     requires = ["django"]
     required_args = []

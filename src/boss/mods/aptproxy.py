@@ -1,8 +1,8 @@
 from typing import Any
-from ..bash import ModBase
+from ..engine import Engine
 
 
-class AptProxy(ModBase):
+class AptProxy(Engine):
     """Use the host machine's apt proxy.
 
     apt-cacher-ng needs to be installed and configured on the host:

@@ -1,10 +1,10 @@
 from typing import Any
 
 from ..errors import *
-from ..bash import ModBase
+from ..engine import Engine
 
 
-class Apache2(ModBase):
+class Apache2(Engine):
     """Stand-alone Apache
 
     With a default site at /var/www/html.
@@ -28,7 +28,7 @@ class Apache2(ModBase):
     #     self.append_to_file('index.html', html_file)
 
 
-class Nginx(ModBase):
+class Nginx(Engine):
     """Stand-alone Nginx"""
 
     provides = ["nginx"]

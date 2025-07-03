@@ -1,8 +1,8 @@
 from ..errors import *
-from ..bash import ModBase
+from ..engine import Engine
 
 
-class Webmin(ModBase):
+class Webmin(Engine):
     """Webmin console"""
 
     provides = ["webmin"]

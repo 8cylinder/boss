@@ -5,10 +5,10 @@ from ..errors import *
 from collections import namedtuple
 from typing import Any
 from pathlib import Path
-from ..bash import ModBase
+from ..engine import Engine
 
 
-class VirtualHost(ModBase):
+class VirtualHost(Engine):
     """Create virtualhost configuration files for http and https"""
 
     provides = ["virtualhost"]
