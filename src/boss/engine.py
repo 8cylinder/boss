@@ -84,146 +84,6 @@ class Settings:
     timezone: str = "America/Los_Angeles"
 
 
-class Engine:
-    """Base class containing shared functionality between Bash and Ansible implementations."""
-
-    APTUPDATED = False
-    info_messages: dict[str, list[tuple[str, str, str]]] = {}
-    WWW_USER = "www-data"
-    title: str
-    # requires: list[str]
-    required_args: list[str]
-    mod: Bash | Ansible
-
-    def __init__(self, args: Args, dry_run: bool = False) -> None:
-        # self.ok_code = 0
-        # self.requires: list[str] = []
-        self.apt_pkgs: list[str] = []
-        self.snap_pkgs: list[tuple[str, Snap]] = []
-        self.provides: list[str] = []
-        self.distro = Dist()
-        self.dry_run = dry_run
-        self.args = args
-        self.scriptname = os.path.basename(__file__)
-        self.now = datetime.datetime.now().strftime("%y-%m-%d-%X")
-
-        if args.bash:
-            self.mod = Bash(dry_run=dry_run, args=args)
-        else:
-            self.mod = Ansible(dry_run=dry_run, args=args)
-
-    def ensure_arg_requirements(self) -> None:
-        """Ensure that all required arguments are provided."""
-        if not self.args:
-            return
-        missing_args = []
-
-        for arg in self.required_args:
-            if not getattr(self.args, arg, None):
-                missing_args.append(arg)
-        if missing_args:
-            # make the missing args look like command line args
-            missing_args = [f"--{i.replace('_', '-')}" for i in missing_args]
-            missing = ", ".join(missing_args)
-            this = self.__class__.__name__
-            raise DependencyError(f"Missing arguments for {this}: {missing}. ")
-
-    def is_apt_installed(self, package_name: str) -> bool:
-        """Check if a package is installed using apt."""
-        cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
-        result = self.mod.run(cmd, capture=True)
-        if result == "installed":
-            return True
-        else:
-            return False
-
-    def info(self, title: str, msg: str) -> None:
-        """Add information messages to be displayed later."""
-        child_title = self.title
-        row = ("├─", title, msg)
-        try:
-            self.info_messages[child_title].append(row)
-        except KeyError:
-            self.info_messages[child_title] = [row]
-
-    def set_indent(self, text: str, amount: int = 0) -> str:
-        """Remove leading whitespace from each line in the text."""
-        lines = text.splitlines()
-        if not lines:
-            return ""
-        new_indent = " " * amount
-        indent_level = len(lines[1]) - len(lines[1].lstrip())
-        # unindent each line by the indent level
-        lines = [i[indent_level:] for i in lines]
-        # add the new indent level to each line
-        lines = [f"{new_indent}{i}" for i in lines]
-        return "\n".join(lines)
-
-    # def install(self) -> None:
-    #     """Main installation method that handles both apt and snap packages."""
-    #     self._apt(self.apt_pkgs)
-    #     self._snap(self.snap_pkgs)
-
-    def pre_install(self) -> None:
-        """Hook for pre-installation tasks."""
-        return
-
-    def post_install(self) -> None:
-        """Hook for post-installation tasks."""
-        return
-
-    ## Abstract methods that must be implemented by child classes
-    # def _apt(self, packages_list: list[str]) -> None:
-    #     """Install packages using apt."""
-    #     raise NotImplementedError
-    #
-    # def _snap(self, packages: list[tuple[str, Any]]) -> None:
-    #     """Install packages using snap."""
-    #     raise NotImplementedError
-    #
-    # def run(
-    #     self, cmd: str, wrap: bool = True, capture: bool = False, comment: str = ""
-    # ) -> str | None:
-    #     """Execute a command."""
-    #     raise NotImplementedError
-    #
-    # def write_new_file(
-    #     self,
-    #     filename: str | Path,
-    #     text: str,
-    #     user: str | None = None,
-    #     nosudo: bool = False,
-    # ) -> None:
-    #     """Create a new file with given content."""
-    #     raise NotImplementedError
-    #
-    # def append_to_file(
-    #     self,
-    #     filename: str | Path,
-    #     text: str,
-    #     user: str | None = None,
-    #     nosudo: bool = False,
-    #     backup: bool = True,
-    #     append: bool = True,
-    # ) -> None:
-    #     """Append content to an existing file."""
-    #     raise NotImplementedError
-    #
-    # def sed(self, sed_exp: str, config_file: str) -> None:
-    #     """Perform sed operations on a file."""
-    #     raise NotImplementedError
-    #
-    # def curl(
-    #     self, url: str, output: str, capture: bool = False
-    # ) -> str | int | bytes | None:
-    #     """Download a file using curl."""
-    #     raise NotImplementedError
-    #
-    # def restart_apache(self) -> None:
-    #     """Restart the Apache service."""
-    #     raise NotImplementedError
-
-
 class Ansible:
     """Ansible implementation with the same API as Bash class."""
 
@@ -598,3 +458,92 @@ class Bash:
         # add the new indent level to each line
         lines = [f"{new_indent}{i}" for i in lines]
         return "\n".join(lines)
+
+
+class Engine:
+    """Base class containing shared functionality between Bash and Ansible implementations."""
+
+    APTUPDATED = False
+    info_messages: dict[str, list[tuple[str, str, str]]] = {}
+    WWW_USER = "www-data"
+    title: str
+    # requires: list[str]
+    required_args: list[str]
+    mod: Bash | Ansible
+
+    def __init__(self, args: Args, dry_run: bool = False) -> None:
+        # self.ok_code = 0
+        # self.requires: list[str] = []
+        self.apt_pkgs: list[str] = []
+        self.snap_pkgs: list[tuple[str, Snap]] = []
+        self.provides: list[str] = []
+        self.distro = Dist()
+        self.dry_run = dry_run
+        self.args = args
+        self.scriptname = os.path.basename(__file__)
+        self.now = datetime.datetime.now().strftime("%y-%m-%d-%X")
+
+        if args.bash:
+            self.mod = Bash(dry_run=dry_run, args=args)
+        else:
+            self.mod = Ansible(dry_run=dry_run, args=args)
+
+    def ensure_arg_requirements(self) -> None:
+        """Ensure that all required arguments are provided."""
+        if not self.args:
+            return
+        missing_args = []
+
+        for arg in self.required_args:
+            if not getattr(self.args, arg, None):
+                missing_args.append(arg)
+        if missing_args:
+            # make the missing args look like command line args
+            missing_args = [f"--{i.replace('_', '-')}" for i in missing_args]
+            missing = ", ".join(missing_args)
+            this = self.__class__.__name__
+            raise DependencyError(f"Missing arguments for {this}: {missing}. ")
+
+    def is_apt_installed(self, package_name: str) -> bool:
+        """Check if a package is installed using apt."""
+        cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
+        result = self.mod.run(cmd, capture=True)
+        if result == "installed":
+            return True
+        else:
+            return False
+
+    def info(self, title: str, msg: str) -> None:
+        """Add information messages to be displayed later."""
+        child_title = self.title
+        row = ("├─", title, msg)
+        try:
+            self.info_messages[child_title].append(row)
+        except KeyError:
+            self.info_messages[child_title] = [row]
+
+    def set_indent(self, text: str, amount: int = 0) -> str:
+        """Remove leading whitespace from each line in the text."""
+        lines = text.splitlines()
+        if not lines:
+            return ""
+        new_indent = " " * amount
+        indent_level = len(lines[1]) - len(lines[1].lstrip())
+        # unindent each line by the indent level
+        lines = [i[indent_level:] for i in lines]
+        # add the new indent level to each line
+        lines = [f"{new_indent}{i}" for i in lines]
+        return "\n".join(lines)
+
+    # def install(self) -> None:
+    #     """Main installation method that handles both apt and snap packages."""
+    #     self._apt(self.apt_pkgs)
+    #     self._snap(self.snap_pkgs)
+
+    def pre_install(self) -> None:
+        """Hook for pre-installation tasks."""
+        return
+
+    def post_install(self) -> None:
+        """Hook for post-installation tasks."""
+        return

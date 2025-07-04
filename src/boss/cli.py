@@ -297,6 +297,7 @@ def deps(*dependencies: str) -> bool:
 CONTEXT_SETTINGS = {
     # add -h in addition to --help
     "help_option_names": ["-h", "--help"],
+    "show_default": True,
 }
 
 
@@ -306,12 +307,16 @@ def boss() -> None:
 
     Use `boss --help` for more information on how to use it.
     """
-    # Load environment variables from .env file in current dir or parent directories
-    # load_dotenv(dotenv_path=".env.boss")
 
 
 @boss.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("modules", nargs=-1, required=True, envvar=f"{PREFIX}MODULES")
+@click.option(
+    "--bash/--ansible",
+    " /-a",
+    default=True,
+    help="Use bash or ansible for the commands",
+)
 @click.option(
     "-U",
     "--servername",
@@ -447,6 +452,7 @@ def install(**all_args: Any) -> None:
     parent directories.
     """
     # convert the args dict to a namedtuple
+    pp(all_args)
     args = Args(**all_args)
 
     if args.dist_version:
