@@ -1,13 +1,9 @@
-import urllib.request
 import json
+import urllib.request
 
 from ..dist import Dist
-from ..util import error
 from ..engine import Engine
-
-# noinspection PyUnresolvedReferences
-# noinspection PyUnresolvedReferences
-from ..errors import *
+from ..util import error
 
 
 class FakeSMTP(Engine):

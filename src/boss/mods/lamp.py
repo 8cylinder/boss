@@ -1,8 +1,5 @@
-
-from ..errors import *
-
-from .webservers import Apache2
 from .databases import Mysql
+from .webservers import Apache2
 
 
 class Lamp(Apache2, Mysql):
