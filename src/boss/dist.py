@@ -1,6 +1,15 @@
-
 import distro
 from .util import error
+import enum
+
+
+class Version(enum.Enum):
+    V14_04 = 14.04  # Trusty Tahr
+    V16_04 = 16.04  # Xenial Xerus
+    V18_04 = 18.04  # Bionic Beaver
+    V20_04 = 20.04  # Focal Fossa
+    V22_04 = 22.04  # Jammy Jellyfish
+    V24_04 = 24.04  # Oracular Oriole
 
 
 class Dist:

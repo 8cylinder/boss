@@ -14,6 +14,7 @@ import textwrap
 from .errors import DependencyError, PlatformError, SecurityError, ModuleRequestError
 from .util import error, title
 from .engine import Args
+from .dist import Version
 from .mods.aptproxy import AptProxy
 from .mods.bashrc import Bashrc
 from .mods.cert import SelfCert
@@ -74,7 +75,8 @@ PREFIX = "BOSS_"
 # DIST_VERSION = None
 __version__ = importlib.metadata.version("boss")
 
-DIST_VERSION: float | None = None
+# DIST_VERSION: float | None = None
+DIST_VERSION: Version | None = None
 
 # All the mods available in the order they should be run
 MODS = (
@@ -165,6 +167,10 @@ def get_matching_modules(wanted_mods: list[str]) -> list[Any]:
         if x not in seen:
             deduped_mods.append(x)
             seen.add(x)
+    if First in deduped_mods:
+        deduped_mods.remove(First)
+    if Last in deduped_mods:
+        deduped_mods.remove(Last)
 
     return deduped_mods
 
@@ -347,7 +353,8 @@ def boss() -> None:
 )
 @click.option(
     "--dist-version",
-    type=float,
+    # type=float,
+    type=click.Choice(Version),
     help="The version of Ubuntu to assume instead of autodetect.",
 )
 # unix user
@@ -452,7 +459,6 @@ def install(**all_args: Any) -> None:
     parent directories.
     """
     # convert the args dict to a namedtuple
-    pp(all_args)
     args = Args(**all_args)
 
     if args.dist_version:
