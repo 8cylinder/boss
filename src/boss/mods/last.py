@@ -20,8 +20,10 @@ class Last(Engine):
 
     def pre_install(self) -> None:
         # https://github.com/pwaller/pyfiglet/blob/master/doc/figfont.txt
+        script_mode = False
         if self.args.generate_script:
             sys.stdout.write("set +x\n")
+            script_mode = True
         if servername := self.args.servername:
             self.mod.run("figlet -w89 {}".format(servername))
 
@@ -41,7 +43,8 @@ class Last(Engine):
                 click.echo(
                     click.style(f"  {tree_line} ", fg=linec, dim=True)
                     + click.style(msg_title + ": ", fg=keyc)
-                    + click.style(msg_value, fg=valuec)
+                    + click.style(msg_value, fg=valuec),
+                    err=script_mode,
                 )
             print()
 
