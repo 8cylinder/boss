@@ -45,15 +45,15 @@ class Example(Engine):
     # Run before apt installs the apt_pkgs.
     def pre_install(self) -> None:
         # bash provides several methods
-        self.sed("sed expression", "file")
-        self.apt(["list", "of", "packages"])
-        self.curl("url", "output-filename", capture=True)
+        self.mod.sed("sed expression", "file")
+        self.mod.apt(["list", "of", "packages"])
+        self.mod.curl("url", "output-filename", capture=True)
         self.info("title", "message")
-        self.restart_apache()
-        self.append_to_file("filename", "text to append", append=True, backup=False)
-        self.run("any valid bash command string", wrap=True, capture=False)
+        self.mod.restart_apache()
+        self.mod.append_to_file("filename", "text to append", append=True, backup=False)
+        self.mod.run("any valid bash command string", wrap=True, capture=False)
         # capture the result of the command
-        result = self.run("any valid bash command string", wrap=True, capture=True)
+        result = self.mod.run("any valid bash command string", wrap=True, capture=True)
 
         # get a value from the Settings class
         variable = Settings.timezone
