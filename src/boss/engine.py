@@ -1,18 +1,20 @@
-import os
-import sys
-import re
-from .dist import Dist
 import datetime
+import os
+import re
 import subprocess
-from typing import NamedTuple, Any, TypeVar, Callable, ParamSpec, cast  # noqa F401
+import sys
+from collections.abc import Callable
 from dataclasses import dataclass
+from enum import Enum, auto
+from functools import wraps
+from pathlib import Path
+from typing import Any, ClassVar, NamedTuple, ParamSpec, TypeVar
+
+import click
+
+from .dist import Dist
 from .errors import CommandError, DependencyError
 from .util import display_cmd, error, notify
-from enum import Enum, auto
-from pathlib import Path
-import click
-from functools import wraps
-
 
 # Type variable for the return type of the decorated function
 R = TypeVar("R")
@@ -21,7 +23,7 @@ P = ParamSpec("P")
 
 
 def warn(warning_message: str) -> Callable[[Callable[P, R]], Callable[P, R | None]]:
-    """A decorator that prompts the user for confirmation before executing the function."""
+    """Require user confirmation before executing the decorated function."""
 
     def decorator(func: Callable[P, R]) -> Callable[P, R | None]:
         @wraps(func)
@@ -37,10 +39,9 @@ def warn(warning_message: str) -> Callable[[Callable[P, R]], Callable[P, R | Non
                 == "y"
             ):
                 return func(*args, **kwargs)
-            else:
-                click.echo("Boss halted.")
-                sys.exit(1)
-                # return None
+
+            click.echo("Boss halted.")
+            sys.exit(1)
 
         return wrapper
 
@@ -48,6 +49,14 @@ def warn(warning_message: str) -> Callable[[Callable[P, R]], Callable[P, R | Non
 
 
 class Args(NamedTuple):
+    """A class representing configuration arguments for a specific operation.
+
+    This class is used to store and manage various configurations and
+    parameters required for a given task such as script generation,
+    database operations, and module handling. It provides a structured
+    way to group arguments and ensure proper data types.
+    """
+
     bash: bool
     servername: str
     modules: tuple[str, ...]
@@ -66,21 +75,36 @@ class Args(NamedTuple):
     craft_credentials: tuple[str, str, str]
     host_ip: str | None
     netdata_user_pass: tuple[str, str]
-    wanted: list[str] = []
+    wanted: ClassVar[list[str]] = []
 
 
 class Snap(Enum):
+    """An enumeration to represent different types of Snap."""
+
     CLASSIC = auto()
     DEFAULT = auto()
 
 
 class ModType(Enum):
+    """An enumeration to represent different module types.
+
+    This class provides enumeration members to differentiate between
+    module types, such as `BASH` and `ANSIBLE`, which can be used to
+    categorize or manage modules in a system.
+    """
+
     BASH = auto()
     ANSIBLE = auto()
 
 
 @dataclass
 class Settings:
+    """Represents application settings configuration.
+
+    This class is used to manage and provide settings for the application. It allows
+    definition of default configurations such as the timezone.
+    """
+
     timezone: str = "America/Los_Angeles"
 
 
@@ -94,14 +118,14 @@ class Ansible:
     requires: list[str]
     required_args: list[str]
 
-    apt_task: dict[str, Any] = {
+    apt_task: ClassVar[dict[str, Any]] = {
         "name": "Install apt packages",
         "ansible.builtin.apt": {
             "state": "present",
             "pkg": [],
         },
     }
-    playbook: list[dict[str, Any]] = [
+    playbook: ClassVar[list[dict[str, Any]]] = [
         {
             "name": "Configure server",
             "hosts": "webservers",  # from inventory
@@ -111,6 +135,7 @@ class Ansible:
     ]
 
     def __init__(self, args: Args, dry_run: bool = False) -> None:
+        """Initialize the Ansible module with the given arguments."""
         self.ok_code = 0
         self.requires: list[str] = []
         self.apt_pkgs: list[str] = []
@@ -136,9 +161,11 @@ class Ansible:
             missing_args = [f"--{i.replace('_', '-')}" for i in missing_args]
             missing = ", ".join(missing_args)
             this = self.__class__.__name__
-            raise DependencyError(f"Missing arguments for {this}: {missing}. ")
+            error_msg = f"Missing arguments for {this}: {missing}. "
+            raise DependencyError(error_msg)
 
     def sed(self, sed_exp: str, config_file: str) -> None:
+        """Replace a string in a file using Ansible's replace module."""
         # ansible.builtin.lineinfile or ansible.builtin.replace
         task: dict[str, Any] = {
             "name": f"Replace string in {config_file}",
@@ -158,6 +185,7 @@ class Ansible:
         user: str | None = None,
         nosudo: bool = False,
     ) -> None:
+        """Create a new file with the specified content using Ansible's copy module."""
         task: dict[str, Any] = {
             "name": f"Create file {filename}",
             "ansible.builtin.copy": {
@@ -180,6 +208,7 @@ class Ansible:
         backup: bool = True,
         append: bool = True,
     ) -> None:
+        """Append text to a file using Ansible's blockinfile module."""
         task: dict[str, Any] = {
             "name": f"Append to file {filename}",
             "ansible.builtin.blockinfile": {
@@ -192,23 +221,15 @@ class Ansible:
         self.playbook[0]["tasks"].append(task)
 
     def apt(self, progs: list[str]) -> None:
-        self.apt_task["tasks"].append(*progs)
+        """Add packages to the Ansible apt task."""
+        self.apt_task["ansible.builtin.apt"]["pkg"].extend(progs)
 
     def install(self) -> None:
-        """This is here to match bash.install().
+        """Match the bash.install() method.
 
         It doesn't do anything in Ansible, since that is
-        handled by the playbook."""
-        pass
-
-    # def is_apt_installed(self, package_name: str) -> bool:
-    #     """Check if a package is installed using apt."""
-    #     cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
-    #     result = self.run(cmd, capture=True)
-    #     if result == "installed":
-    #         return True
-    #     else:
-    #         return False
+        handled by the playbook.
+        """
 
     def pre_install(self) -> None:
         """Stub to ensure that all modules have this method."""
@@ -219,23 +240,28 @@ class Ansible:
         return
 
     def run(
-        self, cmd: str, wrap: bool = True, capture: bool = False, comment: str = ""
+        self,
+        cmd: str,
+        wrap: bool = True,
+        capture: bool = False,
+        comment: str = "",
     ) -> str | None:
-        pass
+        """Run a command using Ansible's shell module."""
 
     def curl(self, url: str, output: str, capture: bool = False) -> str | None:
-        pass
+        """Download a file using Ansible's get_url module."""
 
     def restart_apache(self) -> None:
-        pass
+        """Restart Apache using Ansible's service module."""
 
     def _apt(self, packages_list: list[str]) -> None:
-        pass
+        """Add packages to the Ansible apt task."""
 
     def _snap(self, packages: list[tuple[str, Snap]]) -> None:
         pass
 
     def info(self, title: str, msg: str) -> None:
+        """Add information messages to be displayed later."""
         child_title = self.title
         row = ("├─", title, msg)
         try:
@@ -246,7 +272,8 @@ class Ansible:
     def set_indent(self, text: str, amount: int = 0) -> str:
         """Remove leading whitespace from each line in the text.
 
-        Uses the first line's indentation level to determine how much to remove."""
+        Uses the first line's indentation level to determine how much to remove.
+        """
         lines = text.splitlines()
         if not lines:
             return ""
@@ -268,7 +295,6 @@ class Bash:
     required_args: list[str]
 
     def __init__(self, args: Args, dry_run: bool = False) -> None:
-        pass
         self.ok_code = 0
         self.requires: list[str] = []
         self.apt_pkgs: list[str] = []
@@ -297,7 +323,7 @@ class Bash:
             raise DependencyError(f"Missing arguments for {this}: {missing}. ")
 
     def sed(self, sed_exp: str, config_file: str) -> None:
-        new_ext = ".original-{}".format(self.now)
+        new_ext = f".original-{self.now}"
         sed_cmd = f'sudo sed --in-place="{new_ext}" "{sed_exp}" "{config_file}"'
         self.run(sed_cmd)
 
@@ -310,7 +336,7 @@ class Bash:
     ) -> None:
         sudo = "" if nosudo else "sudo"
         alt_user = f"-u {user}" if user else ""
-        cmd = f'''echo | {sudo} {alt_user} tee "{filename}" <<'EOF'\n{text}\nEOF'''
+        cmd = f"""echo | {sudo} {alt_user} tee "{filename}" <<'EOF'\n{text}\nEOF"""
         self.run(cmd, wrap=False)
 
     def append_to_file(
@@ -330,7 +356,7 @@ class Bash:
 
         www_user = ""
         if user == self.WWW_USER:
-            www_user = "-u {}".format(self.WWW_USER)
+            www_user = f"-u {self.WWW_USER}"
 
         append_flag = ""
         if append is True:
@@ -367,16 +393,26 @@ class Bash:
     #     return
 
     def run(
-        self, cmd: str, wrap: bool = True, capture: bool = False, comment: str = ""
+        self,
+        cmd: str,
+        wrap: bool = True,
+        capture: bool = False,
+        comment: str = "",
     ) -> str | None:
         if wrap:
             pretty_cmd = " ".join(cmd.split())
             display_cmd(
-                pretty_cmd, wrap=True, script=self.args.generate_script, comment=comment
+                pretty_cmd,
+                wrap=True,
+                script=self.args.generate_script,
+                comment=comment,
             )
         else:
             display_cmd(
-                cmd, wrap=False, script=self.args.generate_script, comment=comment
+                cmd,
+                wrap=False,
+                script=self.args.generate_script,
+                comment=comment,
             )
 
         result: str | bytes | int | None
@@ -385,7 +421,9 @@ class Bash:
 
         if capture:
             result = subprocess.check_output(
-                cmd, shell=True, executable="/bin/bash"
+                cmd,
+                shell=True,
+                executable="/bin/bash",
             ).decode()
             sys.stdout.flush()
         else:
@@ -395,9 +433,12 @@ class Bash:
         return str(result)
 
     def curl(
-        self, url: str, output: str, capture: bool = False
+        self,
+        url: str,
+        output: str,
+        capture: bool = False,
     ) -> str | int | bytes | None:
-        cmd = "curl -sSL {url} --output {output}".format(url=url, output=output)
+        cmd = f"curl -sSL {url} --output {output}"
         result = self.run(cmd, capture=capture)
         return result
 
@@ -405,8 +446,8 @@ class Bash:
         """Restart Apache using the appropriate command
 
         Details about whether to use service or systemctl
-        https://askubuntu.com/a/903405"""
-
+        https://askubuntu.com/a/903405
+        """
         if self.distro == Dist.UBUNTU:
             self.run("sudo service apache2 restart")
         else:
@@ -422,9 +463,7 @@ class Bash:
             # self.run('sudo apt-get --quiet --yes upgrade')   # not really necessary
             Bash.APTUPDATED = True
         self.run(
-            "export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet install {packages}".format(
-                dry=dry, packages=packages
-            )
+            f"export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet install {packages}",
         )
 
     def _snap(self, packages: list[tuple[str, Snap]]) -> None:
@@ -447,7 +486,8 @@ class Bash:
     def set_indent(self, text: str, amount: int = 0) -> str:
         """Remove leading whitespace from each line in the text.
 
-        Uses the first line's indentation level to determine how much to remove."""
+        Uses the first line's indentation level to determine how much to remove.
+        """
         lines = text.splitlines()
         if not lines:
             return ""
@@ -467,7 +507,8 @@ class Engine:
     info_messages: dict[str, list[tuple[str, str, str]]] = {}
     WWW_USER = "www-data"
     title: str
-    # requires: list[str]
+    provides: list[str]
+    requires: list[str]
     required_args: list[str]
     mod: Bash | Ansible
 
@@ -510,8 +551,7 @@ class Engine:
         result = self.mod.run(cmd, capture=True)
         if result == "installed":
             return True
-        else:
-            return False
+        return False
 
     def info(self, title: str, msg: str) -> None:
         """Add information messages to be displayed later."""

@@ -1,8 +1,9 @@
 import json
 import urllib.request
 
+from boss.engine import Engine
+
 from ..dist import Dist
-from ..engine import Engine
 from ..util import error
 
 
@@ -65,9 +66,10 @@ class FakeSMTP(Engine):
         self.run(cmd, capture=True)
         # if('error' in result):
         #     error(result)
-        self.info("client", "http://{}:8025".format(self.args.servername))
+        self.info("client", f"http://{self.args.servername}:8025")
         self.info(
-            "api", "curl http://{}:8025/api/v2/messages".format(self.args.servername)
+            "api",
+            f"curl http://{self.args.servername}:8025/api/v2/messages",
         )
 
     def install_via_go(self):
@@ -98,7 +100,7 @@ class FakeSMTP(Engine):
                     if asset["name"] == prog["release"]:
                         self.curl(asset["browser_download_url"], prog["localname"])
         except urllib.error.HTTPError as e:
-            error("MAILHOG github api: {}".format(e.msg))
+            error(f"MAILHOG github api: {e.msg}")
 
     def config_upstart(self):
         # 14.04 uses upstart
@@ -116,7 +118,7 @@ class FakeSMTP(Engine):
         #     contents=service
         # ), wrap=False)
 
-        self.run("sudo ln -s {} /etc/init.d/mailhog".format(service_file))
+        self.run(f"sudo ln -s {service_file} /etc/init.d/mailhog")
         self.run("sudo service mailhog start")
 
     def config_systemd(self):
@@ -138,9 +140,7 @@ class FakeSMTP(Engine):
 
         service = "\n".join([i[12:] for i in service.split("\n")])
         self.run(
-            "echo | sudo tee {service_file} <<EOF{contents}EOF".format(
-                service_file=service_file, contents=service
-            ),
+            f"echo | sudo tee {service_file} <<EOF{service}EOF",
             wrap=False,
         )
         self.run("sudo systemctl start mailhog")

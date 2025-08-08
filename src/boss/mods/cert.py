@@ -1,10 +1,11 @@
 import os
-
-from ..engine import Snap
-from ..dist import Dist
-from ..errors import PlatformError
 from typing import Any
-from ..engine import Engine
+
+from boss.engine import Engine
+
+from ..dist import Dist
+from ..engine import Snap
+from ..errors import PlatformError
 
 
 class LetsEncryptCert(Engine):
@@ -49,7 +50,8 @@ class SelfCert(Engine):
     """A self-signed cert good for 30 years
 
     Its name is the servername, SERVERNAME.crt and SERVERNAME.key.
-    They are installed in /etc/ssl."""
+    They are installed in /etc/ssl.
+    """
 
     provides = ["selfcert"]
     requires: list[str] = []
@@ -60,8 +62,8 @@ class SelfCert(Engine):
         super().__init__(*args, **kwargs)
 
     def cert_names(self, cert_basename: str) -> tuple[str, str, str, str]:
-        crt = "{}.crt".format(cert_basename)
-        key = "{}.key".format(cert_basename)
+        crt = f"{cert_basename}.crt"
+        key = f"{cert_basename}.key"
 
         home_crt = os.path.join(os.path.expanduser("~"), crt)
         home_key = os.path.join(os.path.expanduser("~"), key)
@@ -89,12 +91,8 @@ class SelfCert(Engine):
             -out {cert_basename}.crt &>/dev/null
         """)
         self.mod.run(
-            "sudo cp {cert_basename}.crt /etc/ssl/certs/{cert_basename}.crt".format(
-                cert_basename=cert_basename
-            )
+            f"sudo cp {cert_basename}.crt /etc/ssl/certs/{cert_basename}.crt",
         )
         self.mod.run(
-            "sudo cp {cert_basename}.key /etc/ssl/private/{cert_basename}.key".format(
-                cert_basename=cert_basename
-            )
+            f"sudo cp {cert_basename}.key /etc/ssl/private/{cert_basename}.key",
         )

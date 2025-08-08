@@ -4,7 +4,7 @@ from typing import Any
 
 import click
 
-from ..engine import Engine
+from boss.engine import Engine
 
 
 class Last(Engine):
@@ -25,7 +25,7 @@ class Last(Engine):
             sys.stdout.write("set +x\n")
             script_mode = True
         if servername := self.args.servername:
-            self.mod.run("figlet -w89 {}".format(servername))
+            self.mod.run(f"figlet -w89 {servername}")
 
         # titlec = linec = (255, 148, 0)
         titlec = linec = keyc = (0, 145, 255)

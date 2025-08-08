@@ -3,7 +3,8 @@ from collections import namedtuple
 from pathlib import Path
 from typing import Any
 
-from ..engine import Engine
+from boss.engine import Engine
+
 from .cert import LetsEncryptCert, SelfCert
 
 
@@ -19,9 +20,7 @@ class VirtualHost(Engine):
         super().__init__(*args, **kwargs)
 
     def _http(self, servername: str, document_root: str) -> str:
-        https_redirect = '# Redirect permanent "/" https://{servername}/'.format(
-            servername=servername
-        )
+        https_redirect = f'# Redirect permanent "/" https://{servername}/'
         vhost = f"""
             # HTTP
             <VirtualHost *:80>
@@ -71,7 +70,7 @@ class VirtualHost(Engine):
     def existing_cert(self, servername: str) -> tuple[str, str]:
         # retrieve the existing cert for servername
         if SelfCert in self.args.wanted:
-            cert = SelfCert([], [])
+            cert = SelfCert(dry_run=self.args.dry_run, args=self.args)
             _, _, crt, key = cert.cert_names(servername)
         elif LetsEncryptCert in self.args.wanted:
             cert = LetsEncryptCert([], [])
@@ -100,7 +99,7 @@ class VirtualHost(Engine):
     def post_install(self) -> None:
         mods = ["ssl", "rewrite", "headers"]
         for m in mods:
-            self.mod.run("sudo a2enmod {}".format(m))
+            self.mod.run(f"sudo a2enmod {m}")
 
         # then create the new sites and enable them
         for site in self.args.site_name_and_root:
@@ -112,7 +111,7 @@ class VirtualHost(Engine):
             if crt:
                 vhost_config += self._https(site_name, full_document_root, crt, key)
 
-            conf_file = "/etc/apache2/sites-available/{}.conf".format(site_name)
+            conf_file = f"/etc/apache2/sites-available/{site_name}.conf"
             self.mod.write_new_file(conf_file, vhost_config)
 
             if site[2] == "y":
@@ -128,9 +127,9 @@ class VirtualHost(Engine):
 
             # enable this site
 
-            self.mod.run("sudo a2ensite {}".format(site_name))
+            self.mod.run(f"sudo a2ensite {site_name}")
 
-            self.info("Website", "https://{}".format(site_name))
+            self.info("Website", f"https://{site_name}")
             public_ip = self.mod.run("hostname -I", capture=True)
             self.info("Public IP", f"http://{public_ip}")
             self.info("Root", full_document_root)

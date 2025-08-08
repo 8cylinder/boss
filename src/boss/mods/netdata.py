@@ -1,6 +1,7 @@
+from boss.engine import Engine
+
 from ..dist import Dist
 from ..errors import PlatformError
-from ..engine import Engine
 
 
 class Netdata(Engine):
@@ -32,4 +33,4 @@ class Netdata(Engine):
                 "/etc/netdata/netdata.conf",
             )
             self.mod.run("sudo systemctl restart netdata")
-            self.info("URL", "http://{}:19999".format(self.args.servername))
+            self.info("URL", f"http://{self.args.servername}:19999")

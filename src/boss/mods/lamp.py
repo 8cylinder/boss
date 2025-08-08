@@ -15,7 +15,8 @@ class Lamp(Apache2, Mysql):
     mysql-common, perl-modules-5.22, tcpd, mysql-client-5.7,
     mysql-client-core-5.7, mysql-server, mysql-server-5.7,
     mysql-server-core-5.7, rename, php-common, php-mysql,
-    php7.0-mysql, php7.0-readline"""
+    php7.0-mysql, php7.0-readline
+    """
 
     provides = ["apache2", "php", "mysql", "lamp"]
     requires = []

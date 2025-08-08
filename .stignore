@@ -1,3 +1,4 @@
+.git
 
 ubuntu*.log
 .vagrant
@@ -7,4 +8,4 @@ sink.yaml*
 sink.yam*
 **/*.egg-info
 man/boss.1
-.stfolder
+.idea

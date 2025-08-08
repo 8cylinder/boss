@@ -1,6 +1,6 @@
 from typing import Any
 
-from ..engine import Engine
+from boss.engine import Engine
 
 
 class Firewall(Engine):

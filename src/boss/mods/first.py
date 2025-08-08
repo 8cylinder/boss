@@ -1,8 +1,7 @@
-from ..engine import Settings
-from ..dist import Dist
-from ..errors import *
 from typing import Any
-from ..engine import Engine
+
+from boss.dist import Dist
+from boss.engine import Engine, Settings
 
 
 class First(Engine):
@@ -13,7 +12,7 @@ class First(Engine):
     """
 
     provides = ["first"]
-    requires = []
+    requires: list[str] = []
     required_args = []
     title = "First"
 
@@ -90,7 +89,7 @@ class First(Engine):
             self.mod.run("sudo systemctl restart fail2ban.service")
 
     def set_timezone(self) -> None:
-        self.mod.run("sudo timedatectl set-timezone {}".format(Settings.timezone))
+        self.mod.run(f"sudo timedatectl set-timezone {Settings.timezone}")
 
     def install_web_server(self) -> None:
         # Add 'tasksel' to apt_pkgs

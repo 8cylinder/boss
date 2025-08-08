@@ -1,8 +1,10 @@
-from ..dist import Dist
-from ..util import error
-from ..errors import PlatformError
 from typing import Any
-from ..engine import Engine
+
+from boss.engine import Engine
+
+from ..dist import Dist
+from ..errors import PlatformError
+from ..util import error
 
 
 class Mysql(Engine):
@@ -28,29 +30,25 @@ class Mysql(Engine):
     def configure_root_password(self) -> None:
         root_pass = self.args.db_root_pass
         self.mod.run(
-            '''sudo debconf-set-selections <<< \
-            "mysql-server mysql-server/root_password password {}"'''.format(root_pass)
+            f'''sudo debconf-set-selections <<< \
+            "mysql-server mysql-server/root_password password {root_pass}"''',
         )
         self.mod.run(
-            '''sudo debconf-set-selections <<< \
-            "mysql-server mysql-server/root_password_again password {}"'''.format(
-                root_pass
-            )
+            f'''sudo debconf-set-selections <<< \
+            "mysql-server mysql-server/root_password_again password {root_pass}"''',
         )
 
     def setup_user(self, db_user: str, db_pass: str, root_pass: str) -> None:
         # only for MySQL 5.7.8 and up?
-        sql = """
+        sql = f"""
         DROP USER IF EXISTS '{db_user}'@'localhost';
           CREATE USER '{db_user}'@'localhost'
             IDENTIFIED BY '{db_pass}';
           GRANT ALL PRIVILEGES ON * . * TO '{db_user}'@'localhost';
           FLUSH PRIVILEGES;
-        """.format(db_user=db_user, db_pass=db_pass)
+        """
         self.mod.run(
-            "mysql -uroot -p{root_pass} <<EOF\n{sql}\nEOF".format(
-                root_pass=root_pass, sql=sql
-            ),
+            f"mysql -uroot -p{root_pass} <<EOF\n{sql}\nEOF",
             wrap=False,
         )
 
@@ -59,20 +57,16 @@ class Mysql(Engine):
             f"""
           DROP DATABASE IF EXISTS {db_name};
           CREATE DATABASE IF NOT EXISTS {db_name};
-        """.split()
+        """.split(),
         )
         self.mod.run(
-            "mysql -uroot -p{root_pass} <<EOF\n{sql}\nEOF".format(
-                root_pass=root_pass, sql=sql
-            ),
+            f"mysql -uroot -p{root_pass} <<EOF\n{sql}\nEOF",
             wrap=False,
         )
 
     def import_sql(self, root_pass: str, sql_file: str) -> None:
         self.mod.run(
-            "mysql -uroot -p{root_pass} < {sql_file}".format(
-                root_pass=root_pass, sql_file=sql_file
-            )
+            f"mysql -uroot -p{root_pass} < {sql_file}",
         )
 
     def config_for_low_memory(self) -> None:
@@ -84,14 +78,14 @@ class Mysql(Engine):
         self.mod.append_to_file(setting_file, setting)
 
     def test_mysql_connectivity(self) -> None:
-        """
-        Tests MySQL connectivity, including root user login, additional user login, and
+        """Tests MySQL connectivity, including root user login, additional user login, and
         database existence if configured. This method verifies that the MySQL server is
         functional and accessible using the provided credentials and database name.
 
         Raises:
             PlatformError: If root login fails, additional user login fails, or the
                 specified database does not exist or is not accessible.
+
         """
         # Test root connection
         try:
@@ -113,12 +107,12 @@ class Mysql(Engine):
         if self.args.db_name:
             try:
                 self.mod.run(
-                    f"mysqlshow -uroot -p{self.args.db_root_pass} {self.args.db_name};"
+                    f"mysqlshow -uroot -p{self.args.db_root_pass} {self.args.db_name};",
                 )
                 self.info("Database test", f"Database '{self.args.db_name}' exists")
             except Exception:
                 raise PlatformError(
-                    f'Database "{self.args.db_name}" does not exist or is not accessible.'
+                    f'Database "{self.args.db_name}" does not exist or is not accessible.',
                 )
 
     def pre_install(self) -> None:
@@ -160,36 +154,30 @@ class PhpMyAdmin(Engine):
     def pre_install(self) -> None:
         root_pass = self.args.db_root_pass
         self.mod.run(
-            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2"'
+            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2"',
         )
         self.mod.run(
-            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/dbconfig-install boolean true"'
+            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/dbconfig-install boolean true"',
         )
         self.mod.run(
-            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/app-password-confirm password {}"'.format(
-                root_pass
-            )
+            f'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/app-password-confirm password {root_pass}"',
         )
         self.mod.run(
-            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multiselect none"'
+            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multiselect none"',
         )
 
         self.mod.run(
-            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-user string root"'
+            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-user string root"',
         )
         self.mod.run(
-            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-pass password {}"'.format(
-                root_pass
-            )
+            f'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-pass password {root_pass}"',
         )
         self.mod.run(
-            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/app-pass password {}"'.format(
-                root_pass
-            )
+            f'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/app-pass password {root_pass}"',
         )
 
         site_name = self.args.site_name_and_root[0][0]
-        self.info("URL", "http://{}/phpmyadmin".format(site_name))
+        self.info("URL", f"http://{site_name}/phpmyadmin")
 
 
 class Adminer(Engine):
@@ -206,10 +194,10 @@ class Adminer(Engine):
         if self.distro >= (Dist.UBUNTU, Dist.V18_04):
             self.apt_pkgs = ["adminer"]
         else:
-            error("{} not tested on this platform".format(self.title))
+            error(f"{self.title} not tested on this platform")
 
         site_name = self.args.servername
-        self.info("URL", "http://{}/adminer.php".format(site_name))
+        self.info("URL", f"http://{site_name}/adminer.php")
 
     def post_install(self) -> None:
         # for 18.04, an extra compile step needs to be
@@ -217,12 +205,13 @@ class Adminer(Engine):
         if self.distro == (Dist.UBUNTU, Dist.V18_04):
             self.mod.run("cd /usr/share/adminer/ && sudo php compile.php")
             filename = self.mod.run(
-                "cd /usr/share/adminer/ && ls adminer-*.*.*.php", capture=True
+                "cd /usr/share/adminer/ && ls adminer-*.*.*.php",
+                capture=True,
             )
             filename = filename.decode("ascii")
             self.mod.append_to_file(
                 "/etc/apache2/conf-available/adminer.conf",
-                "Alias /adminer.php /usr/share/adminer/{}".format(filename),
+                f"Alias /adminer.php /usr/share/adminer/{filename}",
                 append=False,
                 backup=False,
             )

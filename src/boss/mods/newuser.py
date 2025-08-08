@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from ..engine import Engine
+from boss.engine import Engine
 
 
 class NewUserAsRoot(Engine):
@@ -24,6 +24,7 @@ class NewUserAsRoot(Engine):
     Note:
         This class assumes root privileges are available for execution.  Sudo is not
         used in this class.
+
     """
 
     provides = ["newuserasroot"]
@@ -40,13 +41,13 @@ class NewUserAsRoot(Engine):
         self.mod.run(
             f"""if ! id -u {username} &>/dev/null; then 
             useradd --shell=/bin/bash --create-home --password $(mkpasswd -m sha-512 {password}) {username}; 
-            fi"""
+            fi""",
         )
 
         # add user to some groups
         for group in ("sudo", "www-data"):
             self.mod.run(
-                "usermod -aG {group} {username}".format(group=group, username=username)
+                f"usermod -aG {group} {username}",
             )
 
         # copy root .ssh to new user's .ssh
@@ -60,14 +61,16 @@ class NewUserAsRoot(Engine):
 
         # disable password login via ssh
         self.mod.sed(
-            "s/#*PasswordAuthentication.*/PasswordAuthentication no/", ssh_conf
+            "s/#*PasswordAuthentication.*/PasswordAuthentication no/",
+            ssh_conf,
         )
 
         # Make sudo last for the user's session length.
         self.mod.run("echo 'Defaults timestamp_timeout=-1' | EDITOR='tee -a' visudo")
 
         self.info(
-            "New user created", "Try logging in in another terminal to test user."
+            "New user created",
+            "Try logging in in another terminal to test user.",
         )
         self.info("ssh", f"ssh {username}@{self.args.servername}")
 
@@ -139,7 +142,7 @@ class Personalize(Engine):
         """
         # strip off the leading spaces
         settings = "\n".join(
-            [re.sub(r"^\s*", "", i) for i in bash_settings.split("\n")]
+            [re.sub(r"^\s*", "", i) for i in bash_settings.split("\n")],
         )
         self.mod.append_to_file(bashrc, settings, backup=True, nosudo=True)
 

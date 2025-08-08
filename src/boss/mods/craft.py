@@ -1,11 +1,12 @@
 import os
 
-from ..dist import Dist
-from ..errors import PlatformError, DependencyError
-from ..engine import Engine
-
 # noinspection PyUnresolvedReferences
 from typing import Any
+
+from boss.engine import Engine
+
+from ..dist import Dist
+from ..errors import DependencyError, PlatformError
 
 
 class Craft(Engine):
@@ -70,9 +71,7 @@ class Craft(Engine):
             ]
         else:
             raise PlatformError(
-                "Craft dependencies have not been determined yet for this platform: {}".format(
-                    self.distro
-                )
+                f"Craft dependencies have not been determined yet for this platform: {self.distro}",
             )
 
     def post_install(self) -> None:
@@ -114,7 +113,10 @@ class Craft(Engine):
             self.mod.sed(exp, conf_file)
 
     def configure_craft(
-        self, craft_db_pass: str, craft_db_user: str, html_dir: str
+        self,
+        craft_db_pass: str,
+        craft_db_user: str,
+        html_dir: str,
     ) -> None:
         # setup the db
         self.mod.run(f"""sg www-data 'php {html_dir}/craft setup/db --interactive 0 \
@@ -153,7 +155,7 @@ class Craft(Engine):
         if not os.path.exists(html_dir) and not self.args.dry_run:
             raise DependencyError(
                 f'Site root "{html_dir}" does not exist, include "virtualhost" '
-                + "in your command line arguments to create it."
+                "in your command line arguments to create it.",
             )
-        self.mod.run("sudo chown www-data: {}".format(html_dir))
-        self.mod.run("sudo chmod ug+rw {}".format(html_dir))
+        self.mod.run(f"sudo chown www-data: {html_dir}")
+        self.mod.run(f"sudo chmod ug+rw {html_dir}")

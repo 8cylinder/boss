@@ -1,7 +1,9 @@
-from ..engine import Settings
-from ..dist import Dist
 from typing import Any
-from ..engine import Engine
+
+from boss.engine import Engine
+
+from ..dist import Dist
+from ..engine import Settings
 
 
 class Example(Engine):
@@ -25,7 +27,7 @@ class Example(Engine):
     requires = ["example2", "example3"]
 
     # A list of options that this mod requires to be passed in via the args namedtuple.
-    required_args = []
+    required_args: list[str] = []
 
     # A human readable name that is used in help and listing.
     title = "Pretty name"

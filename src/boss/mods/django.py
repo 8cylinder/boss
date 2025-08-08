@@ -1,4 +1,4 @@
-from ..engine import Engine
+from boss.engine import Engine
 
 
 class Django(Engine):

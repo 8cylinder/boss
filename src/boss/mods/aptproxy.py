@@ -1,5 +1,6 @@
 from typing import Any
-from ..engine import Engine
+
+from boss.engine import Engine
 
 
 class AptProxy(Engine):
@@ -16,7 +17,8 @@ class AptProxy(Engine):
     file in apt.conf.d to configure apt to use the host's apt cache by
     running the following command:
 
-    `echo 'Acquire::http::Proxy "http://<HOST IP>:3142";' | sudo tee /etc/apt/apt.conf.d/00aptproxy`"""
+    `echo 'Acquire::http::Proxy "http://<HOST IP>:3142";' | sudo tee /etc/apt/apt.conf.d/00aptproxy`
+    """
 
     conf_file = "/etc/apt/apt.conf.d/00aptproxy"
 

@@ -1,10 +1,10 @@
 from typing import Any
 
-from ..engine import Engine
+from boss.engine import Engine
 
 
 class Apache2(Engine):
-    """Stand-alone Apache
+    """Stand-alone Apache.
 
     With a default site at /var/www/html.
     """
@@ -28,7 +28,7 @@ class Apache2(Engine):
 
 
 class Nginx(Engine):
-    """Stand-alone Nginx"""
+    """Stand-alone Nginx."""
 
     provides = ["nginx"]
     requires: list[str] = []

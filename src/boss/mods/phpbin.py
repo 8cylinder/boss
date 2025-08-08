@@ -1,11 +1,12 @@
+import datetime
+import os
+from typing import Any
+
+from boss.engine import Engine
+
 from ..dist import Dist
 from ..errors import PlatformError, SecurityError
 from ..util import error
-from ..engine import Engine
-
-import os
-import datetime
-from typing import Any
 
 
 class PhpBin(Engine):
@@ -80,9 +81,7 @@ class PhpBin(Engine):
             ]
         else:
             raise PlatformError(
-                "PHP dependencies have not been determined for this platform yet: {}".format(
-                    self.distro
-                )
+                f"PHP dependencies have not been determined for this platform yet: {self.distro}",
             )
 
 
@@ -134,7 +133,8 @@ class Xdebug(Engine):
 class PhpInfo(Engine):
     """Create a phpinfo.php file in /var/www/html
 
-    It is available at https://<servername>/phpinfo.php"""
+    It is available at https://<servername>/phpinfo.php
+    """
 
     provides = ["phpinfo"]
     requires = ["phpbin"]
@@ -149,9 +149,7 @@ class PhpInfo(Engine):
         self.info_file = f"{self.loc}/phpinfo.php"
 
     def post_install(self) -> None:
-        info = "<h1>{}</h1>\n<?php phpinfo();".format(
-            datetime.datetime.now().isoformat()
-        )
+        info = f"<h1>{datetime.datetime.now().isoformat()}</h1>\n<?php phpinfo();"
 
         if self.args.dry_run or self.args.generate_script or os.path.exists(self.loc):
             self.mod.write_new_file(self.info_file, info)
@@ -160,11 +158,10 @@ class PhpInfo(Engine):
             #     loc=self.info_file
             # )
             # self.run(cmd)
-        else:
-            if not self.args.dry_run:
-                raise FileNotFoundError(
-                    "[PhpInfo] Dir does not exist: {}".format(self.loc)
-                )
+        elif not self.args.dry_run:
+            raise FileNotFoundError(
+                f"[PhpInfo] Dir does not exist: {self.loc}",
+            )
 
         site_name = self.args.site_name_and_root[0][0]
         self.info("Info URL", f"http://{site_name}/phpinfo.php")
@@ -207,31 +204,27 @@ class Composer(Engine):
             with open(os.path.expanduser(sig_name)) as f:
                 expected_sig = f.read()
             expected_sig = expected_sig.strip()
-            self.mod.run("rm {}".format(sig_name))
+            self.mod.run(f"rm {sig_name}")
 
         url = "https://getcomposer.org/installer"
         comp_name = "$HOME/composer_installer"
         self.mod.curl(url, comp_name)
 
         actual_sig = None
-        result = self.mod.run("sha384sum {}".format(comp_name), capture=True)
+        result = self.mod.run(f"sha384sum {comp_name}", capture=True)
         if result:  # could be a dry run
             actual_sig = result.decode("utf-8").split()[0].strip()
 
         if expected_sig != actual_sig:
             raise SecurityError(
-                'Composer\'s signatures do not match.\nExpected: "{}"\n  Actual: "{}"'.format(
-                    expected_sig, actual_sig
-                )
+                f'Composer\'s signatures do not match.\nExpected: "{expected_sig}"\n  Actual: "{actual_sig}"',
             )
 
         [
             self.mod.run(command)
             for command in (
                 # 'php {} --quiet'.format(comp_name),
-                "sudo php {} --quiet --install-dir=/usr/local/bin --filename=composer".format(
-                    comp_name
-                ),
+                f"sudo php {comp_name} --quiet --install-dir=/usr/local/bin --filename=composer",
                 # 'rm {}'.format(comp_name),
                 # 'sudo mv composer.phar /usr/local/bin/composer',
                 # 'if [[ ! -e $HOME/.composer ]]; then mkdir $HOME/.composer/; fi',
