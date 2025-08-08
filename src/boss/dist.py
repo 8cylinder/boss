@@ -3,7 +3,7 @@ from .util import error
 import enum
 
 
-class Version(enum.Enum):
+class UbuntuVersion(enum.Enum):
     V14_04 = 14.04  # Trusty Tahr
     V16_04 = 16.04  # Xenial Xerus
     V18_04 = 18.04  # Bionic Beaver
@@ -29,18 +29,19 @@ class Dist:
     V22_04 = 22.04  # Jammy Jellyfish
     V24_04 = 24.04  # Oracular Oriole
     version: float
+    name: str
 
     def __init__(self) -> None:
-        self.name = distro.name()
-
         try:
             from .cli import DIST_VERSION
         except ImportError:
             error("Could not import DIST_VERSION from cli module.")
 
         if DIST_VERSION:
-            self.version = DIST_VERSION
+            self.name = self.UBUNTU
+            self.version = DIST_VERSION.value
         else:
+            self.name = distro.name()
             self.version = float(distro.version())
 
     def __str__(self) -> str:

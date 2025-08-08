@@ -535,10 +535,11 @@ class Engine:
         lines = [f"{new_indent}{i}" for i in lines]
         return "\n".join(lines)
 
-    # def install(self) -> None:
-    #     """Main installation method that handles both apt and snap packages."""
-    #     self._apt(self.apt_pkgs)
-    #     self._snap(self.snap_pkgs)
+    def install(self) -> None:
+        """Main installation method that handles both apt and snap packages."""
+        self.mod.apt_pkgs = self.apt_pkgs
+        self.mod.snap_pkgs = self.snap_pkgs
+        self.mod.install()
 
     def pre_install(self) -> None:
         """Hook for pre-installation tasks."""

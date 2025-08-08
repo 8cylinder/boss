@@ -16,3 +16,7 @@ class CommandError(Exception):
 
 class ModuleRequestError(Exception):
     """Raised when the cli wanted module has more than one match."""
+
+
+class VersionError(Exception):
+    """Raised when a version number is not valid."""

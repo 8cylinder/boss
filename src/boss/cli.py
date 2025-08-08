@@ -14,7 +14,7 @@ import textwrap
 from .errors import DependencyError, PlatformError, SecurityError, ModuleRequestError
 from .util import error, title
 from .engine import Args
-from .dist import Version
+from .dist import UbuntuVersion
 from .mods.aptproxy import AptProxy
 from .mods.bashrc import Bashrc
 from .mods.cert import SelfCert
@@ -76,7 +76,7 @@ PREFIX = "BOSS_"
 __version__ = importlib.metadata.version("boss")
 
 # DIST_VERSION: float | None = None
-DIST_VERSION: Version | None = None
+DIST_VERSION: UbuntuVersion | None = None
 
 # All the mods available in the order they should be run
 MODS = (
@@ -354,7 +354,7 @@ def boss() -> None:
 @click.option(
     "--dist-version",
     # type=float,
-    type=click.Choice(Version),
+    type=click.Choice(UbuntuVersion),
     help="The version of Ubuntu to assume instead of autodetect.",
 )
 # unix user
@@ -502,7 +502,7 @@ def install(**all_args: Any) -> None:
             "# Boss command used to generate this script",
             "# {}".format(" ".join(sys.argv)),
             "",
-            "set -x"
+            "set -x",
             r"PS4=$'\e[30;103m+\e[0m '",
         )
         click.echo("\n".join(script_header))
@@ -537,7 +537,8 @@ def install(**all_args: Any) -> None:
         try:
             app = App(dry_run=args.dry_run, args=args)
             app.pre_install()
-            app.mod.install()
+            # app.mod.install()
+            app.install()
             app.post_install()
         except subprocess.CalledProcessError as e:
             error(str(e))

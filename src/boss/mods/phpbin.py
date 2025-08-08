@@ -138,7 +138,7 @@ class PhpInfo(Engine):
 
     provides = ["phpinfo"]
     requires = ["phpbin"]
-    required_args = []
+    required_args = ["site_name_and_root"]
     title = "PHP Info"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
