@@ -31,10 +31,16 @@ exclude = [
 [lint]
 select = ["ALL"]
 ignore = [
-    "FBT001",
-    "FBT002",
-    "PTH119",
-    "DTZ005",
-    "PERF401",
-    "TRY003",
+    "FBT001", # Boolean positional arg in function definitions.
+    "FBT002", # Boolean default for a positional arg; prefer keyword-only.
+    "PTH119", # Prefer pathlib over os.path.basename (use Path(...).name).
+    "DTZ005", # datetime.now() without tz; require timezone-aware datetimes.
+    "PERF401", # Use a list comprehension to build a list.
+    "TRY003", # Avoid formatting messages at raise; keep exceptions reusable.
+    "ERA001", # Commented-out code detected; remove dead code.
 ]
+
+[lint.per-file-ignores]
+# Ignore the S101 rule (assert detected) in all files within the "tests"
+# directory or any subdirectory of "tests" that end in .py.
+"tests/**/*.py" = ["S101"]
