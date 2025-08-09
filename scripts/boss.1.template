@@ -11,7 +11,10 @@ boss \- configure a server
 .SH SYNOPSIS
 
 .B boss
-[\fIOPTION\fR]... \fISERVERNAME MODULES\fR...
+info [\fIOPTION\fR]...
+.br
+.B boss
+install [\fIOPTION\fR]... MODULES\fR...
 
 
 .SH DESCRIPTION
@@ -22,7 +25,7 @@ user access is setup using pipx.  It will output the commands as they
 are used and optionally can generate a script instead of executing
 them.
 
-.SH EXAMPLE USAGE
+.SH SAMPLE USAGE
 
 This is an example setting up a Digitalocean server.
 
@@ -54,16 +57,18 @@ $ \fBpipx ensurepath\fR
 Setup non root user
 Run boss to setup and configure the default user that will access the server.  Use "-d" to see what it will do before actually running it.
 .br
-$ \fBboss \fIexample.com \fRnewuserasroot -u \fIusername,password\fR -d
+$ \fBboss \fRnewuserasroot -u \fIusername,password\fR -d
 
 .TP
 .B
 Login as new user
 Test the login in another terminal, and if successfull procede to set up the rest of the server.
 
-.SH OPTIONS
-{options}
+.SH INFO OPTIONS
+{info_options}
 
+.SH INSTALL OPTIONS
+{install_options}
 
 .SH AVAILABLE MODULES
 {modules}

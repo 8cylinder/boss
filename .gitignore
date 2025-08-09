@@ -9,3 +9,4 @@ sink.yam*
 man/boss.1
 .stfolder
 .coverage
+.env.boss

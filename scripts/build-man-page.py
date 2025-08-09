@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+"""Build the man page for the Boss CLI."""
+
 import datetime
 import re
 import shutil
@@ -9,7 +11,12 @@ from pathlib import Path
 
 import click
 
-from boss.cli import MODS
+try:
+    from boss.cli import MODS
+except ImportError:
+    click.secho("This script must be run using UV.", fg="red")
+    click.secho("> uv run scripts/build-man-page.py", fg="cyan")
+    sys.exit(1)
 
 
 def error(message: str) -> None:
@@ -39,10 +46,23 @@ def get_date_and_version() -> tuple[str, str]:
     return pretty_date, version
 
 
-def get_options() -> str:
+def get_install_options() -> str:
     """Get the options section from the help2man output."""
     # Get options using help2man
     options = run(["help2man", "boss install", "--version-string=0.0.0"])
+    # Extract the OPTIONS section
+    options_match = re.search(r'\.SH OPTIONS(.+?)\.SH "SEE ALSO"', options, re.DOTALL)
+    if options_match:
+        options = options_match.group(1).strip()
+    else:
+        error("Could not extract OPTIONS section from help2man output")
+    return options
+
+
+def get_info_options() -> str:
+    """Get the options section from the help2man output."""
+    # Get options using help2man
+    options = run(["help2man", "boss info", "--version-string=0.0.0"])
     # Extract the OPTIONS section
     options_match = re.search(r'\.SH OPTIONS(.+?)\.SH "SEE ALSO"', options, re.DOTALL)
     if options_match:
@@ -135,7 +155,8 @@ def main() -> None:
 
     pretty_date, version = get_date_and_version()
 
-    options = get_options()
+    install_options = get_install_options()
+    info_options = get_info_options()
 
     mods = get_mods()
 
@@ -143,7 +164,6 @@ def main() -> None:
 
     # Read the template file
     try:
-        # with open(template) as f:
         with template.open() as f:
             template_content = f.read()
     except OSError as e:
@@ -153,7 +173,8 @@ def main() -> None:
     template_content = template_content.format(
         version=version,
         date=pretty_date,
-        options=options,
+        install_options=install_options,
+        info_options=info_options,
         modules=mods,
         details=details,
     )

@@ -80,7 +80,6 @@ MODS = (
     Personalize,
     LetsEncryptCert,
     SelfCert,
-    # Lamp,
     Apache2,
     Nginx,
     PhpBin,
@@ -330,6 +329,7 @@ CONTEXT_SETTINGS = {
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
+@click.version_option(__version__)
 def boss() -> None:
     """👔 Boss - a tool to install and configure a server.
 
@@ -472,7 +472,6 @@ def boss() -> None:
     envvar=f"{PREFIX}NETDATA_USER_PASS",
     help="a new user's name and password (seperated by a comma)",
 )
-@click.version_option(version=__version__)
 def install(**all_args: Any) -> None:
     """👔 Install various applications and miscellany to set up a server.
 
