@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
 
-import os
-import sys
-import subprocess
-import re
 import datetime
-import click
-from pathlib import Path
-from boss.cli import MODS
+import re
 import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import click
+
+from boss.cli import MODS
 
 
 def error(message: str) -> None:
+    """Print an error message and exit the script."""
     click.secho(message, fg="red")
     sys.exit(1)
 
 
 def run(command: list[str]) -> str:
+    """Run a shell command and return its output."""
     output = ""
     try:
         output = subprocess.check_output(command, text=True)
@@ -27,6 +30,7 @@ def run(command: list[str]) -> str:
 
 
 def get_date_and_version() -> tuple[str, str]:
+    """Get the current date and Boss version."""
     # Get pretty date
     pretty_date = datetime.datetime.now().strftime("%Y-%m-%d")
     # Get version
@@ -36,6 +40,7 @@ def get_date_and_version() -> tuple[str, str]:
 
 
 def get_options() -> str:
+    """Get the options section from the help2man output."""
     # Get options using help2man
     options = run(["help2man", "boss install", "--version-string=0.0.0"])
     # Extract the OPTIONS section
@@ -50,7 +55,8 @@ def get_options() -> str:
 def unindent(text: str) -> str:
     """Remove leading whitespace from each line in the text.
 
-    Uses the first line's indentation level to determine how much to remove."""
+    Uses the first line's indentation level to determine how much to remove.
+    """
     lines = text.splitlines()
     if not lines:
         return ""
@@ -62,6 +68,7 @@ def unindent(text: str) -> str:
 
 
 def get_mods(full: bool = False) -> str:
+    """Get the list of modules with their descriptions and requirements."""
     basic_template = unindent(""".B
         {name}
         .br""")
@@ -83,9 +90,9 @@ def get_mods(full: bool = False) -> str:
             # lines = [i.strip() for i in lines]
             # fix bullets, add a .br after each line that starts with a number or a dash
             formatted = []
-            for l in lines:
-                formatted.append(l)
-                if re.match(r"^([1-9]+\.|- )", l):
+            for line in lines:
+                formatted.append(line)
+                if re.match(r"^([1-9]+\.|- )", line):
                     formatted.append(".br")
             description = "\n".join(formatted)
             mods.append(
@@ -94,7 +101,7 @@ def get_mods(full: bool = False) -> str:
                     # description=description.strip(),
                     description=description,
                     requirements=requirements,
-                )
+                ),
             )
         else:
             mods.append(basic_template.format(name=name))
@@ -103,6 +110,12 @@ def get_mods(full: bool = False) -> str:
 
 
 def main() -> None:
+    """Generate a formatted man page from a specified template file.
+
+    It performs checks to ensure the presence of required files and tools,
+    processes input data, and writes a newly formatted man page to the
+    destination directory.
+    """
     template = Path("scripts/boss.1.template")
     destination = Path("man")
 
@@ -130,9 +143,10 @@ def main() -> None:
 
     # Read the template file
     try:
-        with open(template, "r") as f:
+        # with open(template) as f:
+        with template.open() as f:
             template_content = f.read()
-    except IOError as e:
+    except OSError as e:
         error(f"Failed to read template file: {e}")
 
     # Replace placeholders
@@ -145,12 +159,14 @@ def main() -> None:
     )
 
     # Write to destination
-    dest_path = os.path.join(destination, "boss.1")
+    # dest_path = os.path.join(destination, "boss.1")
+    dest_path = Path(destination, "boss.1")
     try:
-        with open(dest_path, "w") as f:
+        # with open(dest_path, "w") as f:
+        with dest_path.open(mode="w") as f:
             f.write(template_content)
         print(f"Successfully created {dest_path}")
-    except IOError as e:
+    except OSError as e:
         error(f"Failed to write to destination file: {e}")
 
 
