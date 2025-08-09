@@ -1,74 +1,60 @@
-import distro
-from .util import error
+"""Compare the current distro version with a known version."""
+
 import enum
 
+import distro
 
-class UbuntuVersion(enum.Enum):
-    V14_04 = 14.04  # Trusty Tahr
-    V16_04 = 16.04  # Xenial Xerus
-    V18_04 = 18.04  # Bionic Beaver
-    V20_04 = 20.04  # Focal Fossa
-    V22_04 = 22.04  # Jammy Jellyfish
-    V24_04 = 24.04  # Oracular Oriole
+from boss.errors import VersionError
 
 
-class Dist:
-    """Test whether the current distro meets certain version requirements.
+class UbuntuVersion(float, enum.Enum):
+    """Ubuntu versions as a numeric Enum that behaves like a float.
 
-    d = Dist()
-    d == Dist.UBUNTU
-    d == (Dist.UBUNTU, Dist.V16_10)
-    d > (Dist.UBUNTU, Dist.V16_10)
+    Provides a `current()` classmethod that detects the version from the
+    running system using the `distro` package.
+
+    Usage:
+    ``` python
+    from boss.dist import UbuntuVersion
+    UbuntuVersion.current() == UbuntuVersion.V20_04
+    UbuntuVersion.current() >= UbuntuVersion.V18_04
+    ```
     """
 
-    UBUNTU = "Ubuntu"
     V14_04 = 14.04  # Trusty Tahr
     V16_04 = 16.04  # Xenial Xerus
     V18_04 = 18.04  # Bionic Beaver
     V20_04 = 20.04  # Focal Fossa
     V22_04 = 22.04  # Jammy Jellyfish
-    V24_04 = 24.04  # Oracular Oriole
-    version: float
-    name: str
+    V24_04 = 24.04  # Noble Numbat
 
-    def __init__(self) -> None:
+    @classmethod
+    def current(cls) -> "UbuntuVersion":
+        """Return the current Ubuntu version."""
+        detected_name = distro.id().lower()
+        if detected_name != "ubuntu":
+            err_msg = f"Not an Ubuntu system (detected: {detected_name or 'unknown'})"
+            raise VersionError(err_msg)
+
+        ver_str = distro.version()
+        if not ver_str:
+            err_msg = "Could not detect Ubuntu version"
+            raise VersionError(err_msg)
+
+        # Normalize to float for Enum lookup
         try:
-            from .cli import DIST_VERSION
-        except ImportError:
-            error("Could not import DIST_VERSION from cli module.")
+            ver_float = float(ver_str)
+        except (TypeError, ValueError) as exc:
+            err_msg = f"Could not parse Ubuntu version from '{ver_str}'"
+            raise VersionError(err_msg) from exc
 
-        if DIST_VERSION:
-            self.name = self.UBUNTU
-            self.version = DIST_VERSION.value
-        else:
-            self.name = distro.name()
-            self.version = float(distro.version())
-
-    def __str__(self) -> str:
-        return "{name} {version}".format(**self.__dict__)
-
-    def __eq__(self, other):
-        """Comparison can be done with the distro name or the distro name and version.
-
-        d = Distro()
-        d == Distro.UBUNTU
-        d == (Distro.UBUNTU, Distro.V16_04)"""
-        if len(other) == 2:
-            return self.name == other[0] and float(self.version) == float(other[1])
-        else:
-            return self.name == other
-
-    def __ne__(self, other):
-        return self.name != other[0] or self.version != float(other[1])
-
-    def __lt__(self, other):
-        return self.name == other[0] and self.version < float(other[1])
-
-    def __le__(self, other):
-        return self.name == other[0] and self.version <= float(other[1])
-
-    def __gt__(self, other):
-        return self.name == other[0] and self.version > float(other[1])
-
-    def __ge__(self, other):
-        return self.name == other[0] and self.version >= float(other[1])
+        # Try direct match to one of the known enum values
+        try:
+            return cls(ver_float)
+        except ValueError:
+            # If the exact version isn't part of the enum (e.g., 24.10), raise.
+            err_msg = (
+                f"Ubuntu version {ver_float} is not represented in {cls.__name__}. "
+                f"Known: {[m.value for m in cls]}"
+            )
+            raise VersionError(err_msg) from ValueError

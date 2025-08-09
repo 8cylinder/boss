@@ -1,14 +1,15 @@
-from typing import Any
+"""Database engines for Boss."""
 
-from boss.engine import Engine
+from typing import ClassVar
 
-from ..dist import Dist
-from ..errors import PlatformError
-from ..util import error
+from boss.dist import UbuntuVersion
+from boss.engine import Args, Engine
+from boss.errors import PlatformError
+from boss.util import error
 
 
 class Mysql(Engine):
-    """Mysql db and password configuration
+    """Mysql db and password configuration.
 
     Requires root's password and new db to create.  Optionally, a new
     user can be created.
@@ -18,16 +19,23 @@ class Mysql(Engine):
     - Optional new user and password: --new-db-user-and-pass=USER,PASSWORD
     """
 
-    provides = ["mysql"]
-    requires: list[str] = []
-    required_args = ["db_name", "db_root_pass"]
+    provides: ClassVar = ["mysql"]
+    requires: ClassVar[list[str]] = []
+    required_args: ClassVar = ["db_name", "db_root_pass"]
     title = "MySQL"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the MySQL engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
         self.apt_pkgs = ["mysql-server"]
 
     def configure_root_password(self) -> None:
+        """Configure the MySQL root password."""
         root_pass = self.args.db_root_pass
         self.mod.run(
             f'''sudo debconf-set-selections <<< \
@@ -39,6 +47,7 @@ class Mysql(Engine):
         )
 
     def setup_user(self, db_user: str, db_pass: str, root_pass: str) -> None:
+        """Set up a new MySQL user with privileges."""
         # only for MySQL 5.7.8 and up?
         sql = f"""
         DROP USER IF EXISTS '{db_user}'@'localhost';
@@ -53,6 +62,7 @@ class Mysql(Engine):
         )
 
     def create_schema(self, db_name: str, root_pass: str) -> None:
+        """Create a new MySQL database schema."""
         sql = " ".join(
             f"""
           DROP DATABASE IF EXISTS {db_name};
@@ -65,11 +75,13 @@ class Mysql(Engine):
         )
 
     def import_sql(self, root_pass: str, sql_file: str) -> None:
+        """Import an SQL file into the MySQL database."""
         self.mod.run(
             f"mysql -uroot -p{root_pass} < {sql_file}",
         )
 
     def config_for_low_memory(self) -> None:
+        """Configure MySQL for low memory usage."""
         setting_file = "/etc/mysql/my.cnf"
         setting = self.set_indent("""
             [mysqld]
@@ -78,9 +90,12 @@ class Mysql(Engine):
         self.mod.append_to_file(setting_file, setting)
 
     def test_mysql_connectivity(self) -> None:
-        """Tests MySQL connectivity, including root user login, additional user login, and
-        database existence if configured. This method verifies that the MySQL server is
-        functional and accessible using the provided credentials and database name.
+        """Test MySQL connectivity.
+
+        Tests MySQL connectivity, including root user login, additional user
+        login, and database existence if configured. This method verifies
+        that the MySQL server is functional and accessible using the provided
+        credentials and database name.
 
         Raises:
             PlatformError: If root login fails, additional user login fails, or the
@@ -92,7 +107,8 @@ class Mysql(Engine):
             self.mod.run(f"mysql -uroot -p{self.args.db_root_pass} -e 'SELECT 1;'")
             self.info("Root test", "User 'root' login successful.")
         except Exception as e:
-            raise PlatformError(f"Root login failed: {e}")
+            err_msg = f"Root login failed: {e}"
+            raise PlatformError(err_msg) from e
 
         # Test configured user if provided
         if self.args.new_db_user_and_pass:
@@ -101,7 +117,8 @@ class Mysql(Engine):
                 self.mod.run(f"mysql -u{db_user} -p{db_pass} -e 'SELECT 1;'")
                 self.info("User test", f"User '{db_user}' login successful.")
             except Exception as e:
-                raise PlatformError(f'User "{db_user}" login failed, {e}')
+                err_msg = f'User "{db_user}" login failed, {e}'
+                raise PlatformError(err_msg) from e
 
         # Test database existence if configured
         if self.args.db_name:
@@ -110,15 +127,19 @@ class Mysql(Engine):
                     f"mysqlshow -uroot -p{self.args.db_root_pass} {self.args.db_name};",
                 )
                 self.info("Database test", f"Database '{self.args.db_name}' exists")
-            except Exception:
-                raise PlatformError(
-                    f'Database "{self.args.db_name}" does not exist or is not accessible.',
+            except Exception as e:
+                err_msg = (
+                    f'Database "{self.args.db_name}" does not '
+                    "exist or is not accessible."
                 )
+                raise PlatformError(err_msg) from e
 
     def pre_install(self) -> None:
+        """Pre-installation steps for MySQL."""
         self.configure_root_password()
 
     def post_install(self) -> None:
+        """Post-installation steps for MySQL."""
         if self.args.new_db_user_and_pass:
             db_user, db_pass = self.args.new_db_user_and_pass
             self.setup_user(db_user, db_pass, self.args.db_root_pass)
@@ -134,46 +155,59 @@ class Mysql(Engine):
 
 
 class PhpMyAdmin(Engine):
-    """Web database client
+    """Web database client.
 
     Access at http://<servername>/phpmyadmin
 
     Use the root username and the password specified via --db_root_pass
     """
 
-    provides = ["phpmyadmin"]
-    requires = ["apache2", "phpbin", "mysql"]
-    required_args = []
+    provides: ClassVar = ["phpmyadmin"]
+    requires: ClassVar = ["apache2", "phpbin", "mysql"]
+    required_args: ClassVar = []
     title = "PhpMyAdmin"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.dist = Dist()
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the PhpMyAdmin engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
         self.apt_pkgs = ["phpmyadmin"]
 
     def pre_install(self) -> None:
+        """Pre-installation steps for PhpMyAdmin."""
         root_pass = self.args.db_root_pass
         self.mod.run(
-            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2"',
+            'sudo debconf-set-selections <<< "phpmyadmin '
+            'phpmyadmin/reconfigure-webserver multiselect apache2"',
         )
         self.mod.run(
-            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/dbconfig-install boolean true"',
+            'sudo debconf-set-selections <<< "phpmyadmin '
+            'phpmyadmin/dbconfig-install boolean true"',
         )
         self.mod.run(
-            f'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/app-password-confirm password {root_pass}"',
+            'sudo debconf-set-selections <<< "phpmyadmin '
+            f'phpmyadmin/app-password-confirm password {root_pass}"',
         )
         self.mod.run(
-            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multiselect none"',
+            'sudo debconf-set-selections <<< "phpmyadmin '
+            'phpmyadmin/reconfigure-webserver multiselect none"',
         )
 
         self.mod.run(
-            'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-user string root"',
+            'sudo debconf-set-selections <<< "phpmyadmin '
+            'phpmyadmin/mysql/admin-user string root"',
         )
         self.mod.run(
-            f'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-pass password {root_pass}"',
+            'sudo debconf-set-selections <<< "phpmyadmin '
+            f'phpmyadmin/mysql/admin-pass password {root_pass}"',
         )
         self.mod.run(
-            f'sudo debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/app-pass password {root_pass}"',
+            'sudo debconf-set-selections <<< "phpmyadmin '
+            f'phpmyadmin/mysql/app-pass password {root_pass}"',
         )
 
         site_name = self.args.site_name_and_root[0][0]
@@ -181,17 +215,23 @@ class PhpMyAdmin(Engine):
 
 
 class Adminer(Engine):
-    """Web database client, an alternative to PhpMyAdmin"""
+    """Web database client, an alternative to PhpMyAdmin."""
 
-    provides = ["adminer"]
-    requires = ["apache2", "phpbin", "mysql"]
-    required_args = []
+    provides: ClassVar = ["adminer"]
+    requires: ClassVar = ["apache2", "phpbin", "mysql"]
+    required_args: ClassVar = []
     title = "Adminer"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the Adminer engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
 
-        if self.distro >= (Dist.UBUNTU, Dist.V18_04):
+        if self.ubuntu >= UbuntuVersion.V18_04:
             self.apt_pkgs = ["adminer"]
         else:
             error(f"{self.title} not tested on this platform")
@@ -200,11 +240,14 @@ class Adminer(Engine):
         self.info("URL", f"http://{site_name}/adminer.php")
 
     def post_install(self) -> None:
-        # for 18.04, an extra compile step needs to be
-        # done.  20.04 and later doesn't need this.
-        if self.distro == (Dist.UBUNTU, Dist.V18_04):
+        """Post-installation steps for Adminer.
+
+        For 18.04, an extra compile step needs to be
+        done.  20.04 and later don't need this.
+        """
+        if self.ubuntu == UbuntuVersion.V18_04:
             self.mod.run("cd /usr/share/adminer/ && sudo php compile.php")
-            filename = self.mod.run(
+            filename: str = self.mod.run(
                 "cd /usr/share/adminer/ && ls adminer-*.*.*.php",
                 capture=True,
             )
@@ -212,7 +255,6 @@ class Adminer(Engine):
             self.mod.append_to_file(
                 "/etc/apache2/conf-available/adminer.conf",
                 f"Alias /adminer.php /usr/share/adminer/{filename}",
-                append=False,
                 backup=False,
             )
             self.mod.run("sudo a2enconf adminer")

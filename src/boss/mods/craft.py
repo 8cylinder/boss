@@ -1,20 +1,33 @@
+"""Manage the installation and configuration of Craft CMS.
+
+This module provides a class `Craft` that sets up Craft CMS by managing
+dependencies, directories, composer setups, and configurations for Apache
+and the Craft application itself.
+
+Classes:
+- Craft: Main class for handling the Craft CMS installation process.
+"""
+
 import os
+from typing import ClassVar
 
-# noinspection PyUnresolvedReferences
-from typing import Any
-
-from boss.engine import Engine
-
-from ..dist import Dist
-from ..errors import DependencyError, PlatformError
+from boss.dist import UbuntuVersion
+from boss.engine import Args, Engine
+from boss.errors import DependencyError, PlatformError
 
 
 class Craft(Engine):
-    """https://craftcms.com"""
+    """Install Craft CMS."""
 
-    provides = ["craft"]
-    requires = ["apache2", "phpbin", "mysql", "composer", "virtualhost"]
-    required_args = [
+    provides: ClassVar[list[str]] = ["craft"]
+    requires: ClassVar[list[str]] = [
+        "apache2",
+        "phpbin",
+        "mysql",
+        "composer",
+        "virtualhost",
+    ]
+    required_args: ClassVar[list[str]] = [
         "db_name",
         "craft_credentials",
         "site_name_and_root",
@@ -22,11 +35,16 @@ class Craft(Engine):
     ]
     title = "Craft CMS"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        # self.provides = ["craft"]
-        # self.requires = ["apache2", "phpbin", "mysql", "composer"]
-        if self.distro == (Dist.UBUNTU, Dist.V16_04):
+    def __init__(
+        self,
+        *,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the Craft engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
+        if ubuntu_version == UbuntuVersion.V16_04:
             self.apt_pkgs = [
                 "php-mbstring",
                 "php-imagick",
@@ -36,7 +54,7 @@ class Craft(Engine):
                 "php-zip",
                 "php-soap",
             ]
-        elif self.distro == (Dist.UBUNTU, Dist.V18_04):
+        elif ubuntu_version == UbuntuVersion.V18_04:
             self.apt_pkgs = [
                 "php7.2-mbstring",
                 "php-imagick",
@@ -47,7 +65,7 @@ class Craft(Engine):
                 "php7.2-gmp",
                 "php-gmp",
             ]  # php7.2-gmp or php7.2-bcmath
-        elif self.distro == (Dist.UBUNTU, Dist.V20_04):
+        elif ubuntu_version == UbuntuVersion.V20_04:
             self.apt_pkgs = [
                 "php-mbstring",
                 "php-imagick",
@@ -57,7 +75,7 @@ class Craft(Engine):
                 "php-soap",
                 "php-gmp",
             ]
-        elif self.distro == (Dist.UBUNTU, Dist.V24_04):
+        elif ubuntu_version == UbuntuVersion.V24_04:
             self.apt_pkgs = [
                 "php-mbstring",
                 "php-imagick",
@@ -70,21 +88,25 @@ class Craft(Engine):
                 "php-intl",
             ]
         else:
-            raise PlatformError(
-                f"Craft dependencies have not been determined yet for this platform: {self.distro}",
+            error_msg = (
+                "Craft dependencies have not been determined yet "
+                f"for this platform: {ubuntu_version}"
             )
+            raise PlatformError(error_msg)
 
     def post_install(self) -> None:
+        """Install Craft CMS."""
         if not self.args.craft_credentials or not self.args.site_name_and_root:
             self.info(
                 "Install",
-                "Craft credentials (--craft-credentials) not provided, not installing Craft.",
+                "Craft credentials (--craft-credentials) not provided, "
+                "not installing Craft.",
             )
             return
 
-        html_dir = os.path.join("/var/www/", self.args.site_name_and_root[0][1])
+        html_dir = os.path.join("/var/www/", self.args.site_name_and_root[0][1])  # noqa: PTH118
 
-        # setup the dirs
+        # set up the dirs
         self.configure_dirs(html_dir)
 
         # Install craft3 via composer
@@ -104,6 +126,7 @@ class Craft(Engine):
         self.info("Craft admin", f"https://{self.args.servername}/admin")
 
     def edit_conf(self, site_name: str, site_dir: str) -> None:
+        """Edit the Apache configuration file for the Craft site."""
         conf_file = f"/etc/apache2/sites-available/{site_name}.conf"
         sed_exp = [
             f"s|DocumentRoot {site_dir}|DocumentRoot {site_dir}/web|g",
@@ -118,6 +141,10 @@ class Craft(Engine):
         craft_db_user: str,
         html_dir: str,
     ) -> None:
+        """Configure Craft using the craft cli command.
+
+        Use `sg` to run the command as the www-data user.
+        """
         # setup the db
         self.mod.run(f"""sg www-data 'php {html_dir}/craft setup/db --interactive 0 \
             --driver mysql \
@@ -130,7 +157,8 @@ class Craft(Engine):
         """)
         # run the craft install
         username, email, password = self.args.craft_credentials
-        self.mod.run(f"""sg www-data 'php {html_dir}/craft install/craft --interactive=0 \
+        self.mod.run(f"""sg www-data 'php {html_dir}/craft install/craft \
+            --interactive=0 \
             --email={email} \
             --username={username} \
             --password={password} \
@@ -140,22 +168,26 @@ class Craft(Engine):
         """)
 
     def composer_install_craft(self, html_dir: str) -> None:
+        """Install Craft CMS using Composer."""
         # remove existing files
         # self.run(
         #     f"sudo rm -If {html_dir}/index.html {html_dir}/*.local.crt {html_dir}/*.local.key"
         # )
         self.mod.run("ls *")
         self.mod.run(f"sudo rm -Irf {html_dir}/*")
-        cmd = f"sg www-data 'composer create-project --no-ansi --remove-vcs --no-interaction craftcms/craft {html_dir}/'"
+        cmd = (
+            f"sg www-data 'composer create-project --no-ansi "
+            f"--remove-vcs --no-interaction craftcms/craft {html_dir}/'"
+        )
         self.mod.run(cmd)
 
     def configure_dirs(self, html_dir: str) -> None:
-        # setup the dirs
-        # craft_dir = self.craft_dir
-        if not os.path.exists(html_dir) and not self.args.dry_run:
-            raise DependencyError(
+        """Configure the directories for Craft."""
+        if not (os.path.exists(html_dir) or self.args.dry_run):  # noqa: PTH110
+            error_msg = (
                 f'Site root "{html_dir}" does not exist, include "virtualhost" '
-                "in your command line arguments to create it.",
+                "in your command line arguments to create it."
             )
+            raise DependencyError(error_msg)
         self.mod.run(f"sudo chown www-data: {html_dir}")
         self.mod.run(f"sudo chmod ug+rw {html_dir}")

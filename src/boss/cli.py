@@ -1,46 +1,44 @@
-import sys
+"""CLI for Boss - a tool to install and configure a server."""
+
+import importlib.metadata
 import os
 import re
-import subprocess
 import socket
-from pprint import pprint as pp  # noqa
-import click
-from click.core import Parameter, Context
-import importlib.metadata
-from typing import Any
-from pathlib import Path
+import subprocess
+import sys
 import textwrap
+from pathlib import Path
+from pprint import pprint as pp  # noqa
+from typing import Any
 
-from .errors import DependencyError, PlatformError, SecurityError, ModuleRequestError
-from .util import error, title
-from .engine import Args
-from .dist import UbuntuVersion
-from .mods.aptproxy import AptProxy
-from .mods.bashrc import Bashrc
-from .mods.cert import SelfCert
-from .mods.cert import LetsEncryptCert
-from .mods.craft import Craft
-from .mods.databases import Mysql
-from .mods.databases import PhpMyAdmin
-from .mods.databases import Adminer
-from .mods.last import Last
-from .mods.fakesmtp import FakeSMTP  # noqa: F401
-from .mods.first import First
-from .mods.lamp import Lamp  # noqa: F401
-from .mods.netdata import Netdata
-from .mods.newuser import NewUserAsRoot
-from .mods.newuser import Personalize
-from .mods.phpbin import PhpBin
-from .mods.phpbin import Xdebug
-from .mods.phpbin import PhpInfo
-from .mods.phpbin import Composer
-from .mods.virtualhost import VirtualHost
-from .mods.webmin import Webmin
-from .mods.webservers import Apache2
-from .mods.webservers import Nginx
-from .mods.firewall import Firewall
+import click
+from click.core import Context, Parameter
 from dotenv import load_dotenv
 
+from boss.dist import UbuntuVersion
+from boss.engine import Args
+from boss.errors import (
+    DependencyError,
+    ModuleRequestError,
+    PlatformError,
+    SecurityError,
+)
+from boss.mods.aptproxy import AptProxy
+from boss.mods.bashrc import Bashrc
+from boss.mods.cert import LetsEncryptCert, SelfCert
+from boss.mods.craft import Craft
+from boss.mods.databases import Adminer, Mysql, PhpMyAdmin
+from boss.mods.fakesmtp import FakeSMTP  # noqa: F401
+from boss.mods.firewall import Firewall
+from boss.mods.first import First
+from boss.mods.last import Last
+from boss.mods.netdata import Netdata
+from boss.mods.newuser import NewUserAsRoot, Personalize
+from boss.mods.phpbin import Composer, PhpBin, PhpInfo, Xdebug
+from boss.mods.virtualhost import VirtualHost
+from boss.mods.webmin import Webmin
+from boss.mods.webservers import Apache2, Nginx
+from boss.util import error, title
 
 # Load environment variables from .env file in current dir or parent directories
 # load_dotenv(dotenv_path=".env.boss")
@@ -55,7 +53,7 @@ def find_dotenv_file() -> Path | None:
 
         if env_boss.exists():
             return env_boss
-        elif env_file.exists():
+        if env_file.exists():
             return env_file
 
         current = current.parent
@@ -65,18 +63,14 @@ def find_dotenv_file() -> Path | None:
 if dotenv_path := find_dotenv_file():
     click.echo(
         click.style("Loading vars from: ", fg="green")
-        + click.style(f'"{dotenv_path}"', fg="green", bold=True)
+        + click.style(f'"{dotenv_path}"', fg="green", bold=True),
     )
     load_dotenv(dotenv_path)
 
 # Prefix for environment variables
 PREFIX = "BOSS_"
 
-# DIST_VERSION = None
 __version__ = importlib.metadata.version("boss")
-
-# DIST_VERSION: float | None = None
-DIST_VERSION: UbuntuVersion | None = None
 
 # All the mods available in the order they should be run
 MODS = (
@@ -108,23 +102,25 @@ MODS = (
 
 
 def is_server(server: str) -> bool:
-    if "." not in server:
-        return False
-    return True
+    """Check if a string sort of looks like a url by checking for a '.' in it."""
+    return "." in server
+    # if "." not in server:
+    #     return False
+    # return True
 
 
 def is_email(email: str) -> bool:
-    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-        return False
-    return True
+    """Check if a string is a valid email address."""
+    return bool(re.match(r"[^@]+@[^@]+\.[^@]+", email))
 
 
 def is_ipaddress(ip: str) -> bool:
+    """Check if a string is a valid IPv4 address."""
     try:
         socket.inet_pton(socket.AF_INET, ip)
-        return True
     except OSError:
         return False
+    return True
 
 
 def get_matching_modules(wanted_mods: list[str]) -> list[Any]:
@@ -136,8 +132,8 @@ def get_matching_modules(wanted_mods: list[str]) -> list[Any]:
     Sort the list of modules by their order in MODS and remove duplicates.
     """
     matching_mods: list[Any] = []
-    for wanted in wanted_mods:
-        wanted = wanted.lower()
+    for wanted_mod in wanted_mods:
+        wanted = wanted_mod.lower()
         error_matches: list[str] = []
         matched_count = 0
         for mod in MODS:
@@ -145,17 +141,16 @@ def get_matching_modules(wanted_mods: list[str]) -> list[Any]:
             if module_name == wanted:
                 matching_mods.append(mod)
                 continue
-            elif module_name.startswith(wanted):
+            if module_name.startswith(wanted):
                 error_matches.append(module_name)
                 matching_mods.append(mod)
                 matched_count += 1
         if matched_count > 1:
             # Convert a list of items to: '"itema", "itemb" and "itemc"'
             quoted = [f'"{i}"' for i in error_matches]
-            matches = ", ".join(quoted[:-2] + [" and ".join(quoted[-2:])])
-            raise ModuleRequestError(
-                f'Module name "{wanted}" is ambiguous, it matches: {matches}'
-            )
+            matches = ", ".join([*quoted[:-2], " and ".join(quoted[-2:])])
+            error_msg = f'Module name "{wanted}" is ambiguous, it matches: {matches}'
+            raise ModuleRequestError(error_msg)
 
     # sort the matching_mods by their order in MODS
     matching_mods.sort(key=lambda x: MODS.index(x))
@@ -179,30 +174,39 @@ def get_matching_modules(wanted_mods: list[str]) -> list[Any]:
 
 
 class Server(click.ParamType):
-    """Check if a string sort of looks like a url by checking for a '.' in it"""
+    """Check if a string sort of looks like a url by checking for a '.' in it."""
 
     name = "server"
 
-    def convert(self, value: str, param: Parameter | None, ctx: Context | None) -> str:
+    def convert(
+        self,
+        value: str,
+        param: Parameter | None,
+        ctx: Context | None,
+    ) -> str | None:
+        """Convert the value to a valid server name if possible."""
         if not is_server(value):
             msg = 'the servername must have a "." in it, eg. something.local'
             self.fail(msg, param, ctx)
-        else:
-            return value
+        return value
 
 
 SERVER = Server()
 
 
 class UserPass(click.ParamType):
-    """Check if a string is a username and password
+    """Check if a string is a username and password.
 
-    format: username,password"""
+    format: username,password
+    """
 
     name = "user_pass"
 
     def convert(
-        self, value: str, param: Parameter | None, ctx: Context | None
+        self,
+        value: str,
+        param: Parameter | None,
+        ctx: Context | None,
     ) -> tuple[str, str]:
         try:
             username, password = [i.strip() for i in value.split(",", 1) if i.strip()]
@@ -217,19 +221,28 @@ USER_PASS = UserPass()
 
 
 class SiteDocroot(click.ParamType):
-    """Check if a string is a sitename and document root
+    """Check if a string is a sitename and document root.
 
     Format: SITENAME,DOCROOT,CREATEDIR[:...]
-    Example: siteone.local,siteone,y/html:sitetwo.local,sitetwo,n/html"""
+    Example: siteone.local,siteone,y/html:sitetwo.local,sitetwo,n/html
+    """
 
     name = "site_docroot"
 
     def convert(
-        self, value: str, param: Parameter | None, ctx: Context | None
+        self,
+        value: str,
+        param: Parameter | None,
+        ctx: Context | None,
     ) -> list[tuple[str, str, str]]:
+        """Convert the value to a tuple of (sitename, documentroot, createdir)."""
         sites = value.split(":")
         cleaned_sites = []
-        msg = 'must be a sitename, document root and a "y" or "n" (create site dir) seperated by a comma, and sitename must have a . in it'
+        msg = (
+            'must be a sitename, document root and a "y" or "n" '
+            "(create site dir) seperated by a comma, and sitename "
+            "must have a . in it"
+        )
         msg = " ".join(msg.split())
         for site in sites:
             try:
@@ -255,10 +268,14 @@ class UserEmailPass(click.ParamType):
     name = "user_email_pass"
 
     def convert(
-        self, value: str, param: Parameter | None, ctx: Context | None
+        self,
+        value: str,
+        param: Parameter | None,
+        ctx: Context | None,
     ) -> tuple[str, str, str]:
+        """Convert the value to a tuple of (username, email, password)."""
         msg = """must be a username, email and password seperated by a comma
-                 (the password can have a comma in it, but not the username or email)."""
+            (the password can have a comma in it, but not the username or email)."""
         msg = " ".join(msg.split())
         try:
             username, email, password = [
@@ -276,9 +293,12 @@ USER_EMAIL_PASS = UserEmailPass()
 
 
 class IpAddress(click.ParamType):
+    """Check if a string is a valid IPv4 address."""
+
     name = "ip_address"
 
     def convert(self, value: str, param: Parameter | None, ctx: Context | None) -> str:
+        """Convert the value to a valid IPv4 address if possible."""
         msg = "Ip address is not vaid"
         if not is_ipaddress(value):
             self.fail(msg, param, ctx)
@@ -289,13 +309,15 @@ IP_ADDRESS = IpAddress()
 
 
 def deps(*dependencies: str) -> bool:
+    """Check if the command line arguments contain any of the dependencies.
+
+    Iterate over the requested modules and check if any of the
+    dependencies are in the command line arguments.
+    """
     # remove the first three arguments and any options so only
     # the wanted modules are left
     cmd_mods = [i for i in sys.argv if not i.startswith("-")][3:]
-    for i in dependencies:
-        if i in cmd_mods:
-            return True
-    return False
+    return any(i in cmd_mods for i in dependencies)
 
 
 # --------------------------------- UI ---------------------------------
@@ -309,7 +331,7 @@ CONTEXT_SETTINGS = {
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 def boss() -> None:
-    """👔 Boss - a tool to install various applications and miscellany to set up a server.
+    """👔 Boss - a tool to install and configure a server.
 
     Use `boss --help` for more information on how to use it.
     """
@@ -332,7 +354,10 @@ def boss() -> None:
     help="The server name to use for the self-signed certificate and virtual host.",
 )
 @click.option(
-    "-d", "--dry-run", is_flag=True, help="Only print the commands that would be used"
+    "-d",
+    "--dry-run",
+    is_flag=True,
+    help="Only print the commands that would be used",
 )
 @click.option(
     "--required/--no-required",
@@ -353,7 +378,6 @@ def boss() -> None:
 )
 @click.option(
     "--dist-version",
-    # type=float,
     type=click.Choice(UbuntuVersion),
     help="The version of Ubuntu to assume instead of autodetect.",
 )
@@ -419,8 +443,8 @@ def boss() -> None:
     envvar=f"{PREFIX}SITE_NAME_AND_ROOT",
     required=deps("virtualhost", "craft"),
     help="""SITENAME, DOCUMENTROOT and CREATEDIR seperated by a comma (doc root will be put in /var/www).
-                CREATEDIR is an optional y/n that indicates if to create the dir or not (default:n).
-                Multiple sites can be specified by seperating them with a ":", eg: -s site1,root1,y:site2,root2""",
+        CREATEDIR is an optional y/n that indicates if to create the dir or not (default:n).
+        Multiple sites can be specified by seperating them with a ":", eg: -s site1,root1,y:site2,root2""",  # noqa: E501
 )
 # craft
 @click.option(
@@ -429,7 +453,7 @@ def boss() -> None:
     type=USER_EMAIL_PASS,
     metavar="USERNAME,EMAIL,PASSWORD",
     envvar=f"{PREFIX}CRAFT_CREDENTIALS",
-    help="Craft admin credentials. If not set, only system requirements for Craft will be installed",
+    help="Craft admin credentials. If not set, only system requirements for Craft will be installed",  # noqa: E501
 )
 # aptproxy
 @click.option(
@@ -461,9 +485,9 @@ def install(**all_args: Any) -> None:
     # convert the args dict to a namedtuple
     args = Args(**all_args)
 
-    if args.dist_version:
-        global DIST_VERSION
-        DIST_VERSION = args.dist_version
+    dist_version = args.dist_version or UbuntuVersion.current()
+    #     global DIST_VERSION
+    #     DIST_VERSION = args.dist_version.value
 
     wanted_mods = [i.lower() for i in args.modules]
 
@@ -479,9 +503,9 @@ def install(**all_args: Any) -> None:
             # remove AptProxy from the list of wanted modules
             wanted = [i for i in wanted if i != AptProxy]
             # and add it to the front
-            wanted = [AptProxy, First] + wanted + [Last]
+            wanted = [AptProxy, First, *wanted, Last]
         else:
-            wanted = [First] + wanted + [Last]
+            wanted = [First, *wanted, Last]
 
     # check if the requested modules have their dependencies met
     if args.dependencies:
@@ -493,7 +517,7 @@ def install(**all_args: Any) -> None:
         missing = set(requires) - set(provided)
         if missing:
             pretty_missing = ", ".join(missing)
-            error(f"Requirements not met, missing {pretty_missing}")
+            error(f"Requirements not met. Missing: {pretty_missing}")
 
     if args.generate_script:
         script_header = (
@@ -506,36 +530,42 @@ def install(**all_args: Any) -> None:
             r"PS4=$'\e[30;103m+\e[0m '",
         )
         click.echo("\n".join(script_header))
-    else:
-        if not args.dry_run:
-            print("Installing:", ", ".join([i.__name__ for i in wanted]))
-            try:
-                if not click.confirm("Continue?", default=True, abort=True):
-                    sys.exit()
-            except (KeyboardInterrupt, click.Abort):
-                # don't show the 'Aborted!' message
-                sys.exit(1)
+    elif not args.dry_run:
+        wanted_list = ", ".join([i.__name__ for i in wanted])
+        click.echo(f"Installing: {wanted_list}")
+        try:
+            if not click.confirm("Continue?", default=True, abort=True):
+                sys.exit()
+        except (KeyboardInterrupt, click.Abort):
+            # don't show the 'Aborted!' message
+            sys.exit(1)
 
     # ensure that the required arguments are provided
     is_error = False
-    for App in wanted:
-        app = App(dry_run=True, args=args)
+    for app_class in wanted:
         try:
+            app = app_class(dry_run=True, args=args, ubuntu_version=dist_version)
             app.ensure_arg_requirements()
         except DependencyError as e:
             is_error = True
             click.secho(str(e), fg="red")
+        except PlatformError as e:
+            error(str(e))
     if is_error:
-        exit(1)
+        sys.exit(1)
 
     # add the wanted modules to the args
     args.wanted.extend(wanted)
 
-    for App in wanted:
-        module_name = App.title
+    for app_class in wanted:
+        module_name = app_class.title
         title(module_name, script=args.generate_script)
         try:
-            app = App(dry_run=args.dry_run, args=args)
+            app = app_class(
+                dry_run=args.dry_run,
+                args=args,
+                ubuntu_version=dist_version,
+            )
             app.pre_install()
             # app.mod.install()
             app.install()
@@ -557,12 +587,14 @@ def install(**all_args: Any) -> None:
 
 @boss.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
-    "-f/-s", "--full/--simple", default=False, help="Show full or simple output"
+    "-f/-s",
+    "--full/--simple",
+    default=False,
+    help="Show full or simple output",
 )
 @click.option("--write-env", is_flag=True, help="Write an env file, .env.boss")
 def info(full: bool, write_env: bool) -> None:
     """List any vars defined in a .env and available modules."""
-
     is_env = False
     for key, val in os.environ.items():
         if key.startswith(PREFIX):
@@ -570,18 +602,18 @@ def info(full: bool, write_env: bool) -> None:
             click.echo(f'{key}="{val}"')
 
     if not is_env:
-        print()
         click.secho(
-            f'No environment variables starting with "{PREFIX}" found.', fg="yellow"
+            f'\nNo environment variables starting with "{PREFIX}" found.',
+            fg="yellow",
         )
 
-    print()
+    click.echo("\n")
 
     if not full:
         click.secho("Available modules:", fg="green")
         available = ", ".join([i.__name__ for i in MODS])
         available = textwrap.fill(available)
-        print(available)
+        click.echo(available)
 
     else:
         indent = "  "
@@ -594,7 +626,7 @@ def info(full: bool, write_env: bool) -> None:
                 )
             if mod.required_args:
                 required_args = ", ".join(
-                    [f"--{i.replace('_', '-')}" for i in mod.required_args]
+                    [f"--{i.replace('_', '-')}" for i in mod.required_args],
                 )
                 click.echo(
                     click.style(f"{indent}Req opts: ", dim=True, fg="yellow")
@@ -614,7 +646,8 @@ def info(full: bool, write_env: bool) -> None:
         env_file = Path(".env.boss")
         if env_file.exists():
             overwrite = click.confirm(
-                '".env.boss" already exists, overwrite?', abort=True
+                '".env.boss" already exists, overwrite?',
+                abort=True,
             )
         if overwrite or not env_file.exists():
             with env_file.open("w") as f:

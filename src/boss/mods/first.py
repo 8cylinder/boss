@@ -1,7 +1,18 @@
-from typing import Any
+"""Install miscellaneous applications and setting up system configurations.
 
-from boss.dist import Dist
-from boss.engine import Engine, Settings
+This module focuses on setting up useful system tools, emacs as the default
+editor, and configuring timezone based on provided settings. It also
+incorporates version-specific adjustments for Ubuntu distributions.
+
+Classes:
+    First: Provides functionalities for configuring a system with utilities
+    and software tools depending on the distribution version.
+"""
+
+from typing import ClassVar
+
+from boss.dist import UbuntuVersion
+from boss.engine import Args, Engine, Settings
 
 
 class First(Engine):
@@ -11,14 +22,20 @@ class First(Engine):
     - Emacs is configured as the default editor.
     """
 
-    provides = ["first"]
-    requires: list[str] = []
-    required_args = []
+    provides: ClassVar = ["first"]
+    requires: ClassVar[list[str]] = []
+    required_args: ClassVar = []
     title = "First"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        if self.distro == (Dist.UBUNTU, Dist.V14_04):
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the First engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
+        if self.ubuntu == UbuntuVersion.V14_04:
             self.apt_pkgs = [
                 "tree",
                 "elinks",
@@ -33,7 +50,7 @@ class First(Engine):
             ]
             # self.apt_pkgs += ['joe']
             self.apt_pkgs += ["emacs24-nox"]  # adds aprox 100mb
-        elif (Dist.UBUNTU, Dist.V14_04) < self.distro < (Dist.UBUNTU, Dist.V22_04):
+        elif UbuntuVersion.V14_04 < self.ubuntu < UbuntuVersion.V22_04:
             self.apt_pkgs = [
                 "tree",
                 "elinks",
@@ -51,7 +68,7 @@ class First(Engine):
             ]
             # self.apt_pkgs += ['joe']
             self.apt_pkgs += ["emacs-nox"]  # adds aprox 100mb
-        elif self.distro == (Dist.UBUNTU, Dist.V24_04):
+        elif self.ubuntu == UbuntuVersion.V24_04:
             self.apt_pkgs = [
                 "tree",
                 "virt-what",
@@ -72,10 +89,12 @@ class First(Engine):
             # ]
 
     def pre_install(self) -> None:
+        """Pre-installation steps for First."""
         self.mod.run("sudo apt-get update")
         self.mod.run("sudo apt-get upgrade -y")
 
     def post_install(self) -> None:
+        """Post-installation steps for First."""
         self.set_timezone()
 
         # install emacs-nox without postfix
@@ -89,8 +108,10 @@ class First(Engine):
             self.mod.run("sudo systemctl restart fail2ban.service")
 
     def set_timezone(self) -> None:
+        """Set the system timezone based on Settings.timezone."""
         self.mod.run(f"sudo timedatectl set-timezone {Settings.timezone}")
 
     def install_web_server(self) -> None:
+        """Install a web server using tasksel."""
         # Add 'tasksel' to apt_pkgs
         self.mod.run("sudo tasksel install web-server")

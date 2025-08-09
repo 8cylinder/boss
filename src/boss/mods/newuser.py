@@ -1,7 +1,16 @@
-import re
-from typing import Any
+"""Provide a class to handle the Boss CLI commands.
 
-from boss.engine import Engine
+The Engine class which is inherited by all modules in the Boss CLI framework.
+
+And the Bash and Ansible classes which are used by the Engine class implement
+the relevant methods for each environment.
+"""
+
+import re
+from typing import ClassVar
+
+from boss.dist import UbuntuVersion
+from boss.engine import Args, Engine
 
 
 class NewUserAsRoot(Engine):
@@ -27,20 +36,28 @@ class NewUserAsRoot(Engine):
 
     """
 
-    provides = ["newuserasroot"]
-    requires: list[str] = []
-    required_args = ["new_system_user_and_pass"]
+    provides: ClassVar = ["newuserasroot"]
+    requires: ClassVar = []
+    required_args: ClassVar = ["new_system_user_and_pass"]
     title = "New user (as root)"
 
-    def __init__(self, *args: tuple[Any, ...], **kwargs: dict[str, Any]) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the NewUserAsRoot engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
 
     def pre_install(self) -> None:
+        """Pre-installation steps for creating a new user."""
         username, password = self.args.new_system_user_and_pass
 
         self.mod.run(
-            f"""if ! id -u {username} &>/dev/null; then 
-            useradd --shell=/bin/bash --create-home --password $(mkpasswd -m sha-512 {password}) {username}; 
+            f"""if ! id -u {username} &>/dev/null; then
+            useradd --shell=/bin/bash --create-home \
+              --password $(mkpasswd -m sha-512 {password}) {username};
             fi""",
         )
 
@@ -91,15 +108,22 @@ class Personalize(Engine):
     - Configures emacs with custom theme (modus-vivendi) and interface settings
     """
 
-    provides = ["personalize"]
-    requires = ["first"]
-    required_args: list[str] = []
+    provides: ClassVar = ["personalize"]
+    requires: ClassVar = ["first"]
+    required_args: ClassVar = []
     title = "Personalize"
 
-    def __init__(self, *args: tuple[Any, ...], **kwargs: dict[str, Any]) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the Personalize engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
 
     def pre_install(self) -> None:
+        """Pre-installation steps for personalizing the user's environment."""
         # add user to some groups
         for group in ("sudo", "www-data"):
             self.mod.run(f"sudo usermod -aG {group} $USER")
@@ -107,21 +131,19 @@ class Personalize(Engine):
         self.bash_settings()
         self.emacs_settings()
 
-        # self.doit()
-
     def bash_settings(self) -> None:
+        """Set up some bash settings for the user."""
         bashrc = "$HOME/.bashrc"
         editor = "emacs"
         bash_settings = rf"""
-        
           # Added by Boss on {self.now}
           #PS1='\n${{debian_chroot:+($debian_chroot)}}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\n\$ '
           PS1='\n\[\e[38;5;214m\]\u@\H\[\e[0m\] \[\e[38;5;131m\]\A\[\e[0m\] \[\e[38;5;39m\]\w\n\[\e[0m\]\$ '
-          
+
           LESS_PIPE="/usr/share/source-highlight/src-hilite-lesspipe.sh"
           export LESSOPEN="| $LESS_PIPE %s"
           export LESS=' -R -F --HILITE-UNREAD --chop-long-lines --ignore-case --tabs=4 --window=-5 '
-          
+
           alias ls='LC_ALL=C ls --almost-all --classify --human-readable --color=auto --group-directories-first'
           alias time='/usr/bin/time --format="Time elapsed: %E"'
           alias pss='ps -Af | grep -i $1'
@@ -139,7 +161,7 @@ class Personalize(Engine):
           export EDITOR={editor}
           export VISUAL={editor}
           export SUDO_EDITOR={editor}
-        """
+        """  # noqa: E501
         # strip off the leading spaces
         settings = "\n".join(
             [re.sub(r"^\s*", "", i) for i in bash_settings.split("\n")],
@@ -147,6 +169,7 @@ class Personalize(Engine):
         self.mod.append_to_file(bashrc, settings, backup=True, nosudo=True)
 
     def emacs_settings(self) -> None:
+        """Set up some emacs settings for the user."""
         dot_emacs = "$HOME/.emacs"
         root_dot_emacs = "/root/.emacs"
         emacs_settings = """

@@ -1,83 +1,86 @@
-import os
-from typing import Any
+"""Certificate management modules for boss: Let's Encrypt and self-signed certs."""
 
-from boss.engine import Engine
+from pathlib import Path
+from typing import ClassVar
 
-from ..dist import Dist
-from ..engine import Snap
-from ..errors import PlatformError
+from boss.dist import UbuntuVersion
+from boss.engine import Args, Engine, Snap
+from boss.errors import PlatformError
 
 
 class LetsEncryptCert(Engine):
-    """Let's Encrypt certificate installation and configuration using snap.
+    """Let's Encrypt certificate installation and configuration using snap."""
 
-    Documentation:
-
-    - https://certbot.eff.org/instructions?ws=apache&os=snap
-    - https://www.digitalocean.com/community/tutorials/how-to-secure-apache-with-let-s-encrypt-on-ubuntu
-    """
-
-    provides = ["letsencryptcert"]
-    requires: list[str] = []
-    required_args = ["servername"]
+    provides: ClassVar[list[str]] = ["letsencryptcert"]
+    requires: ClassVar[list[str]] = []
+    required_args: ClassVar[list[str]] = ["servername"]
     title = "Let's Encrypt cert"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        if self.distro == (Dist.UBUNTU, Dist.V24_04):
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize LetsEncryptCert."""
+        super().__init__(args=args, dry_run=dry_run, ubuntu_version=ubuntu_version)
+        if self.ubuntu == UbuntuVersion.V24_04:
             self.snap_pkgs = [
                 ("certbot", Snap.CLASSIC),
             ]
         else:
-            raise PlatformError("Certbot install for non Ubuntu 20.04 not implemented")
+            msg = "Certbot install for non Ubuntu 24.04 not implemented"
+            raise PlatformError(msg)
 
     def post_install(self) -> None:
+        """Post-installation steps for Let's Encrypt cert."""
         self.mod.run("sudo ln -s /snap/bin/certbot /usr/bin/certbot")
-
-        # command to get a certificate and have Certbot edit the apache configuration
-        # automatically to serve it, turning on HTTPS access in a single step.
         self.mod.run("sudo certbot --apache")
-
-        # to test
         self.mod.run("sudo certbot renew --dry-run")
 
     def cert_names(self, cert_basename: str) -> tuple[str, str, str, str]:
-        """Maintain api compatibility with SelfCert."""
+        """Maintain API compatibility with SelfCert. Argument is unused."""
+        _ = cert_basename
         return ("", "", "", "")
 
 
 class SelfCert(Engine):
-    """A self-signed cert good for 30 years
+    """A self-signed cert good for 30 years.
 
     Its name is the servername, SERVERNAME.crt and SERVERNAME.key.
     They are installed in /etc/ssl.
     """
 
-    provides = ["selfcert"]
-    requires: list[str] = []
-    required_args = []
+    provides: ClassVar[list[str]] = ["selfcert"]
+    requires: ClassVar[list[str]] = []
+    required_args: ClassVar[list[str]] = []
     title = "Self signed cert"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize SelfCert."""
+        super().__init__(args=args, dry_run=dry_run, ubuntu_version=ubuntu_version)
 
     def cert_names(self, cert_basename: str) -> tuple[str, str, str, str]:
+        """Return home and system paths for cert and key files."""
         crt = f"{cert_basename}.crt"
         key = f"{cert_basename}.key"
-
-        home_crt = os.path.join(os.path.expanduser("~"), crt)
-        home_key = os.path.join(os.path.expanduser("~"), key)
-
-        cert_loc = "/etc/ssl"
-        real_crt = os.path.join(cert_loc, "certs", crt)
-        real_key = os.path.join(cert_loc, "private", key)
-
-        self.info("cert", f"{real_crt}")
-        self.info("key", f"{real_key}")
-
+        home = Path.home()
+        home_crt = str(home / crt)
+        home_key = str(home / key)
+        cert_loc = Path("/etc/ssl")
+        real_crt = str(cert_loc / "certs" / crt)
+        real_key = str(cert_loc / "private" / key)
+        self.info("cert", real_crt)
+        self.info("key", real_key)
         return home_crt, home_key, real_crt, real_key
 
     def pre_install(self) -> None:
+        """Generate and install a self-signed certificate."""
         cert_basename = self.args.servername
         self.mod.run(f"""sudo openssl \
             req \

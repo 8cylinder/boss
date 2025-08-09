@@ -1,6 +1,14 @@
-from typing import Any
+"""Enable and configure the firewall, with setup for SSH and Apache2.
 
-from boss.engine import Engine
+The module defines a `Firewall` class that extends the base `Engine` class
+to handle firewall setup during post-installation steps. This ensures that
+necessary ports for SSH and HTTP/HTTPS traffic are allowed and the firewall
+is enabled with proper configurations.
+"""
+from typing import ClassVar
+
+from boss.dist import UbuntuVersion
+from boss.engine import Args, Engine
 
 
 class Firewall(Engine):
@@ -9,15 +17,22 @@ class Firewall(Engine):
     Set up for ssh and Apache2 if installed.
     """
 
-    provides = ["firewall"]
-    requires: list[str] = []
-    required_args: list[str] = []
+    provides: ClassVar = ["firewall"]
+    requires: ClassVar = []
+    required_args: ClassVar = []
     title = "Firewall"
 
-    def __init__(self, *args: tuple[Any, ...], **kwargs: dict[str, Any]) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the Firewall engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
 
     def post_install(self) -> None:
+        """Post-installation steps for the firewall."""
         self.mod.run("sudo ufw allow OpenSSH")
 
         # if Apache2 in self.args.wanted:

@@ -1,7 +1,9 @@
-import os
-from typing import Any, ClassVar
+"""Custom Bashrc module for boss: manages .bashrc and symlinks boss to ~/bin."""
 
-from boss.engine import Engine
+from typing import ClassVar
+
+from boss.dist import UbuntuVersion
+from boss.engine import Args, Engine
 
 
 class Bashrc(Engine):
@@ -18,9 +20,14 @@ class Bashrc(Engine):
     required_args: ClassVar[list[str]] = []
     title = "Custom .bashrc"
 
-    def __init__(self, *args: tuple[Any, ...], **kwargs: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
         """Initialize the Bashrc module."""
-        super().__init__(*args, **kwargs)
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
         self.apt_pkgs = ["emacs-nox"]
 
     def install_bashrc(self) -> None:
@@ -29,9 +36,9 @@ class Bashrc(Engine):
         This method sets up essential bash configuration files by downloading them
         from a specified source and placing them in the appropriate location within
         the user's home directory. If a previous .bashrc exists, it is backed up
-        prior to making any changes, and symbolic links are created to avoid duplication.
-        Additionally, permissions for specific scripts are adjusted to ensure they
-        are executable.
+        prior to making any changes, and symbolic links are created to avoid
+        duplication. Additionally, permissions for specific scripts are adjusted to
+        ensure they are executable.
         """
         self.mod.run("if [[ ! -d $HOME/bin ]]; then mkdir $HOME/bin; fi")
         gh_files = {
@@ -44,32 +51,19 @@ class Bashrc(Engine):
 
         # if .bashrc is not a link, back it up
         self.mod.run(
-            "if [[ ! -L $HOME/.bashrc ]]; then mv $HOME/.bashrc $HOME/.bashrc.original; fi",
+            "if [[ ! -L $HOME/.bashrc ]]; then "
+            "mv $HOME/.bashrc $HOME/.bashrc.original; fi",
         )
         # if .bashrc does not exist, make a link to bin/bashrc
         self.mod.run(
-            "if [[ ! -e $HOME/.bashrc ]]; then ln -s $HOME/bin/bashrc $HOME/.bashrc; fi",
+            "if [[ ! -e $HOME/.bashrc ]]; then "
+            "ln -s $HOME/bin/bashrc $HOME/.bashrc; fi",
         )
         self.mod.run("chmod +x $HOME/bin/bashrc_prompt.py")
-
-    def link_boss(self) -> None:
-        """Create a symbolic link to the current script in the user's $HOME/bin directory.
-
-        This method checks if the symbolic link already exists. If not, it creates one
-        pointing to the script's current location. The link is created in the user's
-        $HOME/bin directory, which is commonly used to store executable scripts.
-        """
-        source = __file__
-        name = os.path.basename(source)
-        dest = os.path.expanduser(os.path.join("$HOME/bin", name))
-        self.mod.run(
-            f"if [[ ! -h {dest} ]]; then ln -s {source} {dest}; fi",
-        )
 
     def post_install(self) -> None:
         """Post-installation steps for the Bashrc module."""
         self.install_bashrc()
-        self.link_boss()
 
     def uninstall(self) -> None:
         """Uninstall the Bashrc module."""

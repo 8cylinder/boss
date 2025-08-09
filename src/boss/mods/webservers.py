@@ -1,6 +1,7 @@
-from typing import Any
+from typing import ClassVar
 
-from boss.engine import Engine
+from boss.dist import UbuntuVersion
+from boss.engine import Args, Engine
 
 
 class Apache2(Engine):
@@ -9,13 +10,20 @@ class Apache2(Engine):
     With a default site at /var/www/html.
     """
 
-    provides = ["apache2"]
-    requires: list[str] = []
-    required_args = []
+    provides: ClassVar = ["apache2"]
+    requires: ClassVar = []
+    required_args: ClassVar = []
     title = "Apache2"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the Apache2 engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
+
         self.apt_pkgs = ["apache2", "fail2ban"]
 
     # def post_install(self) -> None:
@@ -30,11 +38,17 @@ class Apache2(Engine):
 class Nginx(Engine):
     """Stand-alone Nginx."""
 
-    provides = ["nginx"]
-    requires: list[str] = []
-    required_args = []
+    provides: ClassVar = ["nginx"]
+    requires: ClassVar = []
+    required_args: ClassVar = []
     title = "Nginx"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the Nginx engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
         self.apt_pkgs = ["nginx"]

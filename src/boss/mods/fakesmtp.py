@@ -1,57 +1,81 @@
+"""A fake SMTP server and utility for testing email sending capabilities.
+
+This module provides a local SMTP server primarily for development and testing
+purposes. It facilitates the installation and configuration of Mailhog and its
+dependencies for various Ubuntu versions.
+
+Classes:
+    FakeSMTP: Handles installation, configuration, and setup of Mailhog for
+    email testing.
+"""
+
 import json
 import urllib.request
+from typing import ClassVar
 
-from boss.engine import Engine
-
-from ..dist import Dist
-from ..util import error
+from boss.dist import UbuntuVersion
+from boss.engine import Args, Engine
+from boss.util import error
 
 
 class FakeSMTP(Engine):
-    """A fake SMTP server for mail testing
+    """A fake SMTP server for mail testing.
 
-    https://www.lullabot.com/articles/installing-mailhog-for-ubuntu-1604
+    Provides a local SMTP server for development and testing purposes.
+    See: https://www.lullabot.com/articles/installing-mailhog-for-ubuntu-1604
     """
 
-    provides = ["fakesmtp"]
-    requires = ["phpbin"]
-    required_args = []
-    title = "FakeSMTP (Mailhog)"
+    provides: ClassVar[list[str]] = ["fakesmtp"]
+    requires: ClassVar[list[str]] = ["phpbin"]
+    required_args: ClassVar[list[str]] = []
+    title: str = "FakeSMTP (Mailhog)"
+    phpini: str
+    cliini: str
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.distro == (Dist.UBUNTU, Dist.V14_04):
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize FakeSMTP with the correct php.ini paths for the Ubuntu version."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
+        if ubuntu_version == UbuntuVersion.V14_04:
             self.phpini = "/etc/php5/apache2/php.ini"
             self.cliini = "/etc/php5/cli/php.ini"
-        elif self.distro == (Dist.UBUNTU, Dist.V16_04):
+        elif ubuntu_version == UbuntuVersion.V16_04:
             self.phpini = "/etc/php/7.0/apache2/php.ini"
             self.cliini = "/etc/php/7.0/cli/php.ini"
-        elif self.distro == (Dist.UBUNTU, Dist.V18_04):
+        elif ubuntu_version == UbuntuVersion.V18_04:
             self.phpini = "/etc/php/7.2/apache2/php.ini"
             self.cliini = "/etc/php/7.2/cli/php.ini"
-        elif self.distro == (Dist.UBUNTU, Dist.V20_04):
+        elif ubuntu_version == UbuntuVersion.V20_04:
             self.phpini = "/etc/php/7.4/apache2/php.ini"
             self.cliini = "/etc/php/7.4/cli/php.ini"
         else:
             error("FakeSMTP: no php.ini defined for this version of Ubuntu")
 
-    def post_install(self):
+    def post_install(self) -> None:
+        """Perform post-installation steps.
+
+        Install binaries, configure PHP, and start the service.
+        """
         self.install_via_github()
         sedcmd = "s|;sendmail_path =|sendmail_path = /usr/local/bin/mhsendmail|"
         cmds = [
             "chmod +x mailhog mhsendmail",
             "sudo mv mailhog mhsendmail /usr/local/bin",
         ]
-        [self.run(i) for i in cmds]
-        self.sed(sedcmd, self.phpini)
-        self.sed(sedcmd, self.cliini)
+        [self.mod.run(i) for i in cmds]
+        self.mod.sed(sedcmd, self.phpini)
+        self.mod.sed(sedcmd, self.cliini)
 
-        if self.distro == (Dist.UBUNTU, Dist.V14_04):
+        if self.ubuntu == UbuntuVersion.V14_04:
             self.config_upstart()
-        elif self.distro >= (Dist.UBUNTU, Dist.V16_04):
+        elif self.ubuntu >= UbuntuVersion.V16_04:
             self.config_systemd()
 
-        # if self.distro >= (Dist.UBUNTU, Dist.V18_04):
+        # if self.ubuntu >= UbuntuVersion.V18_04:
         #    postfix_config = Path('/etc/postfix/main.cf')
         #    if postfix_config.exists():
         #        self.sed('s/^myhostname = .*&/myhostname = localhost/', postfix_config)
@@ -63,21 +87,18 @@ class FakeSMTP(Engine):
         cmd = (
             "php -r \"mail('boss@example.com', 'Test from Boss', 'Test from Boss.');\""
         )
-        self.run(cmd, capture=True)
-        # if('error' in result):
-        #     error(result)
+        self.mod.run(cmd, capture=True)
         self.info("client", f"http://{self.args.servername}:8025")
         self.info(
             "api",
             f"curl http://{self.args.servername}:8025/api/v2/messages",
         )
 
-    def install_via_go(self):
-        pass
+    def install_via_go(self) -> None:
+        """Stub for installing Mailhog via Go (not implemented)."""
 
-    def install_via_github(self):
-        # download mailhog & mhsendmail.  Get the latest release using
-        # GitHub's api.
+    def install_via_github(self) -> None:
+        """Download Mailhog and mhsendmail binaries from GitHub releases."""
         data = [
             {
                 "release": "MailHog_linux_amd64",
@@ -98,12 +119,12 @@ class FakeSMTP(Engine):
                 content = json.loads(r.decode("utf-8"))
                 for asset in content["assets"]:
                     if asset["name"] == prog["release"]:
-                        self.curl(asset["browser_download_url"], prog["localname"])
+                        self.mod.curl(asset["browser_download_url"], prog["localname"])
         except urllib.error.HTTPError as e:
             error(f"MAILHOG github api: {e.msg}")
 
-    def config_upstart(self):
-        # 14.04 uses upstart
+    def config_upstart(self) -> None:
+        """Configure Mailhog to run as an Upstart service (Ubuntu 14.04)."""
         service = """
             description "Mailhog"
             start on runlevel [2345]
@@ -112,17 +133,12 @@ class FakeSMTP(Engine):
         """
         service_file = "/etc/init/mailhog.conf"
         service = "\n".join([i[12:] for i in service.split("\n")])
-        self.append_to_file(service_file, service, append=False)
-        # self.run('echo | sudo tee {service_file} <<EOF{contents}EOF'.format(
-        #     service_file=service_file,
-        #     contents=service
-        # ), wrap=False)
+        self.mod.write_new_file(service_file, service)
+        self.mod.run(f"sudo ln -s {service_file} /etc/init.d/mailhog")
+        self.mod.run("sudo service mailhog start")
 
-        self.run(f"sudo ln -s {service_file} /etc/init.d/mailhog")
-        self.run("sudo service mailhog start")
-
-    def config_systemd(self):
-        # 16.04 + uses systemd
+    def config_systemd(self) -> None:
+        """Configure Mailhog to run as a systemd service (Ubuntu 16.04+)."""
         service = """
             [Unit]
             Description=MailHog service
@@ -137,11 +153,10 @@ class FakeSMTP(Engine):
             WantedBy=multi-user.target
         """
         service_file = "/etc/systemd/system/mailhog.service"
-
         service = "\n".join([i[12:] for i in service.split("\n")])
-        self.run(
+        self.mod.run(
             f"echo | sudo tee {service_file} <<EOF{service}EOF",
             wrap=False,
         )
-        self.run("sudo systemctl start mailhog")
-        self.run("sudo systemctl enable mailhog")
+        self.mod.run("sudo systemctl start mailhog")
+        self.mod.run("sudo systemctl enable mailhog")

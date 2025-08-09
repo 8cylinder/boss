@@ -1,28 +1,32 @@
 import datetime
 import os
-from typing import Any
+from pathlib import Path
+from typing import ClassVar
 
-from boss.engine import Engine
-
-from ..dist import Dist
-from ..errors import PlatformError, SecurityError
-from ..util import error
+from boss.dist import UbuntuVersion
+from boss.engine import Args, Engine
+from boss.errors import PlatformError, SecurityError
+from boss.util import error
 
 
 class PhpBin(Engine):
-    """PHP with additional packages that CMS's need"""
+    """PHP with additional packages that CMS's need."""
 
-    provides = ["phpbin"]
-    requires = ["apache2"]
-    required_args = []
+    provides: ClassVar = ["phpbin"]
+    requires: ClassVar = ["apache2"]
+    required_args: ClassVar = []
     title = "PHP bin"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.provides = ["php"]
-        self.requires = ["apache2"]
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the PHP bin engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
 
-        if self.distro == (Dist.UBUNTU, Dist.V14_04):
+        if ubuntu_version == UbuntuVersion.V14_04:
             self.apt_pkgs = [
                 "php5",
                 "php5-imagick",
@@ -32,7 +36,7 @@ class PhpBin(Engine):
                 "php5-mysql",
                 "libapache2-mod-php5",
             ]
-        elif self.distro == (Dist.UBUNTU, Dist.V16_04):
+        elif ubuntu_version == UbuntuVersion.V16_04:
             self.apt_pkgs = [
                 "php-mbstring",
                 "php-imagick",
@@ -43,7 +47,7 @@ class PhpBin(Engine):
                 "php-gd",
                 "php-mysql",
             ]
-        elif self.distro == (Dist.UBUNTU, Dist.V18_04):
+        elif ubuntu_version == UbuntuVersion.V18_04:
             self.apt_pkgs = [
                 "php-mbstring",
                 "php-imagick",
@@ -54,7 +58,7 @@ class PhpBin(Engine):
                 "php-mysql",
                 "php-gmp",
             ]
-        elif self.distro == (Dist.UBUNTU, Dist.V20_04):
+        elif ubuntu_version == UbuntuVersion.V20_04:
             self.apt_pkgs = [
                 "php-mbstring",
                 "php-imagick",
@@ -65,7 +69,7 @@ class PhpBin(Engine):
                 "php-mysql",
                 "php-gmp",
             ]
-        elif self.distro == (Dist.UBUNTU, Dist.V24_04):
+        elif ubuntu_version == UbuntuVersion.V24_04:
             self.apt_pkgs = [
                 "php",
                 "libapache2-mod-php",
@@ -80,24 +84,33 @@ class PhpBin(Engine):
                 "php-gmp",
             ]
         else:
-            raise PlatformError(
-                f"PHP dependencies have not been determined for this platform yet: {self.distro}",
+            err_msg = (
+                "PHP dependencies have not been determined for "
+                "this platform yet: {ubuntu_version}",
             )
+            raise PlatformError(err_msg)
 
 
 class Xdebug(Engine):
-    """A standard Xdebug installation for PHP"""
+    """A standard Xdebug installation for PHP."""
 
-    provides = ["xdebug"]
-    requires = ["phpbin"]
-    required_args = []
+    provides: ClassVar = ["xdebug"]
+    requires: ClassVar = ["phpbin"]
+    required_args: ClassVar = []
     title = "Xdebug"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the Xdebug engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
         self.apt_pkgs = ["php-xdebug"]
 
     def post_install(self) -> None:
+        """Post-installation steps for Xdebug."""
         settings = """
           ### added by Boss ###
           xdebug.remote_autostart = 1
@@ -116,13 +129,13 @@ class Xdebug(Engine):
         settings = "\n".join([i[10:] for i in settings.split("\n")])
 
         xdebug_ini = ""
-        if self.distro == (Dist.UBUNTU, Dist.V18_04):
+        if self.ubuntu == UbuntuVersion.V18_04:
             xdebug_ini = "/etc/php/7.2/mods-available/xdebug.ini"
             self.mod.append_to_file(xdebug_ini, settings)
-        elif self.distro == (Dist.UBUNTU, Dist.V20_04):
+        elif self.ubuntu == UbuntuVersion.V20_04:
             xdebug_ini = "/etc/php/7.4/mods-available/xdebug.ini"
             self.mod.append_to_file(xdebug_ini, settings)
-        elif self.distro == (Dist.UBUNTU, Dist.V24_04):
+        elif self.ubuntu == UbuntuVersion.V24_04:
             xdebug_ini = "/etc/php/8.3/mods-available/xdebug.ini"
             self.mod.append_to_file(xdebug_ini, settings)
         else:
@@ -131,27 +144,32 @@ class Xdebug(Engine):
 
 
 class PhpInfo(Engine):
-    """Create a phpinfo.php file in /var/www/html
+    """Create a phpinfo.php file in /var/www/html.
 
     It is available at https://<servername>/phpinfo.php
     """
 
-    provides = ["phpinfo"]
-    requires = ["phpbin"]
-    required_args = ["site_name_and_root"]
+    provides: ClassVar = ["phpinfo"]
+    requires: ClassVar = ["phpbin"]
+    required_args: ClassVar = ["site_name_and_root"]
     title = "PHP Info"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the PhpInfo engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
         self.loc = "/var/www/html"
-        # if self.document_root:
-        # self.loc = self.document_root
         self.info_file = f"{self.loc}/phpinfo.php"
 
     def post_install(self) -> None:
+        """Post-installation steps for PHP Info."""
         info = f"<h1>{datetime.datetime.now().isoformat()}</h1>\n<?php phpinfo();"
-
-        if self.args.dry_run or self.args.generate_script or os.path.exists(self.loc):
+        loc_path = Path(self.loc)
+        if self.args.dry_run or self.args.generate_script or loc_path.exists():
             self.mod.write_new_file(self.info_file, info)
             # cmd = 'echo \'{info}\' | sudo -u www-data tee {loc}'.format(
             #     info=info,
@@ -159,30 +177,37 @@ class PhpInfo(Engine):
             # )
             # self.run(cmd)
         elif not self.args.dry_run:
-            raise FileNotFoundError(
-                f"[PhpInfo] Dir does not exist: {self.loc}",
-            )
-
+            msg = f"[PhpInfo] Dir does not exist: {self.loc}"
+            raise FileNotFoundError(msg)
         site_name = self.args.site_name_and_root[0][0]
         self.info("Info URL", f"http://{site_name}/phpinfo.php")
         self.info("Info file", self.info_file)
 
 
 class Composer(Engine):
-    """If the distro is older than 18.04 composer is installed from source
-    from github.  Otherwise it is installed from the apt repo.
+    """Setup Composer, the PHP package manager.
+
+    If the Ubuntu version is older than 18.04 composer is installed from source
+    from github. Otherwise it is installed from the apt repo.
     """
 
-    provides = ["composer"]
-    requires = ["phpbin"]
-    required_args = []
+    provides: ClassVar = ["composer"]
+    requires: ClassVar = ["phpbin"]
+    required_args: ClassVar = []
     title = "Composer"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the Composer engine."""
+        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
 
     def post_install(self) -> None:
-        if self.distro < (Dist.UBUNTU, Dist.V18_04):
+        """Post-installation steps for Composer."""
+        if self.ubuntu < UbuntuVersion.V18_04:
             self.source_install()
         else:
             self.apt_install()
@@ -192,44 +217,44 @@ class Composer(Engine):
         self.mod.run("sudo usermod -aG $USER www-data")
 
     def apt_install(self) -> None:
+        """Install Composer from apt."""
         self.mod.apt(["composer"])
 
     def source_install(self) -> None:
+        """Install Composer from source."""
         url = "https://composer.github.io/installer.sig"
         sig_name = os.path.expanduser("~/composer.sig")
         self.mod.curl(url, sig_name)
-
         expected_sig = None
-        if os.path.exists(sig_name):  # could be a dry run
-            with open(os.path.expanduser(sig_name)) as f:
+        sig_path = Path(sig_name)
+        if sig_path.exists():
+            with sig_path.open() as f:
                 expected_sig = f.read()
             expected_sig = expected_sig.strip()
             self.mod.run(f"rm {sig_name}")
-
         url = "https://getcomposer.org/installer"
         comp_name = "$HOME/composer_installer"
         self.mod.curl(url, comp_name)
-
         actual_sig = None
         result = self.mod.run(f"sha384sum {comp_name}", capture=True)
         if result:  # could be a dry run
             actual_sig = result.decode("utf-8").split()[0].strip()
-
         if expected_sig != actual_sig:
-            raise SecurityError(
-                f'Composer\'s signatures do not match.\nExpected: "{expected_sig}"\n  Actual: "{actual_sig}"',
+            msg = (
+                f"Composer's signatures do not match.\nExpected: "
+                f'"{expected_sig}"\n  Actual: "{actual_sig}"'
             )
+            raise SecurityError(msg)
 
-        [
+        for command in (
+            # 'php {} --quiet'.format(comp_name),
+            f"sudo php {comp_name} --quiet --install-dir=/usr/local/bin --filename=composer",
+            # 'rm {}'.format(comp_name),
+            # 'sudo mv composer.phar /usr/local/bin/composer',
+            # 'if [[ ! -e $HOME/.composer ]]; then mkdir $HOME/.composer/; fi',
+            # 'chmod a+rw $HOME/.composer/',
+        ):
             self.mod.run(command)
-            for command in (
-                # 'php {} --quiet'.format(comp_name),
-                f"sudo php {comp_name} --quiet --install-dir=/usr/local/bin --filename=composer",
-                # 'rm {}'.format(comp_name),
-                # 'sudo mv composer.phar /usr/local/bin/composer',
-                # 'if [[ ! -e $HOME/.composer ]]; then mkdir $HOME/.composer/; fi',
-                # 'chmod a+rw $HOME/.composer/',
-            )
-        ]
+
         self.mod.run("sudo chown -R $USER: $HOME/.composer")
         self.mod.run("sudo chmod -R uga+rw $HOME/.composer")

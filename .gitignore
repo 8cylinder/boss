@@ -8,3 +8,4 @@ sink.yam*
 **/*.egg-info
 man/boss.1
 .stfolder
+.coverage

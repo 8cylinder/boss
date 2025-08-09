@@ -3,7 +3,7 @@ import os
 import re
 import subprocess
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum, auto
 from functools import wraps
@@ -12,9 +12,9 @@ from typing import Any, ClassVar, NamedTuple, ParamSpec, TypeVar
 
 import click
 
-from .dist import Dist
-from .errors import CommandError, DependencyError
-from .util import display_cmd, error, notify
+from boss.dist import UbuntuVersion
+from boss.errors import CommandError, DependencyError
+from boss.util import display_cmd, error, notify
 
 # Type variable for the return type of the decorated function
 R = TypeVar("R")
@@ -75,7 +75,7 @@ class Args(NamedTuple):
     craft_credentials: tuple[str, str, str]
     host_ip: str | None
     netdata_user_pass: tuple[str, str]
-    wanted: ClassVar[list[str]] = []
+    wanted: list[str] = []
 
 
 class Snap(Enum):
@@ -141,28 +141,27 @@ class Ansible:
         self.apt_pkgs: list[str] = []
         self.snap_pkgs: list[tuple[str, Snap]] = []
         self.provides: list[str] = []
-        self.distro = Dist()
         self.dry_run = dry_run
         self.args = args
         self.scriptname = os.path.basename(__file__)
         self.now = datetime.datetime.now().strftime("%y-%m-%d-%X")
 
-    def ensure_arg_requirements(self) -> None:
-        """Ensure that all required arguments are provided."""
-        if not self.args:
-            return
-        missing_args = []
-
-        for arg in self.required_args:
-            if not getattr(self.args, arg, None):
-                missing_args.append(arg)
-        if missing_args:
-            # make the missing args look like command line args
-            missing_args = [f"--{i.replace('_', '-')}" for i in missing_args]
-            missing = ", ".join(missing_args)
-            this = self.__class__.__name__
-            error_msg = f"Missing arguments for {this}: {missing}. "
-            raise DependencyError(error_msg)
+    # def ensure_arg_requirements(self) -> None:
+    #     """Ensure that all required arguments are provided."""
+    #     if not self.args:
+    #         return
+    #     missing_args = []
+    #
+    #     for arg in self.required_args:
+    #         if not getattr(self.args, arg, None):
+    #             missing_args.append(arg)
+    #     if missing_args:
+    #         # make the missing args look like command line args
+    #         missing_args = [f"--{i.replace('_', '-')}" for i in missing_args]
+    #         missing = ", ".join(missing_args)
+    #         this = self.__class__.__name__
+    #         error_msg = f"Missing arguments for {this}: {missing}. "
+    #         raise DependencyError(error_msg)
 
     def sed(self, sed_exp: str, config_file: str) -> None:
         """Replace a string in a file using Ansible's replace module."""
@@ -203,10 +202,10 @@ class Ansible:
         self,
         filename: str | Path,
         text: str,
-        user: str | None = None,
-        nosudo: bool = False,
+        # user: str | None = None,
+        nosudo: bool = False,  # noqa: ARG002 - keep for compatibility with Bash
         backup: bool = True,
-        append: bool = True,
+        # append: bool = True,
     ) -> None:
         """Append text to a file using Ansible's blockinfile module."""
         task: dict[str, Any] = {
@@ -287,6 +286,8 @@ class Ansible:
 
 
 class Bash:
+    """A class to run bash commands and manage system operations."""
+
     APTUPDATED = False
     info_messages: dict[str, list[tuple[str, str, str]]] = {}
     WWW_USER = "www-data"
@@ -295,34 +296,38 @@ class Bash:
     required_args: list[str]
 
     def __init__(self, args: Args, dry_run: bool = False) -> None:
+        """Initialize the Bash module with the given arguments."""
         self.ok_code = 0
         self.requires: list[str] = []
         self.apt_pkgs: list[str] = []
         self.snap_pkgs: list[tuple[str, Snap]] = []
         self.provides: list[str] = []
-        self.distro = Dist()
+        # self.distro = Dist()
+        # self.ubuntu = Ubuntu()
         self.dry_run = dry_run
         self.args = args
         self.scriptname = os.path.basename(__file__)
         self.now = datetime.datetime.now().strftime("%y-%m-%d-%X")
 
-    def ensure_arg_requirements(self) -> None:
-        """Ensure that all required arguments are provided."""
-        if not self.args:
-            return
-        missing_args = []
-
-        for arg in self.required_args:
-            if not getattr(self.args, arg, None):
-                missing_args.append(arg)
-        if missing_args:
-            # make the missing args look like command line args
-            missing_args = [f"--{i.replace('_', '-')}" for i in missing_args]
-            missing = ", ".join(missing_args)
-            this = self.__class__.__name__
-            raise DependencyError(f"Missing arguments for {this}: {missing}. ")
+    # def ensure_arg_requirements(self) -> None:
+    #     """Ensure that all required arguments are provided."""
+    #     if not self.args:
+    #         return
+    #     missing_args = []
+    #
+    #     for arg in self.required_args:
+    #         if not getattr(self.args, arg, None):
+    #             missing_args.append(arg)
+    #     if missing_args:
+    #         # make the missing args look like command line args
+    #         missing_args = [f"--{i.replace('_', '-')}" for i in missing_args]
+    #         missing = ", ".join(missing_args)
+    #         this = self.__class__.__name__
+    #         error_msg = f"Missing arguments for {this}: {missing}."
+    #         raise DependencyError(error_msg)
 
     def sed(self, sed_exp: str, config_file: str) -> None:
+        """Replace a string in a file using sed."""
         new_ext = f".original-{self.now}"
         sed_cmd = f'sudo sed --in-place="{new_ext}" "{sed_exp}" "{config_file}"'
         self.run(sed_cmd)
@@ -334,6 +339,7 @@ class Bash:
         user: str | None = None,
         nosudo: bool = False,
     ) -> None:
+        """Create a new file with the specified content."""
         sudo = "" if nosudo else "sudo"
         alt_user = f"-u {user}" if user else ""
         cmd = f"""echo | {sudo} {alt_user} tee "{filename}" <<'EOF'\n{text}\nEOF"""
@@ -346,8 +352,8 @@ class Bash:
         user: str | None = None,
         nosudo: bool = False,
         backup: bool = True,
-        append: bool = True,
     ) -> None:
+        """Append text to a file, optionally backing it up first."""
         sudo = "" if nosudo else "sudo"
 
         if backup:
@@ -358,20 +364,20 @@ class Bash:
         if user == self.WWW_USER:
             www_user = f"-u {self.WWW_USER}"
 
-        append_flag = ""
-        if append is True:
-            append_flag = "-a"
-
-        add_cmd = f'echo | {sudo} {www_user} tee {append_flag} "{filename}" <<EOF\n{text}\nEOF'
+        add_cmd = (
+            f'echo | {sudo} {www_user} tee --append "{filename}" <<EOF\n{text}\nEOF'
+        )
 
         # remove leading spaces from add_cmd using regex
         add_cmd = re.sub(r"^\s+", "", add_cmd, flags=re.MULTILINE)
         self.run(add_cmd, wrap=False)
 
     def apt(self, progs: list[str]) -> None:
+        """Install packages using apt."""
         self._apt(progs)
 
     def install(self) -> None:
+        """Install both apt and snap packages."""
         self._apt(self.apt_pkgs)
         self._snap(self.snap_pkgs)
 
@@ -398,7 +404,8 @@ class Bash:
         wrap: bool = True,
         capture: bool = False,
         comment: str = "",
-    ) -> str | None:
+    ) -> str:
+        """Run an arbitrary command in the shell."""
         if wrap:
             pretty_cmd = " ".join(cmd.split())
             display_cmd(
@@ -417,7 +424,7 @@ class Bash:
 
         result: str | bytes | int | None
         if self.args.dry_run or self.args.generate_script:
-            return None
+            return ""
 
         if capture:
             result = subprocess.check_output(
@@ -438,20 +445,17 @@ class Bash:
         output: str,
         capture: bool = False,
     ) -> str | int | bytes | None:
+        """Download a file using curl."""
         cmd = f"curl -sSL {url} --output {output}"
-        result = self.run(cmd, capture=capture)
-        return result
+        return self.run(cmd, capture=capture)
 
     def restart_apache(self) -> None:
-        """Restart Apache using the appropriate command
+        """Restart Apache using the appropriate command.
 
         Details about whether to use service or systemctl
         https://askubuntu.com/a/903405
         """
-        if self.distro == Dist.UBUNTU:
-            self.run("sudo service apache2 restart")
-        else:
-            error("restart_apache has unknown platform")
+        self.run("sudo service apache2 restart")
 
     def _apt(self, packages_list: list[str]) -> None:
         if not packages_list:
@@ -463,7 +467,8 @@ class Bash:
             # self.run('sudo apt-get --quiet --yes upgrade')   # not really necessary
             Bash.APTUPDATED = True
         self.run(
-            f"export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} --yes --quiet install {packages}",
+            f"export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} "
+            "--yes --quiet install {packages}",
         )
 
     def _snap(self, packages: list[tuple[str, Snap]]) -> None:
@@ -476,6 +481,7 @@ class Bash:
             error(f"Snap package not defined correctly: {e}")
 
     def info(self, title: str, msg: str) -> None:
+        """Add information messages to be displayed later."""
         child_title = self.title
         row = ("├─", title, msg)
         try:
@@ -501,24 +507,32 @@ class Bash:
 
 
 class Engine:
-    """Base class containing shared functionality between Bash and Ansible implementations."""
+    """Base class containing shared functionality between Bash and Ansible."""
 
     APTUPDATED = False
-    info_messages: dict[str, list[tuple[str, str, str]]] = {}
+    info_messages: ClassVar[dict[str, list[tuple[str, str, str]]]] = {}
     WWW_USER = "www-data"
     title: str
-    provides: list[str]
-    requires: list[str]
-    required_args: list[str]
+    provides: ClassVar[Sequence[str]]
+    requires: ClassVar[Sequence[str]]
+    required_args: ClassVar[Sequence[str]]
     mod: Bash | Ansible
 
-    def __init__(self, args: Args, dry_run: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        args: Args,
+        ubuntu_version: UbuntuVersion,
+        dry_run: bool = False,
+    ) -> None:
+        """Initialize the Engine with the given arguments."""
         # self.ok_code = 0
         # self.requires: list[str] = []
         self.apt_pkgs: list[str] = []
         self.snap_pkgs: list[tuple[str, Snap]] = []
-        self.provides: list[str] = []
-        self.distro = Dist()
+        # self.provides: list[str] = []
+        # self.distro = Dist()
+        self.ubuntu = ubuntu_version
         self.dry_run = dry_run
         self.args = args
         self.scriptname = os.path.basename(__file__)
@@ -543,15 +557,14 @@ class Engine:
             missing_args = [f"--{i.replace('_', '-')}" for i in missing_args]
             missing = ", ".join(missing_args)
             this = self.__class__.__name__
-            raise DependencyError(f"Missing arguments for {this}: {missing}. ")
+            error_msg = f"Missing arguments for {this}: {missing}. "
+            raise DependencyError(error_msg)
 
     def is_apt_installed(self, package_name: str) -> bool:
         """Check if a package is installed using apt."""
         cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
         result = self.mod.run(cmd, capture=True)
-        if result == "installed":
-            return True
-        return False
+        return result == "installed"
 
     def info(self, title: str, msg: str) -> None:
         """Add information messages to be displayed later."""
@@ -576,15 +589,15 @@ class Engine:
         return "\n".join(lines)
 
     def install(self) -> None:
-        """Main installation method that handles both apt and snap packages."""
+        """Install both apt and snap packages."""
         self.mod.apt_pkgs = self.apt_pkgs
         self.mod.snap_pkgs = self.snap_pkgs
         self.mod.install()
 
     def pre_install(self) -> None:
-        """Hook for pre-installation tasks."""
+        """Pre-installation tasks."""
         return
 
     def post_install(self) -> None:
-        """Hook for post-installation tasks."""
+        """Post-installation tasks."""
         return
