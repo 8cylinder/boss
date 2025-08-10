@@ -1,45 +1,28 @@
-"""Create virtual host configuration files for HTTP and HTTPS.
+import os
 
-This module contains the `VirtualHost` class, and is responsible for managing
-Apache virtual host configurations. It supports both HTTP and HTTPS setups,
-provides SSL integration, and can handle operations such as enabling
-necessary Apache modules, creating document roots, and managing certificates.
-"""
-
+from .cert import SelfCert, LetsEncryptCert
+from ..errors import *
+from collections import namedtuple
+from typing import Any
 from pathlib import Path
-from typing import ClassVar, NamedTuple
-
-from boss.dist import UbuntuVersion
-from boss.engine import Args, Engine
-from boss.mods.cert import LetsEncryptCert, SelfCert
-
-
-class CertArgs(NamedTuple):
-    """Arguments for certificate management."""
-
-    servername: str
-    dry_run: bool = False
+from ..engine import Engine
 
 
 class VirtualHost(Engine):
-    """Create virtualhost configuration files for http and https."""
+    """Create virtualhost configuration files for http and https"""
 
-    provides: ClassVar = ["virtualhost"]
-    requires: ClassVar = ["apache2"]
-    required_args: ClassVar = ["site_name_and_root", "servername"]
+    provides = ["virtualhost"]
+    requires = ["apache2"]
+    required_args = ["site_name_and_root", "servername"]
     title = "Virtual host"
 
-    def __init__(
-        self,
-        args: Args,
-        ubuntu_version: UbuntuVersion,
-        dry_run: bool = False,
-    ) -> None:
-        """Initialize the VirtualHost engine."""
-        super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
     def _http(self, servername: str, document_root: str) -> str:
-        https_redirect = f'# Redirect permanent "/" https://{servername}/'
+        https_redirect = '# Redirect permanent "/" https://{servername}/'.format(
+            servername=servername
+        )
         vhost = f"""
             # HTTP
             <VirtualHost *:80>
@@ -56,7 +39,8 @@ class VirtualHost(Engine):
                 # ErrorLog ${{APACHE_LOG_DIR}}/error.log
                 # CustomLog ${{APACHE_LOG_DIR}}/access.log combined
             </VirtualHost>"""
-        return "\n".join([i[12:] for i in vhost.split("\n")])
+        vhost = "\n".join([i[12:] for i in vhost.split("\n")])
+        return vhost
 
     def _https(self, servername: str, document_root: str, cert: str, key: str) -> str:
         vhost = f"""
@@ -82,10 +66,10 @@ class VirtualHost(Engine):
                 SSLCertificateFile {cert}
                 SSLCertificateKeyFile {key}
             </VirtualHost>"""
-        return "\n".join([i[12:] for i in vhost.split("\n")])
+        vhost = "\n".join([i[12:] for i in vhost.split("\n")])
+        return vhost
 
     def existing_cert(self, servername: str) -> tuple[str, str]:
-        """Retrieve the existing certificate for the given server name."""
         # retrieve the existing cert for servername
         if SelfCert in self.args.wanted:
             cert = SelfCert(
@@ -102,50 +86,38 @@ class VirtualHost(Engine):
         return crt, key
 
     def new_cert(self, site_name: str) -> tuple[str, str]:
-        """Create a new self-signed certificate for the given site name."""
         # create a new cert using this site's site_name
-        # CertArgs = namedtuple("CertArgs", "servername dry_run")
+        CertArgs = namedtuple("CertArgs", "servername dry_run")
         cert_args = CertArgs(site_name, self.args.dry_run)
-        cert = SelfCert(
-            dry_run=self.args.dry_run,
-            args=cert_args,
-            ubuntu_version=self.ubuntu,
-        )
+        cert = SelfCert(dry_run=self.args.dry_run, args=cert_args)
         cert.pre_install()
         _, _, crt, key = cert.cert_names(site_name)
         return (crt, key)
 
     def create_doc_root(self, document_root: str) -> None:
-        """Create the document root directory and set permissions."""
         # make www-root owner of the doc root
-        doc_root = Path("/var/www") / document_root
-        if not doc_root.exists():
+        doc_root = os.path.join("/var/www", document_root)
+        if not os.path.exists(doc_root):
             self.mod.run(f'sudo mkdir "{doc_root}"')
         self.mod.run(f'sudo chown www-data:www-data "{doc_root}"')
         self.mod.run(f'sudo chmod g+rw "{doc_root}"')
 
     def post_install(self) -> None:
-        """Post-installation steps for the VirtualHost engine."""
         mods = ["ssl", "rewrite", "headers"]
         for m in mods:
-            self.mod.run(f"sudo a2enmod {m}")
+            self.mod.run("sudo a2enmod {}".format(m))
 
         # then create the new sites and enable them
         for site in self.args.site_name_and_root:
             site_name = site[0]
-            full_document_root = Path("/var/www") / site[1]
-            vhost_config = self._http(site_name, str(full_document_root))
+            full_document_root = os.path.join("/var/www", site[1])
+            vhost_config = self._http(site_name, full_document_root)
 
             crt, key = self.existing_cert(self.args.servername)
             if crt:
-                vhost_config += self._https(
-                    site_name,
-                    str(full_document_root),
-                    crt,
-                    key,
-                )
+                vhost_config += self._https(site_name, full_document_root, crt, key)
 
-            conf_file = f"/etc/apache2/sites-available/{site_name}.conf"
+            conf_file = "/etc/apache2/sites-available/{}.conf".format(site_name)
             self.mod.write_new_file(conf_file, vhost_config)
 
             if site[2] == "y":
@@ -157,13 +129,16 @@ class VirtualHost(Engine):
                 )
                 self.mod.write_new_file(html_file, html_content)
 
-            # enable this site
-            self.mod.run(f"sudo a2ensite {site_name}")
+                info = "<?php phpinfo();"
 
-            self.info("Website", f"https://{site_name}")
+            # enable this site
+
+            self.mod.run("sudo a2ensite {}".format(site_name))
+
+            self.info("Website", "https://{}".format(site_name))
             public_ip = self.mod.run("hostname -I", capture=True)
             self.info("Public IP", f"http://{public_ip}")
-            self.info("Root", str(full_document_root))
+            self.info("Root", full_document_root)
             self.info("Apache conf", conf_file)
 
         self.mod.restart_apache()
