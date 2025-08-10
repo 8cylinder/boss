@@ -146,23 +146,6 @@ class Ansible:
         self.scriptname = os.path.basename(__file__)
         self.now = datetime.datetime.now().strftime("%y-%m-%d-%X")
 
-    # def ensure_arg_requirements(self) -> None:
-    #     """Ensure that all required arguments are provided."""
-    #     if not self.args:
-    #         return
-    #     missing_args = []
-    #
-    #     for arg in self.required_args:
-    #         if not getattr(self.args, arg, None):
-    #             missing_args.append(arg)
-    #     if missing_args:
-    #         # make the missing args look like command line args
-    #         missing_args = [f"--{i.replace('_', '-')}" for i in missing_args]
-    #         missing = ", ".join(missing_args)
-    #         this = self.__class__.__name__
-    #         error_msg = f"Missing arguments for {this}: {missing}. "
-    #         raise DependencyError(error_msg)
-
     def sed(self, sed_exp: str, config_file: str) -> None:
         """Replace a string in a file using Ansible's replace module."""
         # ansible.builtin.lineinfile or ansible.builtin.replace
@@ -309,23 +292,6 @@ class Bash:
         self.scriptname = os.path.basename(__file__)
         self.now = datetime.datetime.now().strftime("%y-%m-%d-%X")
 
-    # def ensure_arg_requirements(self) -> None:
-    #     """Ensure that all required arguments are provided."""
-    #     if not self.args:
-    #         return
-    #     missing_args = []
-    #
-    #     for arg in self.required_args:
-    #         if not getattr(self.args, arg, None):
-    #             missing_args.append(arg)
-    #     if missing_args:
-    #         # make the missing args look like command line args
-    #         missing_args = [f"--{i.replace('_', '-')}" for i in missing_args]
-    #         missing = ", ".join(missing_args)
-    #         this = self.__class__.__name__
-    #         error_msg = f"Missing arguments for {this}: {missing}."
-    #         raise DependencyError(error_msg)
-
     def sed(self, sed_exp: str, config_file: str) -> None:
         """Replace a string in a file using sed."""
         new_ext = f".original-{self.now}"
@@ -380,23 +346,6 @@ class Bash:
         """Install both apt and snap packages."""
         self._apt(self.apt_pkgs)
         self._snap(self.snap_pkgs)
-
-    # def is_apt_installed(self, package_name: str) -> bool:
-    #     """Check if a package is installed using apt."""
-    #     cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
-    #     result = self.run(cmd, capture=True)
-    #     if result == "installed":
-    #         return True
-    #     else:
-    #         return False
-
-    # def pre_install(self) -> None:
-    #     """Stub to ensure that all modules have this method."""
-    #     return
-
-    # def post_install(self) -> None:
-    #     """Stub to ensure that all modules have this method."""
-    #     return
 
     def run(
         self,
