@@ -22,6 +22,7 @@ from boss.errors import (
     ModuleRequestError,
     PlatformError,
     SecurityError,
+    VersionError,
 )
 from boss.mods.aptproxy import AptProxy
 from boss.mods.bashrc import Bashrc
@@ -484,9 +485,16 @@ def install(**all_args: Any) -> None:
     # convert the args dict to a namedtuple
     args = Args(**all_args)
 
-    dist_version = args.dist_version or UbuntuVersion.current()
-    #     global DIST_VERSION
-    #     DIST_VERSION = args.dist_version.value
+    try:
+        dist_version = args.dist_version or UbuntuVersion.current()
+    except VersionError:
+        versions = ", ".join([str(i.name) for i in UbuntuVersion])
+        err_msg = (
+            "The current Ubuntu version is not supported.\n"
+            "Please specify a version with --dist-version.\n"
+            f"Available versions: {versions}."
+        )
+        error(err_msg)
 
     wanted_mods = [i.lower() for i in args.modules]
 
