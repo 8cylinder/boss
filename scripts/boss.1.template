@@ -19,11 +19,10 @@ install [\fIOPTION\fR]... MODULES\fR...
 
 .SH DESCRIPTION
 
-This program is meant for local or remote server configuration.  It is
-a python module that is expected to be installed on the server after
-user access is setup using pipx.  It will output the commands as they
-are used and optionally can generate a script instead of executing
-them.
+This program is meant for local or remote server configuration.  It is a python
+module that is expected to be installed on the server using pipx, after user
+access is setup.  It will output the commands as they are used and optionally
+can generate a script instead of executing them.
 
 .SH SAMPLE USAGE
 
