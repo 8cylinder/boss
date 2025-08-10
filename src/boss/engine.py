@@ -1,3 +1,9 @@
+"""The Engine class that all mods inherit from.
+
+It provides shared functionality for both Bash and Ansible modules,
+via the Bash and Ansible classes.
+"""
+
 import datetime
 import os
 import re
@@ -29,18 +35,12 @@ def warn(warning_message: str) -> Callable[[Callable[P, R]], Callable[P, R | Non
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R | None:
             # Ask user for confirmation
-            if (
-                click.prompt(
-                    warning_message,
-                    type=click.Choice(["y", "N"], case_sensitive=False),
-                    default="n",
-                    show_default=False,
-                ).lower()
-                == "y"
-            ):
+            click.secho(warning_message, fg="cyan")
+            click.secho("Continue? [y/N] ", fg="cyan", nl=False)
+            char = click.getchar(echo=True)
+            if char == "y":
                 return func(*args, **kwargs)
-
-            click.echo("Boss halted.")
+            click.secho("\nBoss halted.", fg="red")
             sys.exit(1)
 
         return wrapper
@@ -180,7 +180,7 @@ class Ansible:
         }
         self.playbook[0]["tasks"].append(task)
 
-    @warn('"append_to_file(...)" is untested in Ansible. Proceed?')
+    @warn('"append_to_file(...)" is untested in Ansible.')
     def append_to_file(
         self,
         filename: str | Path,
