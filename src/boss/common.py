@@ -1,6 +1,7 @@
 import enum
 import sys
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import wraps
 from typing import NamedTuple, ParamSpec, TypeVar
 
@@ -10,6 +11,16 @@ import click
 R = TypeVar("R")
 # Parameter specification for capturing all possible argument types
 P = ParamSpec("P")
+
+
+@dataclass
+class Settings:
+    """Represents application settings configuration.
+
+    This class is used to manage and provide settings for the application.
+    """
+
+    timezone: str = "America/Los_Angeles"
 
 
 class Args(NamedTuple):

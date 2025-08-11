@@ -5,8 +5,9 @@ Webmin is a web-based interface for system administration for Unix-like systems.
 
 from typing import ClassVar
 
+from boss.common import Args
 from boss.dist import UbuntuVersion
-from boss.engine import Args, Engine
+from boss.engine import Engine
 
 
 class Webmin(Engine):
@@ -29,6 +30,13 @@ class Webmin(Engine):
 
     def pre_install(self) -> None:
         """Pre-installation steps for Webmin."""
+        if self.ubuntu < UbuntuVersion.V24_04:
+            self.install_old_webmin()
+        else:
+            self.install_recent()
+
+    def install_old_webmin(self) -> None:
+        """Install Webmin for older Ubuntu versions."""
         # add webmin to sources.list, get PGP key
         self.mod.curl("http://www.webmin.com/jcameron-key.asc", "jcameron-key.asc")
         self.mod.run("sudo apt-key add jcameron-key.asc")
@@ -49,3 +57,9 @@ class Webmin(Engine):
                 "(user & password for any user that can sudo)"
             ),
         )
+
+    def install_recent(self) -> None:
+        """Install Webmin for recent Ubuntu versions."""
+        url = "https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repo.sh"
+        self.mod.curl(url, "webmin-setup-repo.sh")
+        self.mod.run("sh webmin-setup-repo.sh")

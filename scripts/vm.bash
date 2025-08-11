@@ -18,8 +18,11 @@ usage() {
     echo
     echo "Usage: $0 [new|snapshot|restore|-h|--help]"
     echo "  n[ew]        Delete the $VMNAME vm and create a new one."
+    echo "                 uv build, delete, purge, launch"
     echo "  sn[apshot]   Take a snapshot of the existing $VMNAME VM"
+    echo "                 stop, snapshot, start"
     echo "  r[estore]    Restore the snapshot of the $VMNAME VM"
+    echo "                 stop, restore, start"
     echo "  s[hell]      Open a shell in the $VMNAME VM"
     echo "  i[nfo]       Show information about the $VMNAME VM"
     echo "  -h, --help   Display this help message"
@@ -37,7 +40,7 @@ ACTION=$(echo "$ACTION" | tr '[:upper:]' '[:lower:]')
 #set -x
 
 case $ACTION in
-    n*)
+    n*) # new
         uv build
 
         multipass delete $VMNAME
@@ -45,23 +48,24 @@ case $ACTION in
         multipass launch -n $VMNAME --disk 20G --cloud-init cloud-init.yaml --mount . --mount dist
         ;;
 
-    sn*)
+    sn*) # snapshot
         if ! multipass info $VMNAME >/dev/null 2>&1; then
             error "The $VMNAME VM does not exist."
         fi
         multipass stop $VMNAME
+        # multipass delete "${VMNAME}.snapshot1" >/dev/null 2>&1 || true
         multipass snapshot $VMNAME
         multipass start $VMNAME
         ;;
 
-    s*)
+    s*) # shell
         if ! multipass info $VMNAME >/dev/null 2>&1; then
             error "The $VMNAME VM does not exist."
         fi
         multipass shell $VMNAME
         ;;
 
-    r*)
+    r*) # restore
         if ! multipass info "${VMNAME}.snapshot1" >/dev/null 2>&1; then
             error "No snapshot for $VMNAME found. (use the 'snapshot' command first)"
         fi
@@ -70,7 +74,7 @@ case $ACTION in
         multipass start $VMNAME
         ;;
 
-    i*)
+    i*) # info
         multipass info $VMNAME
         ;;
 

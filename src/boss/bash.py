@@ -161,7 +161,7 @@ class Bash:
             Bash.APTUPDATED = True
         self.run(
             f"export DEBIAN_FRONTEND=noninteractive; sudo apt-get {dry} "
-            "--yes --quiet install {packages}",
+            f"--yes --quiet install {packages}",
         )
 
     def _snap(self, packages: list[tuple[str, Snap]]) -> None:

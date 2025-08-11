@@ -7,8 +7,9 @@ and performs specific pre- and post-installation tasks based on the Ubuntu versi
 
 from typing import ClassVar
 
+from boss.common import Settings
 from boss.dist import UbuntuVersion
-from boss.engine import Args, Engine, Settings
+from boss.engine import Args, Engine
 
 
 class Example(Engine):

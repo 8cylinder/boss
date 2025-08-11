@@ -39,7 +39,7 @@ class Netdata(Engine):
         """Initialize the Netdata engine."""
         super().__init__(args=args, ubuntu_version=ubuntu_version, dry_run=dry_run)
 
-        if self.ubuntu == UbuntuVersion.V18_04:
+        if self.ubuntu >= UbuntuVersion.V18_04:
             self.apt_pkgs = ["netdata"]
         else:
             err_msg = "Netdata only available on Ubuntu 18.04 or greater"

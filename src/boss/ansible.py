@@ -65,7 +65,7 @@ class Ansible:
         filename: str | Path,
         text: str,
         user: str | None = None,
-        nosudo: bool = False,
+        nosudo: bool = False,  # noqa: ARG002
     ) -> None:
         """Create a new file with the specified content using Ansible's copy module."""
         task: dict[str, Any] = {
@@ -85,10 +85,9 @@ class Ansible:
         self,
         filename: str | Path,
         text: str,
-        # user: str | None = None,
+        user: str | None = None,  # noqa: ARG002 - keep for compatibility with Bash
         nosudo: bool = False,  # noqa: ARG002 - keep for compatibility with Bash
         backup: bool = True,
-        # append: bool = True,
     ) -> None:
         """Append text to a file using Ansible's blockinfile module."""
         task: dict[str, Any] = {
@@ -123,14 +122,20 @@ class Ansible:
 
     def run(
         self,
-        cmd: str,
-        wrap: bool = True,
-        capture: bool = False,
-        comment: str = "",
-    ) -> str | None:
+        cmd: str,  # noqa: ARG002
+        wrap: bool = True,  # noqa: ARG002
+        capture: bool = False,  # noqa: ARG002
+        comment: str = "",  # noqa: ARG002
+    ) -> str:
         """Run a command using Ansible's shell module."""
+        return ""
 
-    def curl(self, url: str, output: str, capture: bool = False) -> str | None:
+    def curl(
+        self,
+        url: str,
+        output: str,
+        capture: bool = False,
+    ) -> str | int | bytes | None:
         """Download a file using Ansible's get_url module."""
 
     def restart_apache(self) -> None:

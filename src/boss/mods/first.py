@@ -11,8 +11,9 @@ Classes:
 
 from typing import ClassVar
 
+from boss.common import Args, Settings
 from boss.dist import UbuntuVersion
-from boss.engine import Args, Engine, Settings
+from boss.engine import Engine
 
 
 class First(Engine):

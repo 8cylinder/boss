@@ -7,7 +7,6 @@ and orchestrates which one to use based on the provided arguments.
 import datetime
 import os
 from collections.abc import Sequence
-from dataclasses import dataclass
 from enum import Enum, auto
 from typing import ClassVar, ParamSpec, TypeVar
 
@@ -33,17 +32,6 @@ class ModType(Enum):
 
     BASH = auto()
     ANSIBLE = auto()
-
-
-@dataclass
-class Settings:
-    """Represents application settings configuration.
-
-    This class is used to manage and provide settings for the application. It
-    allows definition of default configurations such as the timezone.
-    """
-
-    timezone: str = "America/Los_Angeles"
 
 
 class Engine:
