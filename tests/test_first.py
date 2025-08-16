@@ -1,9 +1,10 @@
 """Tests for the First module in boss.mods.first using pytest."""
 
 import pytest
+from pytest_mock import MockFixture
 
+from boss.common import Args
 from boss.dist import UbuntuVersion
-from boss.engine import Args
 from boss.mods.first import First
 
 
@@ -63,7 +64,7 @@ def test_first_ubuntu_24(dummy_args: Args) -> None:
     assert "trash-cli" in first.apt_pkgs
 
 
-def test_first_pre_install_runs(dummy_args: Args, mocker: object) -> None:
+def test_first_pre_install_runs(dummy_args: Args, mocker: MockFixture) -> None:
     """Test that pre_install runs update and upgrade commands."""
     first = First(args=dummy_args, ubuntu_version=UbuntuVersion.V18_04, dry_run=True)
     mock_run = mocker.patch.object(first.mod, "run")
@@ -74,7 +75,7 @@ def test_first_pre_install_runs(dummy_args: Args, mocker: object) -> None:
 
 def test_first_post_install_emacs(
     dummy_args: Args,
-    mocker: object,
+    mocker: MockFixture,
 ) -> None:
     """Test that post_install sets timezone and installs emacs-nox."""
     first = First(args=dummy_args, ubuntu_version=UbuntuVersion.V18_04, dry_run=True)
@@ -91,7 +92,7 @@ def test_first_post_install_emacs(
 
 def test_first_post_install_restart_fail2ban(
     dummy_args: Args,
-    mocker: object,
+    mocker: MockFixture,
 ) -> None:
     """Test that post_install restarts fail2ban if installed."""
     first = First(args=dummy_args, ubuntu_version=UbuntuVersion.V18_04, dry_run=True)
@@ -103,7 +104,7 @@ def test_first_post_install_restart_fail2ban(
 
 # def test_first_set_timezone_calls_run(
 #     dummy_args: Args,
-#     mocker: object,
+#     mocker: MockFixture,
 # ) -> None:
 #     """Test that set_timezone calls mod.run with the correct timezone."""
 #     first = First(args=dummy_args, ubuntu_version=UbuntuVersion.V18_04, dry_run=True)
@@ -114,7 +115,7 @@ def test_first_post_install_restart_fail2ban(
 
 def test_first_install_web_server_calls_run(
     dummy_args: Args,
-    mocker: object,
+    mocker: MockFixture,
 ) -> None:
     """Test that install_web_server calls mod.run with tasksel command."""
     first = First(args=dummy_args, ubuntu_version=UbuntuVersion.V18_04, dry_run=True)

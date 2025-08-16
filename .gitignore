@@ -10,3 +10,5 @@ man/boss.1
 .stfolder
 .coverage
 .env.boss
+boss.com.crt
+boss.com.key
