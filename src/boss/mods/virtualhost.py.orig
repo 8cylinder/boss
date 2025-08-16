@@ -124,15 +124,15 @@ class VirtualHost(Engine):
         # make www-root owner of the doc root
         doc_root = Path("/var/www") / document_root
         if not doc_root.exists():
-            self.mod.run(f'sudo mkdir "{doc_root}"')
-        self.mod.run(f'sudo chown www-data:www-data "{doc_root}"')
-        self.mod.run(f'sudo chmod g+rw "{doc_root}"')
+            self.run(f'sudo mkdir "{doc_root}"')
+        self.run(f'sudo chown www-data:www-data "{doc_root}"')
+        self.run(f'sudo chmod g+rw "{doc_root}"')
 
     def post_install(self) -> None:
         """Post-installation steps for the VirtualHost engine."""
         mods = ["ssl", "rewrite", "headers"]
         for m in mods:
-            self.mod.run(f"sudo a2enmod {m}")
+            self.run(f"sudo a2enmod {m}")
 
         # then create the new sites and enable them
         for site in self.args.site_name_and_root:
@@ -150,7 +150,7 @@ class VirtualHost(Engine):
                 )
 
             conf_file = f"/etc/apache2/sites-available/{site_name}.conf"
-            self.mod.write_new_file(conf_file, vhost_config)
+            self.write_new_file(conf_file, vhost_config)
 
             if site[2] == "y":
                 document_root = site[1]
@@ -159,15 +159,15 @@ class VirtualHost(Engine):
                 html_content = (
                     f"<h1>Site: {site_name}</h1>\n<p>Document root: {document_root}</p>"
                 )
-                self.mod.write_new_file(html_file, html_content)
+                self.write_new_file(html_file, html_content)
 
             # enable this site
-            self.mod.run(f"sudo a2ensite {site_name}")
+            self.run(f"sudo a2ensite {site_name}")
 
             self.info("Website", f"https://{site_name}")
-            public_ip = self.mod.run("hostname -I", capture=True)
+            public_ip = self.run("hostname -I", capture=True)
             self.info("Public IP", f"http://{public_ip}")
             self.info("Root", str(full_document_root))
             self.info("Apache conf", conf_file)
 
-        self.mod.restart_apache()
+        self.restart_apache()

@@ -40,26 +40,26 @@ class Bashrc(Engine):
         duplication. Additionally, permissions for specific scripts are adjusted to
         ensure they are executable.
         """
-        self.mod.run("if [[ ! -d $HOME/bin ]]; then mkdir $HOME/bin; fi")
+        self.run("if [[ ! -d $HOME/bin ]]; then mkdir $HOME/bin; fi")
         gh_files = {
             "bashrc": "https://raw.githubusercontent.com/8cylinder/bin/master/bashrc",
             "bashrc_prompt.py": "https://raw.githubusercontent.com/8cylinder/bin/master/bashrc_prompt.py",
             "bashrc_prompt.themes": "https://raw.githubusercontent.com/8cylinder/bin/master/bashrc_prompt.themes",
         }
         for ghname, ghurl in gh_files.items():
-            self.mod.curl(ghurl, "$HOME/bin/" + ghname)
+            self.curl(ghurl, "$HOME/bin/" + ghname)
 
         # if .bashrc is not a link, back it up
-        self.mod.run(
+        self.run(
             "if [[ ! -L $HOME/.bashrc ]]; then "
             "mv $HOME/.bashrc $HOME/.bashrc.original; fi",
         )
         # if .bashrc does not exist, make a link to bin/bashrc
-        self.mod.run(
+        self.run(
             "if [[ ! -e $HOME/.bashrc ]]; then "
             "ln -s $HOME/bin/bashrc $HOME/.bashrc; fi",
         )
-        self.mod.run("chmod +x $HOME/bin/bashrc_prompt.py")
+        self.run("chmod +x $HOME/bin/bashrc_prompt.py")
 
     def post_install(self) -> None:
         """Post-installation steps for the Bashrc module."""
@@ -67,8 +67,8 @@ class Bashrc(Engine):
 
     def uninstall(self) -> None:
         """Uninstall the Bashrc module."""
-        self.mod.run("if [[ -d $HOME/bin ]]; then sudo rm -rf $HOME/bin; fi")
+        self.run("if [[ -d $HOME/bin ]]; then sudo rm -rf $HOME/bin; fi")
         # if .bashrc.original exists, restore it
-        self.mod.run(
+        self.run(
             "if [[ -e $HOME/.bashrc.original ]]; then mv .bashrc.original .bashrc; fi",
         )

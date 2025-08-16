@@ -37,11 +37,11 @@ class Mysql(Engine):
     def configure_root_password(self) -> None:
         """Configure the MySQL root password."""
         root_pass = self.args.db_root_pass
-        self.mod.run(
+        self.run(
             f'''sudo debconf-set-selections <<< \
             "mysql-server mysql-server/root_password password {root_pass}"''',
         )
-        self.mod.run(
+        self.run(
             f'''sudo debconf-set-selections <<< \
             "mysql-server mysql-server/root_password_again password {root_pass}"''',
         )
@@ -56,7 +56,7 @@ class Mysql(Engine):
           GRANT ALL PRIVILEGES ON * . * TO '{db_user}'@'localhost';
           FLUSH PRIVILEGES;
         """
-        self.mod.run(
+        self.run(
             f"mysql -uroot -p{root_pass} <<EOF\n{sql}\nEOF",
             wrap=False,
         )
@@ -69,14 +69,14 @@ class Mysql(Engine):
           CREATE DATABASE IF NOT EXISTS {db_name};
         """.split(),
         )
-        self.mod.run(
+        self.run(
             f"mysql -uroot -p{root_pass} <<EOF\n{sql}\nEOF",
             wrap=False,
         )
 
     def import_sql(self, root_pass: str, sql_file: str) -> None:
         """Import an SQL file into the MySQL database."""
-        self.mod.run(
+        self.run(
             f"mysql -uroot -p{root_pass} < {sql_file}",
         )
 
@@ -87,7 +87,7 @@ class Mysql(Engine):
             [mysqld]
             performance_schema = off
         """)
-        self.mod.append_to_file(setting_file, setting)
+        self.append_to_file(setting_file, setting)
 
     def test_mysql_connectivity(self) -> None:
         """Test MySQL connectivity.
@@ -104,7 +104,7 @@ class Mysql(Engine):
         """
         # Test root connection
         try:
-            self.mod.run(f"mysql -uroot -p{self.args.db_root_pass} -e 'SELECT 1;'")
+            self.run(f"mysql -uroot -p{self.args.db_root_pass} -e 'SELECT 1;'")
             self.info("Root test", "User 'root' login successful.")
         except Exception as e:
             err_msg = f"Root login failed: {e}"
@@ -114,7 +114,7 @@ class Mysql(Engine):
         if self.args.new_db_user_and_pass:
             db_user, db_pass = self.args.new_db_user_and_pass
             try:
-                self.mod.run(f"mysql -u{db_user} -p{db_pass} -e 'SELECT 1;'")
+                self.run(f"mysql -u{db_user} -p{db_pass} -e 'SELECT 1;'")
                 self.info("User test", f"User '{db_user}' login successful.")
             except Exception as e:
                 err_msg = f'User "{db_user}" login failed, {e}'
@@ -123,7 +123,7 @@ class Mysql(Engine):
         # Test database existence if configured
         if self.args.db_name:
             try:
-                self.mod.run(
+                self.run(
                     f"mysqlshow -uroot -p{self.args.db_root_pass} {self.args.db_name};",
                 )
                 self.info("Database test", f"Database '{self.args.db_name}' exists")
@@ -180,32 +180,32 @@ class PhpMyAdmin(Engine):
     def pre_install(self) -> None:
         """Pre-installation steps for PhpMyAdmin."""
         root_pass = self.args.db_root_pass
-        self.mod.run(
+        self.run(
             'sudo debconf-set-selections <<< "phpmyadmin '
             'phpmyadmin/reconfigure-webserver multiselect apache2"',
         )
-        self.mod.run(
+        self.run(
             'sudo debconf-set-selections <<< "phpmyadmin '
             'phpmyadmin/dbconfig-install boolean true"',
         )
-        self.mod.run(
+        self.run(
             'sudo debconf-set-selections <<< "phpmyadmin '
             f'phpmyadmin/app-password-confirm password {root_pass}"',
         )
-        self.mod.run(
+        self.run(
             'sudo debconf-set-selections <<< "phpmyadmin '
             'phpmyadmin/reconfigure-webserver multiselect none"',
         )
 
-        self.mod.run(
+        self.run(
             'sudo debconf-set-selections <<< "phpmyadmin '
             'phpmyadmin/mysql/admin-user string root"',
         )
-        self.mod.run(
+        self.run(
             'sudo debconf-set-selections <<< "phpmyadmin '
             f'phpmyadmin/mysql/admin-pass password {root_pass}"',
         )
-        self.mod.run(
+        self.run(
             'sudo debconf-set-selections <<< "phpmyadmin '
             f'phpmyadmin/mysql/app-pass password {root_pass}"',
         )
@@ -246,16 +246,16 @@ class Adminer(Engine):
         done.  20.04 and later don't need this.
         """
         if self.ubuntu == UbuntuVersion.V18_04:
-            self.mod.run("cd /usr/share/adminer/ && sudo php compile.php")
-            filename: str = self.mod.run(
+            self.run("cd /usr/share/adminer/ && sudo php compile.php")
+            filename: str = self.run(
                 "cd /usr/share/adminer/ && ls adminer-*.*.*.php",
                 capture=True,
             )
             filename = filename.decode("ascii")
-            self.mod.append_to_file(
+            self.append_to_file(
                 "/etc/apache2/conf-available/adminer.conf",
                 f"Alias /adminer.php /usr/share/adminer/{filename}",
                 backup=False,
             )
-            self.mod.run("sudo a2enconf adminer")
-            self.mod.restart_apache()
+            self.run("sudo a2enconf adminer")
+            self.restart_apache()

@@ -59,15 +59,15 @@ class Example(Engine):
     def pre_install(self) -> None:
         """Pre-installation steps for Example."""
         # bash provides several methods
-        self.mod.sed("sed expression", "file")
-        self.mod.apt(["list", "of", "packages"])
-        self.mod.curl("url", "output-filename", capture=True)
+        self.sed("sed expression", "file")
+        self.apt(["list", "of", "packages"])
+        self.curl("url", "output-filename", capture=True)
         self.info("title", "message")
-        self.mod.restart_apache()
-        self.mod.append_to_file("filename", "text to append", backup=False)
-        self.mod.run("any valid bash command string", wrap=True, capture=False)
+        self.restart_apache()
+        self.append_to_file("filename", "text to append", backup=False)
+        self.run("any valid bash command string", wrap=True, capture=False)
         # capture the result of the command
-        result = self.mod.run("any valid bash command string", wrap=True, capture=True)
+        result = self.run("any valid bash command string", wrap=True, capture=True)
 
         # get a value from the Settings class
         variable = Settings.timezone

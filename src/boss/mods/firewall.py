@@ -33,7 +33,7 @@ class Firewall(Engine):
 
     def post_install(self) -> None:
         """Post-installation steps for the firewall."""
-        self.mod.run("sudo ufw allow OpenSSH")
+        self.run("sudo ufw allow OpenSSH")
 
         # if Apache2 in self.args.wanted:
         #     # If Apache2 is installed, allow HTTP and HTTPS traffic.
@@ -41,8 +41,8 @@ class Firewall(Engine):
 
         if self.is_apt_installed("apache2"):
             # If Apache2 is installed, allow HTTP and HTTPS traffic.
-            self.mod.run('sudo ufw allow in "Apache"')
+            self.run('sudo ufw allow in "Apache"')
 
-        self.mod.run("sudo ufw enable")
+        self.run("sudo ufw enable")
 
-        self.mod.run("sudo ufw status")
+        self.run("sudo ufw status")

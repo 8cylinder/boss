@@ -66,9 +66,9 @@ class FakeSMTP(Engine):
             "chmod +x mailhog mhsendmail",
             "sudo mv mailhog mhsendmail /usr/local/bin",
         ]
-        [self.mod.run(i) for i in cmds]
-        self.mod.sed(sedcmd, self.phpini)
-        self.mod.sed(sedcmd, self.cliini)
+        [self.run(i) for i in cmds]
+        self.sed(sedcmd, self.phpini)
+        self.sed(sedcmd, self.cliini)
 
         if self.ubuntu == UbuntuVersion.V14_04:
             self.config_upstart()
@@ -87,7 +87,7 @@ class FakeSMTP(Engine):
         cmd = (
             "php -r \"mail('boss@example.com', 'Test from Boss', 'Test from Boss.');\""
         )
-        self.mod.run(cmd, capture=True)
+        self.run(cmd, capture=True)
         self.info("client", f"http://{self.args.servername}:8025")
         self.info(
             "api",
@@ -119,7 +119,7 @@ class FakeSMTP(Engine):
                 content = json.loads(r.decode("utf-8"))
                 for asset in content["assets"]:
                     if asset["name"] == prog["release"]:
-                        self.mod.curl(asset["browser_download_url"], prog["localname"])
+                        self.curl(asset["browser_download_url"], prog["localname"])
         except urllib.error.HTTPError as e:
             error(f"MAILHOG github api: {e.msg}")
 
@@ -133,9 +133,9 @@ class FakeSMTP(Engine):
         """
         service_file = "/etc/init/mailhog.conf"
         service = "\n".join([i[12:] for i in service.split("\n")])
-        self.mod.write_new_file(service_file, service)
-        self.mod.run(f"sudo ln -s {service_file} /etc/init.d/mailhog")
-        self.mod.run("sudo service mailhog start")
+        self.write_new_file(service_file, service)
+        self.run(f"sudo ln -s {service_file} /etc/init.d/mailhog")
+        self.run("sudo service mailhog start")
 
     def config_systemd(self) -> None:
         """Configure Mailhog to run as a systemd service (Ubuntu 16.04+)."""
@@ -154,9 +154,9 @@ class FakeSMTP(Engine):
         """
         service_file = "/etc/systemd/system/mailhog.service"
         service = "\n".join([i[12:] for i in service.split("\n")])
-        self.mod.run(
+        self.run(
             f"echo | sudo tee {service_file} <<EOF{service}EOF",
             wrap=False,
         )
-        self.mod.run("sudo systemctl start mailhog")
-        self.mod.run("sudo systemctl enable mailhog")
+        self.run("sudo systemctl start mailhog")
+        self.run("sudo systemctl enable mailhog")

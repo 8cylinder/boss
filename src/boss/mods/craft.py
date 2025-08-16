@@ -120,8 +120,8 @@ class Craft(Engine):
         site_name = self.args.site_name_and_root[0][0]
         self.edit_conf(site_name, html_dir)
 
-        self.mod.run("sudo a2enmod rewrite")
-        self.mod.restart_apache()
+        self.run("sudo a2enmod rewrite")
+        self.restart_apache()
 
         self.info("Craft admin", f"https://{self.args.servername}/admin")
 
@@ -133,7 +133,7 @@ class Craft(Engine):
             f's|Directory "{site_dir}/web"|Directory "{site_dir}/web"|g',
         ]
         for exp in sed_exp:
-            self.mod.sed(exp, conf_file)
+            self.sed(exp, conf_file)
 
     def configure_craft(
         self,
@@ -146,7 +146,7 @@ class Craft(Engine):
         Use `sg` to run the command as the www-data user.
         """
         # setup the db
-        self.mod.run(f"""sg www-data 'php {html_dir}/craft setup/db --interactive 0 \
+        self.run(f"""sg www-data 'php {html_dir}/craft setup/db --interactive 0 \
             --driver mysql \
             --server localhost \
             --port 3306 \
@@ -157,7 +157,7 @@ class Craft(Engine):
         """)
         # run the craft install
         username, email, password = self.args.craft_credentials
-        self.mod.run(f"""sg www-data 'php {html_dir}/craft install/craft \
+        self.run(f"""sg www-data 'php {html_dir}/craft install/craft \
             --interactive=0 \
             --email={email} \
             --username={username} \
@@ -173,13 +173,13 @@ class Craft(Engine):
         # self.run(
         #     f"sudo rm -If {html_dir}/index.html {html_dir}/*.local.crt {html_dir}/*.local.key"
         # )
-        self.mod.run("ls *")
-        self.mod.run(f"sudo rm -Irf {html_dir}/*")
+        self.run("ls *")
+        self.run(f"sudo rm -Irf {html_dir}/*")
         cmd = (
             f"sg www-data 'composer create-project --no-ansi "
             f"--remove-vcs --no-interaction craftcms/craft {html_dir}/'"
         )
-        self.mod.run(cmd)
+        self.run(cmd)
 
     def configure_dirs(self, html_dir: str) -> None:
         """Configure the directories for Craft."""
@@ -189,5 +189,5 @@ class Craft(Engine):
                 "in your command line arguments to create it."
             )
             raise DependencyError(error_msg)
-        self.mod.run(f"sudo chown www-data: {html_dir}")
-        self.mod.run(f"sudo chmod ug+rw {html_dir}")
+        self.run(f"sudo chown www-data: {html_dir}")
+        self.run(f"sudo chmod ug+rw {html_dir}")

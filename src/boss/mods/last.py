@@ -33,7 +33,7 @@ class Last(Engine):
             sys.stdout.write("set +x\n")
             script_mode = True
         if servername := self.args.servername:
-            self.mod.run(f"figlet -w89 {servername}")
+            self.run(f"figlet -w89 {servername}")
 
         # titlec = linec = (255, 148, 0)
         titlec = linec = keyc = (0, 145, 255)

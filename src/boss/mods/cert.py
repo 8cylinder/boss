@@ -34,9 +34,9 @@ class LetsEncryptCert(Engine):
 
     def post_install(self) -> None:
         """Post-installation steps for Let's Encrypt cert."""
-        self.mod.run("sudo ln -s /snap/bin/certbot /usr/bin/certbot")
-        self.mod.run("sudo certbot --apache")
-        self.mod.run("sudo certbot renew --dry-run")
+        self.run("sudo ln -s /snap/bin/certbot /usr/bin/certbot")
+        self.run("sudo certbot --apache")
+        self.run("sudo certbot renew --dry-run")
 
     def cert_names(self, cert_basename: str) -> tuple[str, str, str, str]:
         """Maintain API compatibility with SelfCert. Argument is unused."""
@@ -82,7 +82,7 @@ class SelfCert(Engine):
     def pre_install(self) -> None:
         """Generate and install a self-signed certificate."""
         cert_basename = self.args.servername
-        self.mod.run(f"""sudo openssl \
+        self.run(f"""sudo openssl \
             req \
             -new \
             -newkey rsa:4096 \
@@ -93,9 +93,9 @@ class SelfCert(Engine):
             -keyout {cert_basename}.key \
             -out {cert_basename}.crt &>/dev/null
         """)
-        self.mod.run(
+        self.run(
             f"sudo cp {cert_basename}.crt /etc/ssl/certs/{cert_basename}.crt",
         )
-        self.mod.run(
+        self.run(
             f"sudo cp {cert_basename}.key /etc/ssl/private/{cert_basename}.key",
         )

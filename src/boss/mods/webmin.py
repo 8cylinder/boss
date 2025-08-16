@@ -38,8 +38,8 @@ class Webmin(Engine):
     def install_old_webmin(self) -> None:
         """Install Webmin for older Ubuntu versions."""
         # add webmin to sources.list, get PGP key
-        self.mod.curl("http://www.webmin.com/jcameron-key.asc", "jcameron-key.asc")
-        self.mod.run("sudo apt-key add jcameron-key.asc")
+        self.curl("http://www.webmin.com/jcameron-key.asc", "jcameron-key.asc")
+        self.run("sudo apt-key add jcameron-key.asc")
         cmds = [
             "sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak",
             'echo "deb http://download.webmin.com/download/repository sarge contrib" | sudo tee -a /etc/apt/sources.list',  # noqa: E501
@@ -48,7 +48,7 @@ class Webmin(Engine):
             "sudo apt-get update",
         ]
         for cmd in cmds:
-            self.mod.run(cmd)
+            self.run(cmd)
 
         self.info(
             "URL",
@@ -61,5 +61,5 @@ class Webmin(Engine):
     def install_recent(self) -> None:
         """Install Webmin for recent Ubuntu versions."""
         url = "https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repo.sh"
-        self.mod.curl(url, "webmin-setup-repo.sh")
-        self.mod.run("sh webmin-setup-repo.sh")
+        self.curl(url, "webmin-setup-repo.sh")
+        self.run("sh webmin-setup-repo.sh")

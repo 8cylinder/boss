@@ -51,9 +51,9 @@ class Netdata(Engine):
     def post_install(self) -> None:
         """Post-installation steps for Netdata."""
         if self.ubuntu == UbuntuVersion.V18_04:
-            self.mod.sed(
+            self.sed(
                 "s/bind socket to IP = .*$/bind socket to IP = *.*.*.*/",
                 "/etc/netdata/netdata.conf",
             )
-            self.mod.run("sudo systemctl restart netdata")
+            self.run("sudo systemctl restart netdata")
             self.info("URL", f"http://{self.args.servername}:19999")

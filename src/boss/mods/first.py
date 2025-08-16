@@ -91,28 +91,28 @@ class First(Engine):
 
     def pre_install(self) -> None:
         """Pre-installation steps for First."""
-        self.mod.run("sudo apt-get update")
-        self.mod.run("sudo apt-get upgrade -y")
+        self.run("sudo apt-get update")
+        self.run("sudo apt-get upgrade -y")
 
     def post_install(self) -> None:
         """Post-installation steps for First."""
         self.set_timezone()
 
         # install emacs-nox without postfix
-        self.mod.run("sudo apt install -y --no-install-recommends emacs-nox")
+        self.run("sudo apt install -y --no-install-recommends emacs-nox")
 
         # Restart fail2ban
         # `systemctl status fail2ban.service` reports warning: "The unit file,
         # source configuration file or drop-ins of fail2ban.service changed on disk."
         # restarting it seems to fix this.
         if self.is_apt_installed("fail2ban"):
-            self.mod.run("sudo systemctl restart fail2ban.service")
+            self.run("sudo systemctl restart fail2ban.service")
 
     def set_timezone(self) -> None:
         """Set the system timezone based on Settings.timezone."""
-        self.mod.run(f"sudo timedatectl set-timezone {Settings.timezone}")
+        self.run(f"sudo timedatectl set-timezone {Settings.timezone}")
 
     def install_web_server(self) -> None:
         """Install a web server using tasksel."""
         # Add 'tasksel' to apt_pkgs
-        self.mod.run("sudo tasksel install web-server")
+        self.run("sudo tasksel install web-server")

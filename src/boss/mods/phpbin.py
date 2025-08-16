@@ -131,13 +131,13 @@ class Xdebug(Engine):
         xdebug_ini = ""
         if self.ubuntu == UbuntuVersion.V18_04:
             xdebug_ini = "/etc/php/7.2/mods-available/xdebug.ini"
-            self.mod.append_to_file(xdebug_ini, settings)
+            self.append_to_file(xdebug_ini, settings)
         elif self.ubuntu == UbuntuVersion.V20_04:
             xdebug_ini = "/etc/php/7.4/mods-available/xdebug.ini"
-            self.mod.append_to_file(xdebug_ini, settings)
+            self.append_to_file(xdebug_ini, settings)
         elif self.ubuntu == UbuntuVersion.V24_04:
             xdebug_ini = "/etc/php/8.3/mods-available/xdebug.ini"
-            self.mod.append_to_file(xdebug_ini, settings)
+            self.append_to_file(xdebug_ini, settings)
         else:
             error("Xdebug ini edit not implemented yet for this version of Ubuntu.")
         self.info("Xdebug INI", xdebug_ini)
@@ -170,7 +170,7 @@ class PhpInfo(Engine):
         info = f"<h1>{datetime.datetime.now().isoformat()}</h1>\n<?php phpinfo();"
         loc_path = Path(self.loc)
         if self.args.dry_run or self.args.generate_script or loc_path.exists():
-            self.mod.write_new_file(self.info_file, info)
+            self.write_new_file(self.info_file, info)
             # cmd = 'echo \'{info}\' | sudo -u www-data tee {loc}'.format(
             #     info=info,
             #     loc=self.info_file
@@ -214,29 +214,29 @@ class Composer(Engine):
 
         # add www-data to the ubuntu group so when running composer as
         # www-data user, it can create a cache in ubuntu's home dir.
-        self.mod.run("sudo usermod -aG $USER www-data")
+        self.run("sudo usermod -aG $USER www-data")
 
     def apt_install(self) -> None:
         """Install Composer from apt."""
-        self.mod.apt(["composer"])
+        self.apt(["composer"])
 
     def source_install(self) -> None:
         """Install Composer from source."""
         url = "https://composer.github.io/installer.sig"
         sig_name = os.path.expanduser("~/composer.sig")
-        self.mod.curl(url, sig_name)
+        self.curl(url, sig_name)
         expected_sig = None
         sig_path = Path(sig_name)
         if sig_path.exists():
             with sig_path.open() as f:
                 expected_sig = f.read()
             expected_sig = expected_sig.strip()
-            self.mod.run(f"rm {sig_name}")
+            self.run(f"rm {sig_name}")
         url = "https://getcomposer.org/installer"
         comp_name = "$HOME/composer_installer"
-        self.mod.curl(url, comp_name)
+        self.curl(url, comp_name)
         actual_sig = None
-        result = self.mod.run(f"sha384sum {comp_name}", capture=True)
+        result = self.run(f"sha384sum {comp_name}", capture=True)
         if result:  # could be a dry run
             actual_sig = result.decode("utf-8").split()[0].strip()
         if expected_sig != actual_sig:
@@ -254,7 +254,7 @@ class Composer(Engine):
             # 'if [[ ! -e $HOME/.composer ]]; then mkdir $HOME/.composer/; fi',
             # 'chmod a+rw $HOME/.composer/',
         ):
-            self.mod.run(command)
+            self.run(command)
 
-        self.mod.run("sudo chown -R $USER: $HOME/.composer")
-        self.mod.run("sudo chmod -R uga+rw $HOME/.composer")
+        self.run("sudo chown -R $USER: $HOME/.composer")
+        self.run("sudo chmod -R uga+rw $HOME/.composer")
