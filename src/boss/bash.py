@@ -9,7 +9,7 @@ from pathlib import Path
 
 from boss.common import Args, Snap
 from boss.errors import CommandError
-from boss.util import display_cmd, error, notify
+from boss.out import display_cmd, error, notify
 
 
 class Bash:

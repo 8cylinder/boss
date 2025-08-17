@@ -15,7 +15,7 @@ from typing import ClassVar
 
 from boss.dist import UbuntuVersion
 from boss.engine import Args, Engine
-from boss.util import error
+from boss.out import error
 
 
 class FakeSMTP(Engine):

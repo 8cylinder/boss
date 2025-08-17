@@ -39,7 +39,7 @@ from boss.mods.phpbin import Composer, PhpBin, PhpInfo, Xdebug
 from boss.mods.virtualhost import VirtualHost
 from boss.mods.webmin import Webmin
 from boss.mods.webservers import Apache2, Nginx
-from boss.util import FD, error, print_fd, title
+from boss.out import FD, error, print_fd, title
 
 # Load environment variables from .env file in current dir or parent directories
 # load_dotenv(dotenv_path=".env.boss")
