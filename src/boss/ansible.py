@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Any, ClassVar
 
-from boss.common import Args, Snap, warn
+from boss.common import Args, Snap
 
 
 class Ansible:
@@ -67,7 +67,7 @@ class Ansible:
         user: str | None = None,
         nosudo: bool = False,  # noqa: ARG002
     ) -> None:
-        """Create a new file with the specified content using Ansible's copy module."""
+        """Create a new file from text using Ansible's copy module."""
         task: dict[str, Any] = {
             "name": f"Create file {filename}",
             "ansible.builtin.copy": {
@@ -80,7 +80,7 @@ class Ansible:
         }
         self.playbook[0]["tasks"].append(task)
 
-    @warn('"append_to_file(...)" is untested in Ansible.')
+    # @warn('"append_to_file(...)" is untested in Ansible.')
     def append_to_file(
         self,
         filename: str | Path,

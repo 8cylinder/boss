@@ -29,8 +29,6 @@ class Bash:
         self.apt_pkgs: list[str] = []
         self.snap_pkgs: list[tuple[str, Snap]] = []
         self.provides: list[str] = []
-        # self.distro = Dist()
-        # self.ubuntu = Ubuntu()
         self.dry_run = dry_run
         self.args = args
         self.scriptname = os.path.basename(__file__)

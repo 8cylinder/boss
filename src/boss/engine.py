@@ -124,7 +124,9 @@ class Engine:
         """Post-installation tasks."""
         return
 
-    # Mapped methods to Bash or Ansible
+    # ---------------------------------
+    # Methods mapped to Bash or Ansible
+    # ---------------------------------
 
     def __getattr__(self, name: str) -> Any:  # noqa: ANN401
         """Delegate attribute access to the mod instance."""

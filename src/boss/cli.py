@@ -39,7 +39,7 @@ from boss.mods.phpbin import Composer, PhpBin, PhpInfo, Xdebug
 from boss.mods.virtualhost import VirtualHost
 from boss.mods.webmin import Webmin
 from boss.mods.webservers import Apache2, Nginx
-from boss.util import error, title
+from boss.util import FD, error, print_fd, title
 
 # Load environment variables from .env file in current dir or parent directories
 # load_dotenv(dotenv_path=".env.boss")
@@ -65,6 +65,7 @@ if dotenv_path := find_dotenv_file():
     click.echo(
         click.style("Loading vars from: ", fg="green")
         + click.style(f'"{dotenv_path}"', fg="green", bold=True),
+        err=True,
     )
     load_dotenv(dotenv_path)
 
@@ -536,7 +537,7 @@ def install(**all_args: Any) -> None:
             "set -x",
             r"PS4=$'\e[30;103m+\e[0m '",
         )
-        click.echo("\n".join(script_header))
+        print_fd("\n".join(script_header), fd=FD.STDOUT)
     elif not args.dry_run:
         wanted_list = ", ".join([i.__name__ for i in wanted])
         click.echo(f"Installing: {wanted_list}")
@@ -566,7 +567,8 @@ def install(**all_args: Any) -> None:
 
     for app_class in wanted:
         module_name = app_class.title
-        title(module_name, script=args.generate_script)
+        if args.bash:
+            title(module_name, script=args.generate_script)
         try:
             app = app_class(
                 dry_run=args.dry_run,
@@ -574,7 +576,6 @@ def install(**all_args: Any) -> None:
                 ubuntu_version=dist_version,
             )
             app.pre_install()
-            # app.mod.install()
             app.install()
             app.post_install()
         except subprocess.CalledProcessError as e:

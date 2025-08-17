@@ -1,8 +1,9 @@
 import re
 import sys
-from typing import ClassVar
+from typing import Any, ClassVar
 
 import click
+import yaml
 
 from boss.dist import UbuntuVersion
 from boss.engine import Args, Engine
@@ -27,11 +28,16 @@ class Last(Engine):
 
     def pre_install(self) -> None:
         """Pre-installation steps for the Last engine."""
-        # https://github.com/pwaller/pyfiglet/blob/master/doc/figfont.txt
         script_mode = False
-        if self.args.generate_script:
+
+        if not self.args.bash:
+            self.output_playbook(self.playbook)
+
+        elif self.args.generate_script:
             sys.stdout.write("set +x\n")
             script_mode = True
+
+        # https://github.com/pwaller/pyfiglet/blob/master/doc/figfont.txt
         if servername := self.args.servername:
             self.run(f"figlet -w89 {servername}")
 
@@ -57,3 +63,8 @@ class Last(Engine):
             click.echo()
 
         sys.stdout.write("\n")
+
+    def output_playbook(self, playbook: list[dict[str, Any]]) -> None:
+        """Output the Ansible playbook."""
+        yaml_content = yaml.dump(playbook, default_flow_style=False)
+        print(yaml_content)
