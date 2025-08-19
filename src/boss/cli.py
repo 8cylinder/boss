@@ -15,6 +15,8 @@ import click
 from click.core import Context, Parameter
 from dotenv import load_dotenv
 
+# from boss.out import FD, error, print_fd, title
+from boss import out
 from boss.dist import UbuntuVersion
 from boss.engine import Args
 from boss.errors import (
@@ -39,7 +41,6 @@ from boss.mods.phpbin import Composer, PhpBin, PhpInfo, Xdebug
 from boss.mods.virtualhost import VirtualHost
 from boss.mods.webmin import Webmin
 from boss.mods.webservers import Apache2, Nginx
-from boss.out import FD, error, print_fd, title
 
 # Load environment variables from .env file in current dir or parent directories
 # load_dotenv(dotenv_path=".env.boss")
@@ -62,10 +63,10 @@ def find_dotenv_file() -> Path | None:
 
 
 if dotenv_path := find_dotenv_file():
-    click.echo(
+    out.print_fd(
         click.style("Loading vars from: ", fg="green")
         + click.style(f'"{dotenv_path}"', fg="green", bold=True),
-        err=True,
+        fd=out.FD.INFO,
     )
     load_dotenv(dotenv_path)
 
@@ -381,6 +382,7 @@ def boss() -> None:
 @click.option(
     "--dist-version",
     type=click.Choice(UbuntuVersion),
+    envvar=f"{PREFIX}DIST_VERSION",
     help="The version of Ubuntu to assume instead of autodetect.",
 )
 # unix user
@@ -495,7 +497,7 @@ def install(**all_args: Any) -> None:
             "Please specify a version with --dist-version.\n"
             f"Available versions: {versions}."
         )
-        error(err_msg)
+        out.error(err_msg)
 
     wanted_mods = [i.lower() for i in args.modules]
 
@@ -503,7 +505,7 @@ def install(**all_args: Any) -> None:
     try:
         wanted = get_matching_modules(wanted_mods)
     except ModuleRequestError as e:
-        error(str(e))
+        out.error(str(e))
 
     if args.required:
         # AptProxy is a special case, it should always be first
@@ -525,7 +527,7 @@ def install(**all_args: Any) -> None:
         missing = set(requires) - set(provided)
         if missing:
             pretty_missing = ", ".join(missing)
-            error(f"Requirements not met. Missing: {pretty_missing}")
+            out.error(f"Requirements not met. Missing: {pretty_missing}")
 
     if args.generate_script:
         script_header = (
@@ -537,12 +539,12 @@ def install(**all_args: Any) -> None:
             "set -x",
             r"PS4=$'\e[30;103m+\e[0m '",
         )
-        print_fd("\n".join(script_header), fd=FD.STDOUT)
+        out.print_fd("\n".join(script_header), fd=out.FD.STDOUT)
     elif not args.dry_run:
         wanted_list = ", ".join([i.__name__ for i in wanted])
-        click.echo(f"Installing: {wanted_list}")
+        out.print_fd(f"Installing: {wanted_list}", fd=out.FD.INFO)
         try:
-            if not click.confirm("Continue?", default=True, abort=True):
+            if not click.confirm("Continue?", default=True, abort=True, err=True):
                 sys.exit()
         except (KeyboardInterrupt, click.Abort):
             # don't show the 'Aborted!' message
@@ -558,7 +560,7 @@ def install(**all_args: Any) -> None:
             is_error = True
             click.secho(str(e), fg="red")
         except PlatformError as e:
-            error(str(e))
+            out.error(str(e))
     if is_error:
         sys.exit(1)
 
@@ -568,7 +570,7 @@ def install(**all_args: Any) -> None:
     for app_class in wanted:
         module_name = app_class.title
         if args.bash:
-            title(module_name, script=args.generate_script)
+            out.title(module_name, script=args.generate_script)
         try:
             app = app_class(
                 dry_run=args.dry_run,
@@ -579,15 +581,15 @@ def install(**all_args: Any) -> None:
             app.install()
             app.post_install()
         except subprocess.CalledProcessError as e:
-            error(str(e))
+            out.error(str(e))
         except DependencyError as e:
-            error(str(e))
+            out.error(str(e))
         except PlatformError as e:
-            error(str(e))
+            out.error(str(e))
         except SecurityError as e:
-            error(str(e))
+            out.error(str(e))
         except FileNotFoundError as e:
-            error(e.args[0])
+            out.error(e.args[0])
         except (KeyboardInterrupt, click.Abort):
             # don't show the 'Aborted!' message
             sys.exit(1)
@@ -607,7 +609,7 @@ def info(full: bool, write_env: bool) -> None:
     for key, val in os.environ.items():
         if key.startswith(PREFIX):
             is_env = True
-            click.echo(f'{key}="{val}"')
+            out.print_fd(f'{key}="{val}"')
 
     if not is_env:
         click.secho(
@@ -615,20 +617,20 @@ def info(full: bool, write_env: bool) -> None:
             fg="yellow",
         )
 
-    click.echo("\n")
+    out.print_fd("\n")
 
     if not full:
         click.secho("Available modules:", fg="green")
         available = ", ".join([i.__name__ for i in MODS])
         available = textwrap.fill(available)
-        click.echo(available)
+        out.print_fd(available)
 
     else:
         indent = "  "
         for mod in MODS:
             click.secho(f"{', '.join(mod.provides)}", bold=True, fg="green")
             if mod.requires:
-                click.echo(
+                out.print_fd(
                     click.style(f"{indent}Req mods: ", dim=True, fg="cyan")
                     + click.style(", ".join(mod.requires), fg="cyan"),
                 )
@@ -636,7 +638,7 @@ def info(full: bool, write_env: bool) -> None:
                 required_args = ", ".join(
                     [f"--{i.replace('_', '-')}" for i in mod.required_args],
                 )
-                click.echo(
+                out.print_fd(
                     click.style(f"{indent}Req opts: ", dim=True, fg="yellow")
                     + click.style(required_args, fg="yellow"),
                 )

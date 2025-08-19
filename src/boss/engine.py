@@ -8,7 +8,8 @@ import datetime
 import os
 from collections.abc import Sequence
 from enum import Enum, auto
-from typing import Any, ClassVar, ParamSpec, TypeVar
+from pathlib import Path
+from typing import ClassVar, ParamSpec, TypeVar
 
 from boss.ansible import Ansible
 from boss.bash import Bash
@@ -92,7 +93,7 @@ class Engine:
         """Check if a package is installed using apt."""
         cmd = f"dpkg-query -Wf'${{db:Status-Status}}' {package_name} 2>/dev/null"
         result = self.run(cmd, capture=True)
-        return result == "installed"
+        return str(result) == "installed"
 
     def info(self, title: str, msg: str) -> None:
         """Add information messages to be displayed later."""
@@ -124,68 +125,68 @@ class Engine:
         """Post-installation tasks."""
         return
 
-    # ---------------------------------
-    # Methods mapped to Bash or Ansible
-    # ---------------------------------
+    # ----------------------------------
+    # Methods mapped to Bash and Ansible
+    # ----------------------------------
 
-    def __getattr__(self, name: str) -> Any:  # noqa: ANN401
-        """Delegate attribute access to the mod instance."""
-        return getattr(self.mod, name)
+    def sed(self, sed_exp: str, config_file: str) -> None:
+        """Replace a string in a file using sed."""
+        self.mod.sed(sed_exp, config_file)
 
-    # def sed(self, sed_exp: str, config_file: str) -> None:
-    #     """Replace a string in a file using sed."""
-    #     self.mod.sed(sed_exp, config_file)
-    #
-    # def write_new_file(
-    #     self,
-    #     filename: str | Path,
-    #     text: str,
-    #     user: str | None = None,
-    #     nosudo: bool = False,
-    # ) -> None:
-    #     """Create a new file with the specified content."""
-    #     self.mod.write_new_file(filename, text, user=user, nosudo=nosudo)
-    #
-    # def append_to_file(
-    #     self,
-    #     filename: str | Path,
-    #     text: str,
-    #     user: str | None = None,
-    #     nosudo: bool = False,
-    #     backup: bool = True,
-    # ) -> None:
-    #     """Append text to a file, optionally backing it up first."""
-    #     self.mod.append_to_file(
-    #         filename, text, user=user, nosudo=nosudo, backup=backup,
-    #     )
-    #
-    # def apt(self, progs: list[str]) -> None:
-    #     """Install packages using apt."""
-    #     self.mod.apt(progs)
-    #
-    # def install(self) -> None:
-    #     """Install both apt and snap packages."""
-    #     self.mod.install()
-    #
-    # def run(
-    #     self,
-    #     cmd: str,
-    #     wrap: bool = True,
-    #     capture: bool = False,
-    #     comment: str = "",
-    # ) -> str:
-    #     """Map run method to composed method."""
-    #     return self.mod.run(cmd, wrap=wrap, capture=capture, comment=comment)
-    #
-    # def curl(
-    #     self,
-    #     url: str,
-    #     output: str,
-    #     capture: bool = False,
-    # ) -> str | int | bytes | None:
-    #     """Map curl method to composed method."""
-    #     return self.mod.curl(url, output, capture=capture)
-    #
-    # def restart_apache(self) -> None:
-    #     """Map restart_apache method to composed method."""
-    #     self.mod.restart_apache()
+    def write_new_file(
+        self,
+        filename: str | Path,
+        text: str,
+        user: str | None = None,
+        nosudo: bool = False,
+    ) -> None:
+        """Create a new file with the specified content."""
+        self.mod.write_new_file(filename, text, user=user, nosudo=nosudo)
+
+    def append_to_file(
+        self,
+        filename: str | Path,
+        text: str,
+        user: str | None = None,
+        nosudo: bool = False,
+        backup: bool = True,
+    ) -> None:
+        """Append text to a file, optionally backing it up first."""
+        self.mod.append_to_file(
+            filename,
+            text,
+            user=user,
+            nosudo=nosudo,
+            backup=backup,
+        )
+
+    def apt(self, progs: list[str]) -> None:
+        """Install packages using apt."""
+        self.mod.apt(progs)
+
+    def install(self) -> None:
+        """Install both apt and snap packages."""
+        self.mod.install()
+
+    def run(
+        self,
+        cmd: str,
+        wrap: bool = True,
+        capture: bool = False,
+        comment: str = "",
+    ) -> str:
+        """Map run method to composed method."""
+        return self.mod.run(cmd, wrap=wrap, capture=capture, comment=comment)
+
+    def curl(
+        self,
+        url: str,
+        output: str,
+        capture: bool = False,
+    ) -> str | int | bytes | None:
+        """Map curl method to composed method."""
+        return self.mod.curl(url, output, capture=capture)
+
+    def restart_apache(self) -> None:
+        """Map restart_apache method to composed method."""
+        self.mod.restart_apache()

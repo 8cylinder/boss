@@ -1,4 +1,18 @@
-"""Utility functions for BOSS scripts and commands."""
+"""Functions for controling the output.
+
+These four function are the main interface for outputting.
+
+- display_cmd: Pretty-print shell commands with optional wrapping and comments.
+- title: Display formatted section titles with optional timestamps.
+- warn: Display warning messages.
+- notify: Display notice messages.
+- error: Display error messages and optionally exit.
+
+They make use of the print_fd function to direct output to the appropriate
+file descriptor (stdout, stderr, or /dev/tty).  The /dev/tty output is meant for
+messages that should always be seen by the user, even if stdout/stderr are
+redirected.
+"""
 
 import datetime
 import enum
@@ -7,7 +21,6 @@ import random
 import string
 import sys
 import textwrap
-from pathlib import Path
 
 import click
 
@@ -20,32 +33,21 @@ class FD(enum.Enum):
     INFO = enum.auto()
 
 
-def print_fd(msg: str, fd: FD = FD.STDOUT) -> None:
+def print_fd(msg: str, *, fd: FD = FD.STDOUT, nl: bool = True) -> None:
     """Print a message to standard output."""
     if fd == FD.STDOUT:
-        click.echo(msg)
+        click.echo(msg, nl=nl)
     elif fd == FD.STDERR:
-        click.echo(msg, err=True)
+        click.echo(msg, err=True, nl=nl)
     elif fd == FD.INFO:
-        tty_path = Path("/dev/tty")
+        end = "\n" if nl else ""
+        # Get the TTY name associated with stdin (file descriptor 0)
+        tty_device = os.ttyname(0)
         try:
-            tty_fd = os.open(tty_path.as_posix(), os.O_WRONLY | os.O_NOCTTY)
-            with os.fdopen(tty_fd, "w") as f:
-                f.write(msg + "\n")
+            with open(tty_device, "w") as tty_fd:
+                tty_fd.write(msg + end)
         except OSError as e:
-            click.echo(f"Error accessing TTY: {e}")
-
-        # with os.fdopen(3, "w") as f:
-        #     f.write(msg + "\n")
-
-        # tty = Path("/dev/tty")
-        # try:
-        #     with tty.open() as f:
-        #         f.write(msg)
-        # except OSError:
-        #     error_msg = "Could not open /dev/tty for writing info message."
-        #     click.echo(error_msg, err=True)
-        #     sys.exit(1)
+            error(f"Error opening or writing to TTY: {e}")
 
 
 def display_cmd(
@@ -97,7 +99,7 @@ def display_cmd(
     else:
         if comment:
             print_fd(click.style(comment, fg="yellow"))
-        print_fd(click.style(fancy, fg="yellow"), fd=FD.INFO)
+        print_fd(click.style(fancy, fg="yellow"), fd=FD.STDOUT)
     sys.stdout.flush()
 
 

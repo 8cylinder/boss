@@ -5,6 +5,7 @@ from typing import Any, ClassVar
 import click
 import yaml
 
+from boss import out
 from boss.dist import UbuntuVersion
 from boss.engine import Args, Engine
 
@@ -28,14 +29,11 @@ class Last(Engine):
 
     def pre_install(self) -> None:
         """Pre-installation steps for the Last engine."""
-        script_mode = False
-
         if not self.args.bash:
             self.output_playbook(self.playbook)
 
         elif self.args.generate_script:
             sys.stdout.write("set +x\n")
-            script_mode = True
 
         # https://github.com/pwaller/pyfiglet/blob/master/doc/figfont.txt
         if servername := self.args.servername:
@@ -47,18 +45,18 @@ class Last(Engine):
 
         end_tree = "└─"
         for title, info in self.info_messages.items():
-            click.secho(title, fg=titlec, bold=True)
+            out.print_fd(click.style(title, fg=titlec, bold=True), fd=out.FD.INFO)
             info[-1] = (end_tree, info[-1][1], info[-1][2])
             for msg in info:
                 tree_line = msg[0]
                 msg_title = msg[1]
                 msg_value = msg[2]
                 msg_value = re.sub(r"\.$", "", msg_value)  # remove trailing period
-                click.echo(
+                out.print_fd(
                     click.style(f"  {tree_line} ", fg=linec, dim=True)
                     + click.style(msg_title + ": ", fg=keyc)
                     + click.style(msg_value, fg=valuec),
-                    err=script_mode,
+                    fd=out.FD.INFO,
                 )
             click.echo()
 
@@ -67,4 +65,4 @@ class Last(Engine):
     def output_playbook(self, playbook: list[dict[str, Any]]) -> None:
         """Output the Ansible playbook."""
         yaml_content = yaml.dump(playbook, default_flow_style=False)
-        print(yaml_content)
+        out.print_fd(yaml_content)

@@ -7,6 +7,8 @@ from typing import NamedTuple, ParamSpec, TypeVar
 
 import click
 
+from boss import out
+
 # Type variable for the return type of the decorated function
 R = TypeVar("R")
 # Parameter specification for capturing all possible argument types
@@ -67,8 +69,8 @@ def warn(warning_message: str) -> Callable[[Callable[P, R]], Callable[P, R | Non
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R | None:
             # Ask user for confirmation
-            click.secho(warning_message, fg="cyan")
-            click.secho("Continue? [y/N] ", fg="cyan", nl=False)
+            out.print_fd(click.style(warning_message, fg="cyan"))
+            out.print_fd(click.style("Continue? [y/N] ", fg="cyan"), nl=False)
             char = click.getchar(echo=True)
             if char == "y":
                 return func(*args, **kwargs)
